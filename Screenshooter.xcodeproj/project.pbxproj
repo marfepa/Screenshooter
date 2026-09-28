@@ -306,6 +306,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				OTHER_CODE_SIGN_FLAGS = "--requirements \"=designated => identifier \\\"com.marfepa.Screenshooter\\\"\"";
 				PRODUCT_BUNDLE_IDENTIFIER = com.marfepa.Screenshooter;
 				PRODUCT_NAME = Screenshooter;
 				SDKROOT = macosx;
@@ -328,6 +329,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				OTHER_CODE_SIGN_FLAGS = "--requirements \"=designated => identifier \\\"com.marfepa.Screenshooter\\\"\"";
 				PRODUCT_BUNDLE_IDENTIFIER = com.marfepa.Screenshooter;
 				PRODUCT_NAME = Screenshooter;
 				SDKROOT = macosx;

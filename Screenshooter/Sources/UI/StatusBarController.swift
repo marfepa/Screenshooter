@@ -54,6 +54,17 @@ public final class StatusBarController {
         permissionItem.target = self
         menu.addItem(permissionItem)
         
+        if !hasPermission {
+            let restartItem = NSMenuItem(
+                title: "🔄 Reiniciar para aplicar permiso",
+                action: #selector(handleRestartClicked),
+                keyEquivalent: "r"
+            )
+            restartItem.keyEquivalentModifierMask = [.command]
+            restartItem.target = self
+            menu.addItem(restartItem)
+        }
+        
         menu.addItem(NSMenuItem.separator())
         
         // 3. Ajustes / Preferencias
@@ -96,6 +107,10 @@ public final class StatusBarController {
         } else {
             PermissionsHelper.shared.promptPermissionDialogIfNeeded()
         }
+    }
+    
+    @objc private func handleRestartClicked() {
+        PermissionsHelper.shared.relaunchApp()
     }
     
     @objc private func handlePreferencesClicked() {

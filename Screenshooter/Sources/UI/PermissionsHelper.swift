@@ -1,9 +1,12 @@
 import AppKit
 import CoreGraphics
 
-/// Asistente para verificación de permisos de grabación de pantalla de macOS y deep linking a Ajustes del Sistema.
+/// Asistente para verificación de permisos de grabación de pantalla de macOS,
+/// deep linking a Ajustes del Sistema y reinicio del proceso para aplicar TCC.
 public final class PermissionsHelper {
     public static let shared = PermissionsHelper()
+    
+    private var hasPromptedSystemDialog = false
     
     private init() {}
     
@@ -26,23 +29,43 @@ public final class PermissionsHelper {
         }
     }
     
-    /// Muestra un diálogo nativo indicando la necesidad del permiso y ofreciendo el botón directo para abrir Ajustes.
+    /// Muestra un diálogo nativo indicando la necesidad del permiso y ofreciendo
+    /// tanto la apertura de Ajustes como el reinicio necesario de la app.
     public func promptPermissionDialogIfNeeded() {
         guard !isScreenCaptureGranted else { return }
         
-        // Disparar la petición del sistema (esto hace que macOS registre la app en la lista de Privacidad)
-        CGRequestScreenCaptureAccess()
+        // Disparar la petición del sistema una única vez para no spamear el diálogo de macOS en cada pulsación
+        if !hasPromptedSystemDialog {
+            hasPromptedSystemDialog = true
+            CGRequestScreenCaptureAccess()
+        }
         
         let alert = NSAlert()
         alert.messageText = "Permiso de Grabación de Pantalla Requerido"
-        alert.informativeText = "Screenshooter necesita autorización para capturar áreas de la pantalla y copiarlas al portapapeles.\n\nPor favor, concede acceso en Ajustes del Sistema > Privacidad y Seguridad > Grabación de Pantalla."
+        alert.informativeText = "Screenshooter necesita autorización para leer los píxeles de la pantalla.\n\n1. Ve a Ajustes del Sistema > Privacidad y Seguridad > Grabación de Pantalla y activa Screenshooter.\n\n2. Si ya lo has activado, pulsa 'Reiniciar Screenshooter' para que macOS aplique los permisos."
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Abrir Ajustes del Sistema")
-        alert.addButton(withTitle: "Más tarde")
+        alert.addButton(withTitle: "Reiniciar Screenshooter")
+        alert.addButton(withTitle: "Cancelar")
         
         let response = alert.runModal()
         if response == .alertFirstButtonReturn {
             openScreenCaptureSettings()
+        } else if response == .alertSecondButtonReturn {
+            relaunchApp()
+        }
+    }
+    
+    /// Reinicia la aplicación para que macOS cargue de inmediato la nueva autorización concedida.
+    public func relaunchApp() {
+        let url = Bundle.main.bundleURL
+        let config = NSWorkspace.OpenConfiguration()
+        config.createsNewApplicationInstance = true
+        
+        NSWorkspace.shared.openApplication(at: url, configuration: config) { _, _ in
+            DispatchQueue.main.async {
+                NSApp.terminate(nil)
+            }
         }
     }
 }
