@@ -34,19 +34,24 @@ final class ScreenshooterTests: XCTestCase {
             return
         }
         
-        context.setFillColor(CGColor(red: 1, green: 0, blue: 0, alpha: 1))
+        context.setFillColor(CGColor(red: 0, green: 0.5, blue: 1, alpha: 1))
         context.fill(CGRect(x: 0, y: 0, width: 10, height: 10))
         guard let testImage = context.makeImage() else {
             XCTFail("No se pudo generar CGImage")
             return
         }
         
-        let copied = ClipboardService.shared.copy(cgImage: testImage, logicalSize: CGSize(width: 10, height: 10), playSound: false)
+        // Usar un pasteboard aislado para no contaminar el portapapeles del sistema del usuario
+        let testPasteboard = NSPasteboard.withUniqueName()
+        let copied = ClipboardService.shared.copy(
+            cgImage: testImage,
+            logicalSize: CGSize(width: 10, height: 10),
+            playSound: false,
+            pasteboard: testPasteboard
+        )
         XCTAssertTrue(copied, "La imagen debe ser transferida al portapapeles con éxito")
         
-        // Verificar que NSPasteboard contiene tipos de imagen
-        let pasteboard = NSPasteboard.general
-        let types = pasteboard.types ?? []
+        let types = testPasteboard.types ?? []
         XCTAssertTrue(types.contains(.tiff) || types.contains(.png), "El portapapeles debe contener tipos de imagen estándar")
     }
     

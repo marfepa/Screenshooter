@@ -88,6 +88,13 @@ public final class CaptureCoordinator {
                 }
             } catch {
                 NSLog("[CaptureCoordinator] Error al capturar área: %@", error.localizedDescription)
+                
+                let alert = NSAlert()
+                alert.messageText = "Error al Capturar Pantalla"
+                alert.informativeText = error.localizedDescription
+                alert.alertStyle = .critical
+                alert.addButton(withTitle: "Aceptar")
+                alert.runModal()
             }
             
             self.isCapturing = false
