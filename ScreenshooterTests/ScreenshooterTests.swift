@@ -65,6 +65,7 @@ final class ScreenshooterTests: XCTestCase {
         XCTAssertNotNil(window.selectionView, "SelectionView debe inicializarse correctamente en SelectionOverlayWindow")
         XCTAssertTrue(window.canBecomeKey, "La ventana overlay debe poder ser keyWindow para recibir eventos de teclado (ESC)")
         XCTAssertTrue(window.canBecomeMain, "La ventana overlay debe poder ser mainWindow")
-        XCTAssertEqual(window.level, .screenSaver, "La ventana debe situarse en el nivel .screenSaver")
+        let expectedLevel = NSWindow.Level(rawValue: NSWindow.Level.popUpMenu.rawValue + 1)
+        XCTAssertEqual(window.level, expectedLevel, "La ventana debe situarse por encima de popUpMenu pero por debajo de alertas del sistema")
     }
 }
