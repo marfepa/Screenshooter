@@ -88,7 +88,7 @@ public final class SelectionView: NSView {
             isSpaceDragging = true
         }
         
-        super.keyDown(with: event)
+        // Consumir el evento silenciosamente para evitar el sonido de error del sistema
     }
     
     public override func keyUp(with event: NSEvent) {
