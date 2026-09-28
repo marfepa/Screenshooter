@@ -9,6 +9,8 @@ public final class CaptureCoordinator {
     
     private var overlayWindows: [SelectionOverlayWindow] = []
     private var isCapturing = false
+    private var activeHUD: HUDNotificationWindow?
+    private var safetyTimer: Timer?
     
     private init() {}
     
@@ -53,6 +55,14 @@ public final class CaptureCoordinator {
             keyWindow.makeKey()
             keyWindow.makeFirstResponder(keyWindow.selectionView)
         }
+        
+        // Temporizador de seguridad: si el overlay lleva más de 30 segundos
+        // sin interacción completada, cancelar automáticamente para evitar bloqueos.
+        safetyTimer?.invalidate()
+        safetyTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: false) { [weak self] _ in
+            NSLog("[CaptureCoordinator] Temporizador de seguridad: cancelando captura por inactividad.")
+            self?.cancelCapture()
+        }
     }
     
     /// Cancela la captura en curso cerrando todas las superposiciones sin alterar el portapapeles.
@@ -67,6 +77,7 @@ public final class CaptureCoordinator {
         dismissOverlays()
         
         Task {
+            defer { self.isCapturing = false }
             do {
                 // Capturar el área seleccionada
                 let result = try await ScreenCaptureEngine.shared.captureArea(rect: rect, on: screen)
@@ -80,32 +91,56 @@ public final class CaptureCoordinator {
                 
                 if copied {
                     // Mostrar notificación HUD flotante durante 1.5s
+                    self.activeHUD?.dismiss()
                     let hud = HUDNotificationWindow(
                         cgImage: result.image,
                         pixelSize: CGSize(width: result.image.width, height: result.image.height)
                     )
+                    self.activeHUD = hud
                     hud.present()
                 }
             } catch {
                 NSLog("[CaptureCoordinator] Error al capturar área: %@", error.localizedDescription)
-                
-                let alert = NSAlert()
-                alert.messageText = "Error al Capturar Pantalla"
-                alert.informativeText = error.localizedDescription
-                alert.alertStyle = .critical
-                alert.addButton(withTitle: "Aceptar")
-                alert.runModal()
+                self.showErrorAlert(message: error.localizedDescription)
             }
-            
-            self.isCapturing = false
         }
     }
     
     private func dismissOverlays() {
+        safetyTimer?.invalidate()
+        safetyTimer = nil
+        
         for window in overlayWindows {
             window.orderOut(nil)
             window.close()
         }
         overlayWindows.removeAll()
+    }
+    
+    /// Muestra una alerta de error no bloqueante elevada al nivel flotante
+    /// para garantizar visibilidad en apps LSUIElement.
+    private func showErrorAlert(message: String) {
+        let alert = NSAlert()
+        alert.messageText = "Error al Capturar Pantalla"
+        alert.informativeText = message
+        alert.alertStyle = .critical
+        alert.addButton(withTitle: "Aceptar")
+        
+        // Crear una ventana auxiliar invisible para anclar la alerta como sheet.
+        // Esto evita runModal() que bloquea el hilo principal.
+        let hostWindow = NSWindow(
+            contentRect: CGRect(x: 0, y: 0, width: 1, height: 1),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: true
+        )
+        hostWindow.level = .floating
+        hostWindow.center()
+        hostWindow.orderFront(nil)
+        
+        alert.beginSheetModal(for: hostWindow) { _ in
+            hostWindow.orderOut(nil)
+            hostWindow.close()
+        }
     }
 }

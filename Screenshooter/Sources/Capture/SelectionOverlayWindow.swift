@@ -1,8 +1,8 @@
 import AppKit
 
 /// Ventana de superposición a pantalla completa para selección de área.
-/// Se sitúa en el nivel .screenSaver para garantizar cobertura sobre cualquier ventana,
-/// menú o espacio virtual de macOS.
+/// Se sitúa por encima de menús emergentes pero por debajo de alertas del sistema,
+/// permitiendo cobertura sobre ventanas normales, Dock y barra de menú.
 public final class SelectionOverlayWindow: NSWindow {
     public private(set) var selectionView: SelectionView!
     
@@ -32,7 +32,9 @@ public final class SelectionOverlayWindow: NSWindow {
         self.selectionView = view
         self.contentView = view
         
-        self.level = .screenSaver
+        // Nivel suficiente para cubrir ventanas normales, Dock y barra de menú,
+        // pero por debajo de alertas del sistema y Force Quit (⌥⌘Esc).
+        self.level = .init(rawValue: NSWindow.Level.popUpMenu.rawValue + 1)
         self.isOpaque = false
         self.backgroundColor = .clear
         self.hasShadow = false
