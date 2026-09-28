@@ -117,8 +117,10 @@ public final class CaptureCoordinator {
         overlayWindows.removeAll()
     }
     
-    /// Muestra una alerta de error no bloqueante elevada al nivel flotante
-    /// para garantizar visibilidad en apps LSUIElement.
+    /// Muestra una alerta de error visible por encima de cualquier ventana.
+    /// Es seguro usar runModal() aquí porque los overlays ya están cerrados
+    /// y la ventana de la alerta se eleva a nivel flotante para garantizar
+    /// visibilidad en apps LSUIElement.
     private func showErrorAlert(message: String) {
         let alert = NSAlert()
         alert.messageText = "Error al Capturar Pantalla"
@@ -126,21 +128,10 @@ public final class CaptureCoordinator {
         alert.alertStyle = .critical
         alert.addButton(withTitle: "Aceptar")
         
-        // Crear una ventana auxiliar invisible para anclar la alerta como sheet.
-        // Esto evita runModal() que bloquea el hilo principal.
-        let hostWindow = NSWindow(
-            contentRect: CGRect(x: 0, y: 0, width: 1, height: 1),
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: true
-        )
-        hostWindow.level = .floating
-        hostWindow.center()
-        hostWindow.orderFront(nil)
-        
-        alert.beginSheetModal(for: hostWindow) { _ in
-            hostWindow.orderOut(nil)
-            hostWindow.close()
-        }
+        // Activar la app para que reciba foco de teclado siendo LSUIElement
+        NSApp.activate(ignoringOtherApps: true)
+        // Elevar la ventana de la alerta al nivel flotante para que sea visible
+        alert.window.level = .floating
+        alert.runModal()
     }
 }

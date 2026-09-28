@@ -41,6 +41,9 @@ public final class SelectionOverlayWindow: NSWindow {
         self.ignoresMouseEvents = false
         self.acceptsMouseMovedEvents = true
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        // Desactivar la liberación automática de AppKit al cerrar para evitar
+        // double-free con ARC (NSWindow.close() envía un release extra por defecto).
+        self.isReleasedWhenClosed = false
     }
     
     public override var canBecomeKey: Bool {

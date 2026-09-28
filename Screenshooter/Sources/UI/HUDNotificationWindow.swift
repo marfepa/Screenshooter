@@ -30,6 +30,9 @@ public final class HUDNotificationWindow: NSWindow {
         self.hasShadow = true
         self.ignoresMouseEvents = false
         self.collectionBehavior = [.canJoinAllSpaces, .transient]
+        // Desactivar la liberación automática de AppKit al cerrar para evitar
+        // double-free con ARC (NSWindow.close() envía un release extra por defecto).
+        self.isReleasedWhenClosed = false
         
         setupContent(cgImage: cgImage, pixelSize: pixelSize)
     }
