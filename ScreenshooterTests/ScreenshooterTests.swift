@@ -49,4 +49,17 @@ final class ScreenshooterTests: XCTestCase {
         let types = pasteboard.types ?? []
         XCTAssertTrue(types.contains(.tiff) || types.contains(.png), "El portapapeles debe contener tipos de imagen estándar")
     }
+    
+    @MainActor
+    func testSelectionOverlayWindowInitialization() {
+        guard let screen = NSScreen.main ?? NSScreen.screens.first else {
+            return
+        }
+        
+        let window = SelectionOverlayWindow(screen: screen)
+        XCTAssertNotNil(window.selectionView, "SelectionView debe inicializarse correctamente en SelectionOverlayWindow")
+        XCTAssertTrue(window.canBecomeKey, "La ventana overlay debe poder ser keyWindow para recibir eventos de teclado (ESC)")
+        XCTAssertTrue(window.canBecomeMain, "La ventana overlay debe poder ser mainWindow")
+        XCTAssertEqual(window.level, .screenSaver, "La ventana debe situarse en el nivel .screenSaver")
+    }
 }

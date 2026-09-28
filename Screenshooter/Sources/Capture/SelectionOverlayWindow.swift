@@ -4,19 +4,33 @@ import AppKit
 /// Se sitúa en el nivel .screenSaver para garantizar cobertura sobre cualquier ventana,
 /// menú o espacio virtual de macOS.
 public final class SelectionOverlayWindow: NSWindow {
-    public let selectionView: SelectionView
+    public private(set) var selectionView: SelectionView!
     
-    public init(screen: NSScreen) {
-        let contentRect = screen.frame
-        self.selectionView = SelectionView(frame: NSRect(origin: .zero, size: contentRect.size), screen: screen)
-        
+    public override init(
+        contentRect: NSRect,
+        styleMask style: NSWindow.StyleMask,
+        backing backingStoreType: NSWindow.BackingStoreType,
+        defer flag: Bool
+    ) {
         super.init(
             contentRect: contentRect,
+            styleMask: style,
+            backing: backingStoreType,
+            defer: flag
+        )
+    }
+    
+    public convenience init(screen: NSScreen) {
+        self.init(
+            contentRect: screen.frame,
             styleMask: [.borderless],
             backing: .buffered,
-            defer: false,
-            screen: screen
+            defer: false
         )
+        
+        let view = SelectionView(frame: NSRect(origin: .zero, size: screen.frame.size), screen: screen)
+        self.selectionView = view
+        self.contentView = view
         
         self.level = .screenSaver
         self.isOpaque = false
@@ -25,7 +39,6 @@ public final class SelectionOverlayWindow: NSWindow {
         self.ignoresMouseEvents = false
         self.acceptsMouseMovedEvents = true
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
-        self.contentView = selectionView
     }
     
     public override var canBecomeKey: Bool {

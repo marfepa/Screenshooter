@@ -30,6 +30,9 @@ public final class CaptureCoordinator {
     private func presentOverlays() {
         dismissOverlays()
         
+        // Activar la aplicación explícitamente para que reciba eventos de ratón y teclado siendo LSUIElement
+        NSApp.activate(ignoringOtherApps: true)
+        
         for screen in NSScreen.screens {
             let overlay = SelectionOverlayWindow(screen: screen)
             
@@ -45,9 +48,10 @@ public final class CaptureCoordinator {
             overlayWindows.append(overlay)
         }
         
-        // Asegurar foco para capturar atajos de teclado como la tecla ESC
+        // Asegurar foco y primer respondedor en la ventana de la pantalla activa para capturar atajos como ESC
         if let keyWindow = overlayWindows.first(where: { $0.screen == NSScreen.main }) ?? overlayWindows.first {
             keyWindow.makeKey()
+            keyWindow.makeFirstResponder(keyWindow.selectionView)
         }
     }
     
