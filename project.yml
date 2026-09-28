@@ -1,0 +1,47 @@
+name: Screenshooter
+options:
+  bundleIdPrefix: com.marfepa
+  deploymentTarget:
+    macOS: "14.0"
+targets:
+  Screenshooter:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Screenshooter/Sources
+      - path: Screenshooter/Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.marfepa.Screenshooter
+        INFOPLIST_FILE: Screenshooter/Resources/Info.plist
+        PRODUCT_NAME: Screenshooter
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        SWIFT_VERSION: "5.9"
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: YES
+    dependencies:
+      - sdk: AppKit.framework
+      - sdk: Carbon.framework
+      - sdk: CoreGraphics.framework
+      - sdk: AudioToolbox.framework
+      - sdk: ScreenCaptureKit.framework
+  ScreenshooterTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: ScreenshooterTests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.marfepa.ScreenshooterTests
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        SWIFT_VERSION: "5.9"
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: YES
+    dependencies:
+      - target: Screenshooter
