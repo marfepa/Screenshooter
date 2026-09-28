@@ -1,0 +1,16 @@
+# Xcode & Swift
+.DS_Store
+*/.DS_Store
+build/
+DerivedData/
+*.xcuserstate
+project.xcworkspace/
+xcuserdata/
+.build/
+
+# SPM
+.swiftpm/
+
+# IDEs
+.idea/
+.vscode/

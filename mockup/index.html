@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maqueta Viva — Screenshooter para macOS</title>
+  <style>
+    /* ==========================================================================
+       1. TOKENS DE DISEÑO macOS (Human Interface Guidelines)
+       ========================================================================== */
+    :root {
+      --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Helvetica, Arial, sans-serif;
+      --font-mono: "SF Mono", Menlo, Monaco, Consolas, monospace;
+      
+      --bg-body: #1e1e1e;
+      --bg-sidebar: #252526;
+      --bg-canvas: #121214;
+      --bg-surface: #2d2d30;
+      --bg-surface-elevated: #38383d;
+      --bg-menu: rgba(40, 40, 44, 0.95);
+      
+      --text-primary: #ffffff;
+      --text-secondary: #a1a1a6;
+      --text-muted: #6e6e73;
+      
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-medium: rgba(255, 255, 255, 0.16);
+      
+      --mac-blue: #0a84ff;
+      --mac-blue-hover: #0071e3;
+      --mac-blue-subtle: rgba(10, 132, 255, 0.15);
+      
+      --mac-green: #30d158;
+      --mac-green-subtle: rgba(48, 209, 88, 0.15);
+      
+      --mac-red: #ff453a;
+      --mac-red-subtle: rgba(255, 69, 58, 0.15);
+      
+      --mac-amber: #ffd60a;
+      --mac-amber-subtle: rgba(255, 214, 10, 0.15);
+      
+      --radius-sm: 5px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-window: 10px;
+      
+      --shadow-menu: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      --shadow-hud: 0 12px 36px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.15);
+      --shadow-window: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.12);
+      
+      --sidebar-width: 320px;
+    }
+
+    [data-theme="light"] {
+      --bg-body: #ececec;
+      --bg-sidebar: #f6f6f6;
+      --bg-canvas: #dcdcdc;
+      --bg-surface: #ffffff;
+      --bg-surface-elevated: #f0f0f0;
+      --bg-menu: rgba(246, 246, 246, 0.95);
+      
+      --text-primary: #1d1d1f;
+      --text-secondary: #515154;
+      --text-muted: #86868b;
+      
+      --border-subtle: rgba(0, 0, 0, 0.08);
+      --border-medium: rgba(0, 0, 0, 0.16);
+      
+      --mac-blue: #0071e3;
+      --mac-blue-hover: #0077ed;
+      --mac-blue-subtle: rgba(0, 113, 227, 0.12);
+      
+      --shadow-menu: 0 10px 30px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.08);
+      --shadow-hud: 0 12px 36px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.1);
+      --shadow-window: 0 20px 50px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-body);
+      color: var(--text-primary);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      font-size: 13px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ==========================================================================
+       2. PANEL LATERAL (SIDEBAR AUDITORÍA Y NAVEGACIÓN)
+       ========================================================================== */
+    .sidebar {
+      width: var(--sidebar-width);
+      min-width: var(--sidebar-width);
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      z-index: 20;
+    }
+
+    .sidebar-header {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .app-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--mac-blue);
+      background: var(--mac-blue-subtle);
+      padding: 2px 7px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 6px;
+    }
+
+    .app-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.2px;
+    }
+
+    .controls-panel {
+      padding: 12px 18px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .control-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .btn-group {
+      display: flex;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 2px;
+      gap: 2px;
+    }
+
+    .btn-toggle {
+      border: none;
+      background: none;
+      padding: 3px 8px;
+      font-size: 11px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      border-radius: 3px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-toggle.active {
+      background: var(--mac-blue);
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    .scenes-nav {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 16px;
+    }
+
+    .flow-group {
+      margin-bottom: 18px;
+    }
+
+    .flow-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      padding-left: 6px;
+    }
+
+    .scene-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .scene-btn {
+      width: 100%;
+      text-align: left;
+      border: 1px solid transparent;
+      background: none;
+      padding: 7px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.15s ease;
+    }
+
+    .scene-btn:hover {
+      background: var(--border-subtle);
+      color: var(--text-primary);
+    }
+
+    .scene-btn.active {
+      background: var(--mac-blue);
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    .scene-badge {
+      font-size: 9px;
+      font-weight: 600;
+      padding: 2px 5px;
+      border-radius: 3px;
+      background: var(--border-subtle);
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .scene-btn.active .scene-badge {
+      background: rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+    }
+
+    .scene-notes-panel {
+      padding: 14px 18px;
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .notes-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+    }
+
+    .notes-body {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.45;
+    }
+
+    /* ==========================================================================
+       3. LIENZO Y ESCRITORIO macOS
+       ========================================================================== */
+    .canvas-container {
+      flex: 1;
+      height: 100%;
+      background: var(--bg-canvas);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Barra Superior de macOS (Menu Bar) */
+    .macos-menubar {
+      width: 100%;
+      height: 28px;
+      background: rgba(28, 28, 30, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 12px;
+      font-weight: 500;
+      z-index: 50;
+      user-select: none;
+    }
+
+    [data-theme="light"] .macos-menubar {
+      background: rgba(255, 255, 255, 0.85);
+      color: #1d1d1f;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .menubar-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .apple-icon {
+      font-size: 13px;
+    }
+
+    .menubar-app-name {
+      font-weight: 600;
+    }
+
+    .menubar-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .menubar-status-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      cursor: pointer;
+      position: relative;
+      transition: background 0.1s ease;
+    }
+
+    .menubar-status-item:hover, .menubar-status-item.active {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    [data-theme="light"] .menubar-status-item:hover,
+    [data-theme="light"] .menubar-status-item.active {
+      background: rgba(0, 0, 0, 0.08);
+    }
+
+    .camera-glyph {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Menú desplegable macOS */
+    .macos-menu-dropdown {
+      position: absolute;
+      top: 32px;
+      right: 90px;
+      width: 250px;
+      background: var(--bg-menu);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-menu);
+      padding: 5px;
+      z-index: 100;
+      font-size: 12px;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      color: var(--text-primary);
+      user-select: none;
+    }
+
+    .menu-item:hover {
+      background: var(--mac-blue);
+      color: #ffffff;
+    }
+
+    .menu-item:hover .menu-shortcut {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .menu-shortcut {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+
+    .menu-separator {
+      height: 1px;
+      background: var(--border-subtle);
+      margin: 4px 6px;
+    }
+
+    .menu-item-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      padding: 4px 10px;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--mac-green);
+    }
+
+    .status-dot.danger {
+      background: var(--mac-red);
+    }
+
+    /* ==========================================================================
+       4. ESCENAS DENTRO DEL DESKTOP (VIEWPORT)
+       ========================================================================== */
+    .desktop-area {
+      flex: 1;
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Fondo simulado de macOS con wallpaper sutil y ventana de muestra */
+    .simulated-screen {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      background: radial-gradient(circle at 50% 30%, #202b38 0%, #0d1117 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    [data-theme="light"] .simulated-screen {
+      background: radial-gradient(circle at 50% 30%, #a0c4e2 0%, #e2eafc 100%);
+    }
+
+    /* Ventana de muestra sobre la que se hace captura */
+    .sample-app-window {
+      width: 720px;
+      height: 440px;
+      background: var(--bg-surface);
+      border-radius: var(--radius-window);
+      box-shadow: var(--shadow-window);
+      border: 1px solid var(--border-medium);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .window-titlebar {
+      height: 38px;
+      background: var(--bg-surface-elevated);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      position: relative;
+    }
+
+    .window-traffic-lights {
+      display: flex;
+      gap: 7px;
+    }
+
+    .traffic-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+    }
+    .traffic-red { background: #ff5f56; }
+    .traffic-yellow { background: #ffbd2e; }
+    .traffic-green { background: #27c93f; }
+
+    .window-title {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .window-content {
+      flex: 1;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      color: var(--text-primary);
+    }
+
+    /* ==========================================================================
+       5. COMPONENTE: OVERLAY DE SELECCIÓN DE ÁREA
+       ========================================================================== */
+    .capture-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 80;
+      cursor: crosshair;
+      user-select: none;
+    }
+
+    .selection-box {
+      position: absolute;
+      top: 140px;
+      left: 280px;
+      width: 440px;
+      height: 270px;
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
+      border: 1.5px solid var(--mac-blue);
+      border-radius: 1px;
+      pointer-events: none;
+    }
+
+    .selection-dim-badge {
+      position: absolute;
+      bottom: -28px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(20, 20, 22, 0.9);
+      color: #ffffff;
+      padding: 3px 9px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      white-space: nowrap;
+    }
+
+    .overlay-floating-bar {
+      position: absolute;
+      top: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(24, 24, 28, 0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      padding: 8px 18px;
+      border-radius: 20px;
+      box-shadow: var(--shadow-hud);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 12px;
+      color: #ffffff;
+      z-index: 90;
+    }
+
+    .help-hint {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .key-badge {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    /* ==========================================================================
+       6. COMPONENTE: HUD DE CONFIRMACIÓN (FLASH / CLIPBOARD)
+       ========================================================================== */
+    .hud-notification {
+      position: absolute;
+      top: 50px;
+      right: 30px;
+      background: rgba(28, 28, 32, 0.95);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-radius: var(--radius-lg);
+      padding: 12px 16px;
+      box-shadow: var(--shadow-hud);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 120;
+      animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideInRight {
+      from { transform: translateX(40px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .hud-preview-thumb {
+      width: 48px;
+      height: 36px;
+      border-radius: 4px;
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .hud-thumb-inner {
+      width: 32px;
+      height: 20px;
+      background: linear-gradient(135deg, #0a84ff 0%, #5e5ce6 100%);
+      border-radius: 2px;
+    }
+
+    .hud-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .hud-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .hud-subtitle {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    /* ==========================================================================
+       7. COMPONENTES: DIÁLOGOS MODALES Y PREFERENCIAS
+       ========================================================================== */
+    .modal-backdrop {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 150;
+    }
+
+    .native-window {
+      background: var(--bg-surface);
+      width: 440px;
+      border-radius: var(--radius-window);
+      box-shadow: var(--shadow-window);
+      border: 1px solid var(--border-medium);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-content-area {
+      padding: 22px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .pref-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .pref-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .pref-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .pref-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .pref-desc {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    /* Switch nativo macOS */
+    .mac-switch {
+      position: relative;
+      display: inline-block;
+      width: 38px;
+      height: 22px;
+    }
+
+    .mac-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .switch-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: var(--border-medium);
+      transition: .2s;
+      border-radius: 22px;
+    }
+
+    .switch-slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: .2s;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    input:checked + .switch-slider {
+      background-color: var(--mac-blue);
+    }
+
+    input:checked + .switch-slider:before {
+      transform: translateX(16px);
+    }
+
+    /* Shortcut recorder badge */
+    .shortcut-field {
+      display: flex;
+      align-items: center;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-medium);
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+
+    .shortcut-field:hover {
+      border-color: var(--mac-blue);
+    }
+
+    .native-footer {
+      padding: 12px 20px;
+      background: var(--bg-surface-elevated);
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .mac-btn {
+      padding: 5px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--border-medium);
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      transition: all 0.1s ease;
+    }
+
+    .mac-btn:hover {
+      background: var(--bg-surface-elevated);
+    }
+
+    .mac-btn-primary {
+      background: var(--mac-blue);
+      border-color: var(--mac-blue);
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    .mac-btn-primary:hover {
+      background: var(--mac-blue-hover);
+    }
+
+    /* Microinteracciones info tags */
+    .info-tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--mac-blue-subtle);
+      color: var(--mac-blue);
+      font-size: 10px;
+      font-weight: 700;
+      cursor: help;
+      margin-left: 4px;
+      vertical-align: middle;
+    }
+
+    .info-tag:hover::after {
+      content: attr(data-info);
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 15, 18, 0.95);
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      white-space: normal;
+      width: 200px;
+      z-index: 200;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      pointer-events: none;
+      line-height: 1.35;
+      font-weight: normal;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========================================================================
+       PANEL LATERAL: ÍNDICE DE ESCENAS, AUDITORÍA HIG Y CONTROLES
+       ======================================================================== -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="app-badge">Living Mockup · macOS Native</span>
+      <h1 class="app-title">Screenshooter</h1>
+    </div>
+
+    <!-- Controles de Modo -->
+    <div class="controls-panel">
+      <div class="control-row">
+        <span class="control-label">Apariencia</span>
+        <div class="btn-group">
+          <button class="btn-toggle" onclick="setTheme('light', this)">Claro</button>
+          <button class="btn-toggle active" onclick="setTheme('dark', this)">Oscuro</button>
+        </div>
+      </div>
+      <div class="control-row">
+        <span class="control-label">Feedback Sonoro</span>
+        <span style="font-size:11px; color:var(--mac-green); font-weight:600;">✓ Obturador nativo</span>
+      </div>
+    </div>
+
+    <!-- Índice de Escenas por Flujo de Usuario -->
+    <nav class="scenes-nav">
+      <div class="flow-group">
+        <div class="flow-title">1. Ciclo de Captura de Área</div>
+        <ul class="scene-list">
+          <li>
+            <button class="scene-btn active" onclick="renderScene('menubar_normal', this)">
+              <span>1.1 Menú de Barra (Normal)</span>
+              <span class="scene-badge">Menu</span>
+            </button>
+          </li>
+          <li>
+            <button class="scene-btn" onclick="renderScene('overlay_selecting', this)">
+              <span>1.2 Superposición de Recorte</span>
+              <span class="scene-badge">Overlay</span>
+            </button>
+          </li>
+          <li>
+            <button class="scene-btn" onclick="renderScene('hud_feedback', this)">
+              <span>1.3 Portapapeles & HUD</span>
+              <span class="scene-badge">Feedback</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <div class="flow-group">
+        <div class="flow-title">2. Estados del Sistema</div>
+        <ul class="scene-list">
+          <li>
+            <button class="scene-btn" onclick="renderScene('empty_onboarding', this)">
+              <span>2.1 Primer Inicio (Vacío)</span>
+              <span class="scene-badge">Vacío</span>
+            </button>
+          </li>
+          <li>
+            <button class="scene-btn" onclick="renderScene('error_permissions', this)">
+              <span>2.2 Permiso Denegado</span>
+              <span class="scene-badge">Error</span>
+            </button>
+          </li>
+          <li>
+            <button class="scene-btn" onclick="renderScene('preferences_modal', this)">
+              <span>2.3 Preferencias y Atajo</span>
+              <span class="scene-badge">Modal</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+    </nav>
+
+    <!-- Notas de la Escena Actual -->
+    <div class="scene-notes-panel">
+      <div class="notes-title">Decisiones HIG & Microinteracciones</div>
+      <p class="notes-body" id="scene-notes">
+        Cargando notas...
+      </p>
+    </div>
+  </aside>
+
+  <!-- ========================================================================
+       LIENZO: ESCRITORIO macOS VIRTUAL
+       ======================================================================== -->
+  <main class="canvas-container">
+    <!-- Barra de Menús Superior de macOS -->
+    <header class="macos-menubar">
+      <div class="menubar-left">
+        <span class="apple-icon"></span>
+        <span class="menubar-app-name">Finder</span>
+        <span style="color:var(--text-muted)">Archivo</span>
+        <span style="color:var(--text-muted)">Edición</span>
+        <span style="color:var(--text-muted)">Ver</span>
+        <span style="color:var(--text-muted)">Ventana</span>
+        <span style="color:var(--text-muted)">Ayuda</span>
+      </div>
+      <div class="menubar-right">
+        <!-- Ítem de Estado de Screenshooter en MenuBar -->
+        <div class="menubar-status-item active" id="menubar-icon" onclick="renderScene('menubar_normal')">
+          <svg class="camera-glyph" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M5.5 2.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v1h3A1.5 1.5 0 0 1 15 5v7.5A1.5 1.5 0 0 1 13.5 14h-11A1.5 1.5 0 0 1 1 12.5V5a1.5 1.5 0 0 1 1.5-1.5h3v-1zm2.5 3a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 1a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/>
+          </svg>
+          <span class="info-tag" data-info="Icono residente en NSStatusBar. No ensucia el Dock (LSUIElement = 1).">(i)</span>
+        </div>
+        <span style="color:var(--text-muted); font-size:11px;">10:30 AM</span>
+      </div>
+    </header>
+
+    <!-- Área de Escritorio Simulado -->
+    <div class="desktop-area">
+      <!-- Fondo y Ventana de Prueba -->
+      <div class="simulated-screen">
+        <div class="sample-app-window">
+          <div class="window-titlebar">
+            <div class="window-traffic-lights">
+              <span class="traffic-dot traffic-red"></span>
+              <span class="traffic-dot traffic-yellow"></span>
+              <span class="traffic-dot traffic-green"></span>
+            </div>
+            <div class="window-title">Documento de Trabajo — Vista Previa</div>
+          </div>
+          <div class="window-content">
+            <h2 style="font-size: 18px; font-weight:700;">Gráfico de Rendimiento</h2>
+            <p style="color:var(--text-secondary); font-size: 13px;">
+              Este es un contenido de ejemplo en pantalla. El usuario activa el atajo global de teclado en cualquier momento para recortar exactamente esta sección y copiarla al portapapeles.
+            </p>
+            <div style="height: 180px; background: rgba(255,255,255,0.03); border: 1px dashed var(--border-medium); border-radius: 8px; display:flex; align-items:center; justify-content:center; color: var(--text-muted); font-size: 12px;">
+              [ Área gráfica recortable: Diagrama de arquitectura ]
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contenedor Dinámico de la Escena Activa -->
+      <div id="dynamic-scene-layer" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;">
+        <!-- Se inyecta por JS -->
+      </div>
+    </div>
+  </main>
+
+  <!-- ========================================================================
+       LÓGICA JAVASCRIPT: ESCENAS Y MICROINTERACCIONES
+       ======================================================================== -->
+  <script>
+    const scenes = {
+      // 1.1 Estado Normal: Menú de la barra de menús desplegado
+      menubar_normal: {
+        notes: "Estado normal: La aplicación corre como agente en segundo plano (LSUIElement = true) sin icono en el Dock. Su presencia radica en el NSStatusBarItem. Al hacer clic o al invocarla, muestra el menú contextual con atajos globales claramente indicados y el estado del permiso de grabación.",
+        render: () => `
+          <div class="macos-menu-dropdown" style="pointer-events:auto;">
+            <div class="menu-item" onclick="renderScene('overlay_selecting')">
+              <span>Capturar área seleccionada...</span>
+              <span class="menu-shortcut">⌥⌘S</span>
+            </div>
+            <div class="menu-separator"></div>
+            <div class="menu-item-status">
+              <span class="status-dot"></span>
+              <span>Permiso de pantalla: Concedido</span>
+            </div>
+            <div class="menu-separator"></div>
+            <div class="menu-item" onclick="renderScene('preferences_modal')">
+              <span>Ajustes y Atajo...</span>
+              <span class="menu-shortcut">⌘,</span>
+            </div>
+            <div class="menu-separator"></div>
+            <div class="menu-item" onclick="alert('Screenshooter finalizado.')">
+              <span>Salir de Screenshooter</span>
+              <span class="menu-shortcut">⌘Q</span>
+            </div>
+          </div>
+        `
+      },
+
+      // 1.2 Superposición de recorte interactiva (Overlay)
+      overlay_selecting: {
+        notes: "Modo Selección Activo: Ventana NSWindow transparente, sin bordes a nivel .screenSaver. Cubre todas las pantallas activas. El cursor pasa a ser una cruz de precisión (NSCursor.crosshair). Al arrastrar con el ratón se dibuja el marco azul con indicador de dimensiones en píxeles reales. 'ESC' cancela inmediatamente.",
+        render: () => `
+          <div class="capture-overlay" style="pointer-events:auto;">
+            <!-- Barra superior flotante de instrucciones -->
+            <div class="overlay-floating-bar">
+              <div class="help-hint">
+                <span class="key-badge">Arrastrar</span>
+                <span>Seleccionar área</span>
+              </div>
+              <div class="help-hint">
+                <span class="key-badge">Espacio</span>
+                <span>Mover selección</span>
+              </div>
+              <div class="help-hint">
+                <span class="key-badge">ESC</span>
+                <span>Cancelar</span>
+              </div>
+              <div class="help-hint" style="color:var(--mac-blue); font-weight:600;">
+                <span class="key-badge" style="background:var(--mac-blue); color:#fff;">Soltar</span>
+                <span>Copiar al portapapeles</span>
+              </div>
+            </div>
+
+            <!-- Recuadro activo de selección -->
+            <div class="selection-box" style="pointer-events:auto;" onclick="renderScene('hud_feedback')">
+              <div class="selection-dim-badge">
+                440 × 270 px
+                <span class="info-tag" data-info="Dimensiones en píxeles lógicos (o 2x en Retina Display).">(i)</span>
+              </div>
+            </div>
+          </div>
+        `
+      },
+
+      // 1.3 Feedback: HUD flotante y copia al portapapeles
+      hud_feedback: {
+        notes: "Feedback instantáneo: Una vez soltado el botón del ratón, el overlay desaparece al instante. La imagen recortada se transfiere a NSPasteboard.general como TIFF/PNG. Se reproduce el sonido nativo de obturador y aparece un HUD flotante no invasivo durante 1.5s.",
+        render: () => `
+          <div class="hud-notification" style="pointer-events:auto;" onclick="renderScene('menubar_normal')">
+            <div class="hud-preview-thumb">
+              <div class="hud-thumb-inner"></div>
+            </div>
+            <div class="hud-info">
+              <div class="hud-title">
+                <span style="color:var(--mac-green); font-size:14px;">✓</span>
+                <span>Copiado al portapapeles</span>
+                <span class="info-tag" data-info="Disponible de inmediato para pegar con ⌘V en cualquier app (Slack, Notion, Figma, etc.).">(i)</span>
+              </div>
+              <div class="hud-subtitle">440 × 270 px · PNG en memoria</div>
+            </div>
+          </div>
+        `
+      },
+
+      // 2.1 Estado Vacío / Onboarding: Primera apertura
+      empty_onboarding: {
+        notes: "Primer inicio (Vacío): Guía inicial para el usuario. Le indica que la aplicación reside en la barra de menús superior y le permite probar su primera captura o configurar el atajo deseado.",
+        render: () => `
+          <div class="modal-backdrop" style="pointer-events:auto;">
+            <div class="native-window" style="width: 420px;">
+              <div class="window-titlebar">
+                <div class="window-traffic-lights">
+                  <span class="traffic-dot traffic-red" onclick="renderScene('menubar_normal')"></span>
+                </div>
+                <div class="window-title">Bienvenido a Screenshooter</div>
+              </div>
+              <div class="modal-content-area" style="text-align:center; align-items:center;">
+                <div style="width:56px; height:56px; border-radius:14px; background:var(--mac-blue-subtle); color:var(--mac-blue); display:flex; align-items:center; justify-content:center; font-size:28px;">
+                  📸
+                </div>
+                <div>
+                  <h3 style="font-size:16px; font-weight:700; margin-bottom:6px;">Capturas rápidas al portapapeles</h3>
+                  <p style="font-size:12px; color:var(--text-secondary); line-height:1.5;">
+                    Screenshooter permanece activo en tu barra de menús. Cuando necesites capturar una parte de tu pantalla, pulsa el atajo global:
+                  </p>
+                </div>
+                <div style="background:var(--bg-surface-elevated); padding:8px 16px; border-radius:8px; border:1px solid var(--border-medium); font-family:var(--font-mono); font-size:15px; font-weight:700; color:var(--mac-blue);">
+                  ⌥ ⌘ S
+                </div>
+                <p style="font-size:11px; color:var(--text-muted);">
+                  El área seleccionada se copiará directamente al portapapeles lista para pegar con ⌘V.
+                </p>
+              </div>
+              <div class="native-footer">
+                <button class="mac-btn mac-btn-primary" onclick="renderScene('overlay_selecting')">Probar captura ahora</button>
+              </div>
+            </div>
+          </div>
+        `
+      },
+
+      // 2.2 Estado Error: Sin permiso de grabación de pantalla
+      error_permissions: {
+        notes: "Estado de Error (Permiso requerido): macOS requiere explícitamente autorización en 'Ajustes del Sistema > Privacidad y Seguridad > Grabación de Pantalla'. Si no se ha concedido, Screenshooter muestra un aviso con enlace directo que abre el panel exacto de Ajustes del Sistema.",
+        render: () => `
+          <div class="modal-backdrop" style="pointer-events:auto;">
+            <div class="native-window" style="width: 440px;">
+              <div class="window-titlebar">
+                <div class="window-traffic-lights">
+                  <span class="traffic-dot traffic-red" onclick="renderScene('menubar_normal')"></span>
+                </div>
+                <div class="window-title">Permiso Necesario</div>
+              </div>
+              <div class="modal-content-area" style="flex-direction:row; align-items:flex-start; gap:16px;">
+                <div style="font-size:36px; line-height:1;">⚠️</div>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                  <h4 style="font-size:14px; font-weight:700; color:var(--text-primary);">Screenshooter necesita acceso para capturar la pantalla</h4>
+                  <p style="font-size:12px; color:var(--text-secondary); line-height:1.45;">
+                    macOS protege tu privacidad requiriendo permiso para leer los píxeles de la pantalla. Activa el interruptor en Ajustes del Sistema para permitir las capturas de área.
+                  </p>
+                </div>
+              </div>
+              <div class="native-footer">
+                <button class="mac-btn" onclick="renderScene('menubar_normal')">Más tarde</button>
+                <button class="mac-btn mac-btn-primary" onclick="alert('Abriendo Ajustes del Sistema > Privacidad y Seguridad > Grabación de pantalla...'); renderScene('menubar_normal');">
+                  Abrir Ajustes del Sistema
+                  <span class="info-tag" data-info="Abre x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture">(i)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        `
+      },
+
+      // 2.3 Modal: Preferencias y configuración del atajo
+      preferences_modal: {
+        notes: "Modal de Preferencias: Diálogo nativo accesible desde la barra de menús o ⌘,. Permite modificar la combinación de teclas global (Carbon Event HotKey o CGEventTap), alternar el sonido de obturador, y configurar el inicio automático con el sistema.",
+        render: () => `
+          <div class="modal-backdrop" style="pointer-events:auto;">
+            <div class="native-window" style="width: 460px;">
+              <div class="window-titlebar">
+                <div class="window-traffic-lights">
+                  <span class="traffic-dot traffic-red" onclick="renderScene('menubar_normal')"></span>
+                </div>
+                <div class="window-title">Ajustes — Screenshooter</div>
+              </div>
+              <div class="modal-content-area">
+                <!-- Fila 1: Atajo global -->
+                <div class="pref-row">
+                  <div class="pref-meta">
+                    <span class="pref-label">Atajo de captura de área</span>
+                    <span class="pref-desc">Combinación global de teclas para activar la selección.</span>
+                  </div>
+                  <div class="shortcut-field" title="Haz clic para grabar nuevo atajo">
+                    ⌥ ⌘ S
+                    <span class="info-tag" data-info="Registrado a través de Carbon HotKey API para no requerir permisos de accesibilidad innecesarios.">(i)</span>
+                  </div>
+                </div>
+
+                <!-- Fila 2: Sonido de obturador -->
+                <div class="pref-row">
+                  <div class="pref-meta">
+                    <span class="pref-label">Sonido de obturador</span>
+                    <span class="pref-desc">Reproduce un sutil sonido de cámara al completar el recorte.</span>
+                  </div>
+                  <label class="mac-switch">
+                    <input type="checkbox" checked>
+                    <span class="switch-slider"></span>
+                  </label>
+                </div>
+
+                <!-- Fila 3: Guardar en portapapeles -->
+                <div class="pref-row">
+                  <div class="pref-meta">
+                    <span class="pref-label">Copiar al portapapeles</span>
+                    <span class="pref-desc">Guarda automáticamente la imagen en NSPasteboard.</span>
+                  </div>
+                  <label class="mac-switch">
+                    <input type="checkbox" checked disabled>
+                    <span class="switch-slider" style="opacity:0.8;"></span>
+                  </label>
+                </div>
+
+                <!-- Fila 4: Iniciar con el sistema -->
+                <div class="pref-row">
+                  <div class="pref-meta">
+                    <span class="pref-label">Abrir al iniciar sesión</span>
+                    <span class="pref-desc">Registra un elemento en SMAppService para ejecutarse en segundo plano.</span>
+                  </div>
+                  <label class="mac-switch">
+                    <input type="checkbox" checked>
+                    <span class="switch-slider"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="native-footer">
+                <button class="mac-btn mac-btn-primary" onclick="renderScene('menubar_normal')">Aceptar</button>
+              </div>
+            </div>
+          </div>
+        `
+      }
+    };
+
+    function renderScene(sceneKey, btnElement) {
+      const scene = scenes[sceneKey];
+      if (!scene) return;
+      document.getElementById('dynamic-scene-layer').innerHTML = scene.render();
+      document.getElementById('scene-notes').innerText = scene.notes;
+
+      // Actualizar botón activo en el menú lateral
+      document.querySelectorAll('.scene-btn').forEach(btn => btn.classList.remove('active'));
+      if (btnElement) {
+        btnElement.classList.add('active');
+      } else {
+        // Encontrar botón correspondiente
+        const targetBtn = Array.from(document.querySelectorAll('.scene-btn')).find(b => b.getAttribute('onclick')?.includes(sceneKey));
+        if (targetBtn) targetBtn.classList.add('active');
+      }
+
+      // Actualizar estado del icono de la barra de menús
+      const menuIcon = document.getElementById('menubar-icon');
+      if (sceneKey === 'menubar_normal') {
+        menuIcon.classList.add('active');
+      } else {
+        menuIcon.classList.remove('active');
+      }
+    }
+
+    function setTheme(theme, btnElement) {
+      document.documentElement.setAttribute('data-theme', theme);
+      btnElement.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btnElement.classList.add('active');
+    }
+
+    // Inicializar con la primera escena
+    renderScene('menubar_normal');
+  </script>
+</body>
+</html>
