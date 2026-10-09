@@ -1,8 +1,27 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "CFBundleName" : {
+      "comment" : "Bundle name",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screenshooter"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screenshooter"
+          }
+        }
+      }
+    },
     "NSScreenCaptureUsageDescription" : {
       "comment" : "Shown by macOS in the screen recording permission prompt",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

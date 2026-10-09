@@ -3,6 +3,7 @@
   "strings" : {
     "%@ · %@×%@" : {
       "comment" : "Caption under a card: time, then size in pixels as width×height",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -20,6 +21,7 @@
     },
     "%@ × %@ px · Drag or annotate" : {
       "comment" : "HUD subtitle: capture size in pixels and a hint about drag and annotate",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -37,6 +39,7 @@
     },
     "%lld captures" : {
       "comment" : "VoiceOver value of the list: number of captures; plural by count",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "variations" : {
@@ -78,6 +81,7 @@
     },
     "%lld of %lld" : {
       "comment" : "VoiceOver value of a card: its position out of the total",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -93,8 +97,99 @@
         }
       }
     },
+    "• ⌥⌘S: Capture the selected area.\n• ⌃⌥T: Show / Hide the Shelf.\n• Open at Login: %@ (you can toggle it from the menu).\n• Menu bar: moving the pointer to the top slides the Shelf down automatically.\n\nGestures on each hanging capture:\n• Single click: Copy to the clipboard.\n• Double click: Open in Preview.\n• Press and hold (or pencil button): Annotate with the native macOS Markup.\n• Drag and drop: Drop into Slack, Figma or Finder.\n• ✕ button: Discard with a free fall." : {
+      "comment" : "Help alert body listing shortcuts and gestures; the argument is the launch-at-login state (On/Off)",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• ⌥⌘S: Capture the selected area.\n• ⌃⌥T: Show / Hide the Shelf.\n• Open at Login: %@ (you can toggle it from the menu).\n• Menu bar: moving the pointer to the top slides the Shelf down automatically.\n\nGestures on each hanging capture:\n• Single click: Copy to the clipboard.\n• Double click: Open in Preview.\n• Press and hold (or pencil button): Annotate with the native macOS Markup.\n• Drag and drop: Drop into Slack, Figma or Finder.\n• ✕ button: Discard with a free fall."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• ⌥⌘S: Capturar área seleccionada.\n• ⌃⌥T: Mostrar / Ocultar la Tira.\n• Abrir al iniciar el Mac: %@ (puedes alternarlo desde el menú).\n• Barra de menús: Posar el cursor arriba desliza la Tira automáticamente.\n\nGestos en cada captura colgada:\n• Clic simple: Copiar al portapapeles.\n• Doble clic: Abrir en Vista Previa.\n• Mantener pulsado (o botón lápiz): Anotar con Marcación nativa de macOS (Markup).\n• Arrastrar y soltar: Soltar en Slack, Figma o Finder.\n• Botón ✕: Descartar con caída libre."
+          }
+        }
+      }
+    },
+    "⚠️ Screen permission required..." : {
+      "comment" : "Menu item: screen recording permission is missing",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⚠️ Screen permission required..."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⚠️ Permiso de pantalla requerido..."
+          }
+        }
+      }
+    },
+    "✓ Copied to clipboard" : {
+      "comment" : "HUD title after a capture is copied",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "✓ Copied to clipboard"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "✓ Copiado al portapapeles"
+          }
+        }
+      }
+    },
+    "✓ Screen permission: Granted" : {
+      "comment" : "Menu item: screen recording permission is granted",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "✓ Screen permission: Granted"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "✓ Permiso de pantalla: Concedido"
+          }
+        }
+      }
+    },
+    "🔄 Restart to apply permission" : {
+      "comment" : "Menu item: relaunch the app so macOS applies the new permission",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🔄 Restart to apply permission"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🔄 Reiniciar para aplicar permiso"
+          }
+        }
+      }
+    },
     "Annotate with Markup" : {
       "comment" : "Accessibility description and tooltip of the HUD annotate button; Markup is the macOS annotation tool",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -112,6 +207,7 @@
     },
     "Cancel" : {
       "comment" : "Alert button: cancel",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -127,25 +223,9 @@
         }
       }
     },
-    "Capture Selected Area..." : {
-      "comment" : "Menu item: start an area capture",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Capture Selected Area..."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Capturar área seleccionada..."
-          }
-        }
-      }
-    },
     "Capture not found, %@" : {
       "comment" : "VoiceOver label of a card whose file is missing; the argument is the capture time",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -161,8 +241,27 @@
         }
       }
     },
+    "Capture Selected Area..." : {
+      "comment" : "Menu item: start an area capture",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capture Selected Area..."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capturar área seleccionada..."
+          }
+        }
+      }
+    },
     "Capture, %@, %@ by %@" : {
       "comment" : "VoiceOver label of a card: capture time, then pixel width by height",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -180,6 +279,7 @@
     },
     "Clear Shelf" : {
       "comment" : "Menu item: move all captures of the shelf to the Trash",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -197,6 +297,7 @@
     },
     "Click to copy. Hold for Markup" : {
       "comment" : "VoiceOver hint of a capture card: click copies, press and hold opens Markup",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -214,6 +315,7 @@
     },
     "Click to remove from the Shelf" : {
       "comment" : "VoiceOver hint of a card whose file is missing",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -231,6 +333,7 @@
     },
     "Copied" : {
       "comment" : "Badge and VoiceOver announcement: capture copied to the clipboard",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -248,6 +351,7 @@
     },
     "Copy" : {
       "comment" : "Context menu item: copy the capture",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -265,6 +369,7 @@
     },
     "Could not crop the selected area from the image." : {
       "comment" : "Error reason: cropping the captured image failed",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -282,6 +387,7 @@
     },
     "Couldn't copy" : {
       "comment" : "Badge and VoiceOver announcement: copying failed",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -299,6 +405,7 @@
     },
     "Drag to select  ·  ESC to cancel" : {
       "comment" : "Instruction bar shown over the dimmed screen during area selection",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -316,6 +423,7 @@
     },
     "Failed to capture the screen: %@" : {
       "comment" : "Error: capture failed; the argument is the underlying reason",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -333,6 +441,7 @@
     },
     "File not found" : {
       "comment" : "Label on a card whose capture file no longer exists",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -350,6 +459,7 @@
     },
     "File not found, removed from the Shelf" : {
       "comment" : "VoiceOver announcement: the capture file is gone and it was removed from the shelf",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -367,6 +477,7 @@
     },
     "Got it" : {
       "comment" : "Alert button: dismiss the help",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -384,6 +495,7 @@
     },
     "Inbox Mode (native screenshots go straight to the Shelf)" : {
       "comment" : "Menu item: inbox mode toggle",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -401,6 +513,7 @@
     },
     "Move to Trash" : {
       "comment" : "Card button and menu item: move the capture to the Trash",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -418,6 +531,7 @@
     },
     "Moved to Trash" : {
       "comment" : "VoiceOver announcement: a capture was moved to the Trash",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -435,6 +549,7 @@
     },
     "New capture added on the left" : {
       "comment" : "VoiceOver announcement when a capture arrives while the user is interacting with the strip",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -452,6 +567,7 @@
     },
     "New capture. Shelf at start, %lld captures" : {
       "comment" : "VoiceOver announcement after a capture is added while the shelf is at its start; plural by total count",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "variations" : {
@@ -491,25 +607,9 @@
         }
       }
     },
-    "OK" : {
-      "comment" : "Alert button: acknowledge",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OK"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aceptar"
-          }
-        }
-      }
-    },
     "Off" : {
       "comment" : "Setting state: disabled",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -525,8 +625,27 @@
         }
       }
     },
+    "OK" : {
+      "comment" : "Alert button: acknowledge",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aceptar"
+          }
+        }
+      }
+    },
     "On" : {
       "comment" : "Setting state: enabled",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -542,25 +661,9 @@
         }
       }
     },
-    "Open System Settings" : {
-      "comment" : "Alert button: open System Settings",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open System Settings"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abrir Ajustes del Sistema"
-          }
-        }
-      }
-    },
     "Open at Login" : {
       "comment" : "Menu item: launch at login toggle",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -578,6 +681,7 @@
     },
     "Open in Markup" : {
       "comment" : "Card button: annotate the capture with Markup",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -595,6 +699,7 @@
     },
     "Open in Preview" : {
       "comment" : "VoiceOver action and menu item: open the capture in Preview",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -610,8 +715,27 @@
         }
       }
     },
+    "Open System Settings" : {
+      "comment" : "Alert button: open System Settings",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open System Settings"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Ajustes del Sistema"
+          }
+        }
+      }
+    },
     "Open with Markup" : {
       "comment" : "VoiceOver action and menu item: open the capture with Markup",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -629,6 +753,7 @@
     },
     "Opening in Markup" : {
       "comment" : "VoiceOver announcement: opening the capture in the macOS Markup tool",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -646,6 +771,7 @@
     },
     "Opening in Markup…" : {
       "comment" : "Badge over a card while opening the capture in Markup",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -663,6 +789,7 @@
     },
     "Opening in Preview" : {
       "comment" : "VoiceOver announcement: opening the capture in Preview",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -680,6 +807,7 @@
     },
     "Opening in Preview…" : {
       "comment" : "Badge over a card while opening the capture in Preview",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -697,6 +825,7 @@
     },
     "Permission Granted" : {
       "comment" : "Alert title: screen recording permission already granted",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -714,6 +843,7 @@
     },
     "Preferences & Shortcuts..." : {
       "comment" : "Menu item: show the shortcuts and gestures help",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -731,6 +861,7 @@
     },
     "Quit Screenshooter" : {
       "comment" : "Menu item: quit the app",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -748,6 +879,7 @@
     },
     "Recent captures" : {
       "comment" : "VoiceOver label of the list of captures in the shelf",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -765,6 +897,7 @@
     },
     "Remove from the Shelf" : {
       "comment" : "VoiceOver action and menu item: remove a capture whose file is missing",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -782,6 +915,7 @@
     },
     "Removed %lld oldest captures" : {
       "comment" : "VoiceOver announcement when lowering the capacity trashes the oldest captures; plural by count",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "variations" : {
@@ -823,6 +957,7 @@
     },
     "Restart Screenshooter" : {
       "comment" : "Alert button: relaunch the app",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -840,6 +975,7 @@
     },
     "Screen Capture Error" : {
       "comment" : "Alert title: capturing the screen failed",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -855,25 +991,9 @@
         }
       }
     },
-    "Screen Recording Permission Required" : {
-      "comment" : "Alert title: the app needs screen recording permission",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Screen Recording Permission Required"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permiso de Grabación de Pantalla Requerido"
-          }
-        }
-      }
-    },
     "Screen recording permission has not been granted." : {
       "comment" : "Error: missing screen recording permission",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -889,8 +1009,45 @@
         }
       }
     },
+    "Screen Recording Permission Required" : {
+      "comment" : "Alert title: the app needs screen recording permission",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screen Recording Permission Required"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permiso de Grabación de Pantalla Requerido"
+          }
+        }
+      }
+    },
+    "Screenshooter — Settings & Gestures" : {
+      "comment" : "Alert title: shortcuts and gestures help",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screenshooter — Settings & Gestures"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screenshooter — Ajustes y Gestos"
+          }
+        }
+      }
+    },
     "Screenshooter (⌥⌘S to capture an area)" : {
       "comment" : "Status bar icon tooltip",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -908,6 +1065,7 @@
     },
     "Screenshooter is already authorized to capture areas of the screen." : {
       "comment" : "Alert body: screen recording permission already granted",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -925,6 +1083,7 @@
     },
     "Screenshooter needs authorization to read the pixels of the screen.\n\n1. Go to System Settings > Privacy & Security > Screen Recording and turn on Screenshooter.\n\n2. If you have already turned it on, click 'Restart Screenshooter' so macOS applies the permission." : {
       "comment" : "Alert body explaining how to grant screen recording permission",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -940,25 +1099,9 @@
         }
       }
     },
-    "Screenshooter — Settings & Gestures" : {
-      "comment" : "Alert title: shortcuts and gestures help",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Screenshooter — Settings & Gestures"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Screenshooter — Ajustes y Gestos"
-          }
-        }
-      }
-    },
     "Shelf capacity" : {
       "comment" : "Menu item: submenu to choose how many captures the shelf keeps",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -974,8 +1117,27 @@
         }
       }
     },
+    "Show / Hide Shelf" : {
+      "comment" : "Menu item: toggle the capture shelf (strip)",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show / Hide Shelf"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar / Ocultar Tira"
+          }
+        }
+      }
+    },
     "Show %lld more captures to the left" : {
       "comment" : "VoiceOver label and tooltip of the +N counter on the left edge; plural by count",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "variations" : {
@@ -1017,6 +1179,7 @@
     },
     "Show %lld more captures to the right" : {
       "comment" : "VoiceOver label and tooltip of the +N counter on the right edge; plural by count",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "variations" : {
@@ -1056,25 +1219,9 @@
         }
       }
     },
-    "Show / Hide Shelf" : {
-      "comment" : "Menu item: toggle the capture shelf (strip)",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show / Hide Shelf"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostrar / Ocultar Tira"
-          }
-        }
-      }
-    },
     "Show in Finder" : {
       "comment" : "VoiceOver action and menu item: reveal the capture in Finder",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1092,6 +1239,7 @@
     },
     "Showing %lld to %lld of %lld" : {
       "comment" : "VoiceOver announcement when the scrolling strip comes to rest: first and last visible capture out of the total",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1109,6 +1257,7 @@
     },
     "Showing in Finder" : {
       "comment" : "VoiceOver announcement: revealing the capture file in Finder",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1126,6 +1275,7 @@
     },
     "Showing in Finder…" : {
       "comment" : "Badge over a card while revealing the file in Finder",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1143,6 +1293,7 @@
     },
     "Take a capture with ⌥⌘S and it will show up here" : {
       "comment" : "Empty state of the shelf",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1160,6 +1311,7 @@
     },
     "The display for the selection could not be found." : {
       "comment" : "Error: display of the selection not found",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1177,6 +1329,7 @@
     },
     "Unlimited" : {
       "comment" : "Capacity menu option: no limit on the number of captures",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1188,91 +1341,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sin límite"
-          }
-        }
-      }
-    },
-    "• ⌥⌘S: Capture the selected area.\n• ⌃⌥T: Show / Hide the Shelf.\n• Open at Login: %@ (you can toggle it from the menu).\n• Menu bar: moving the pointer to the top slides the Shelf down automatically.\n\nGestures on each hanging capture:\n• Single click: Copy to the clipboard.\n• Double click: Open in Preview.\n• Press and hold (or pencil button): Annotate with the native macOS Markup.\n• Drag and drop: Drop into Slack, Figma or Finder.\n• ✕ button: Discard with a free fall." : {
-      "comment" : "Help alert body listing shortcuts and gestures; the argument is the launch-at-login state (On/Off)",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• ⌥⌘S: Capture the selected area.\n• ⌃⌥T: Show / Hide the Shelf.\n• Open at Login: %@ (you can toggle it from the menu).\n• Menu bar: moving the pointer to the top slides the Shelf down automatically.\n\nGestures on each hanging capture:\n• Single click: Copy to the clipboard.\n• Double click: Open in Preview.\n• Press and hold (or pencil button): Annotate with the native macOS Markup.\n• Drag and drop: Drop into Slack, Figma or Finder.\n• ✕ button: Discard with a free fall."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• ⌥⌘S: Capturar área seleccionada.\n• ⌃⌥T: Mostrar / Ocultar la Tira.\n• Abrir al iniciar el Mac: %@ (puedes alternarlo desde el menú).\n• Barra de menús: Posar el cursor arriba desliza la Tira automáticamente.\n\nGestos en cada captura colgada:\n• Clic simple: Copiar al portapapeles.\n• Doble clic: Abrir en Vista Previa.\n• Mantener pulsado (o botón lápiz): Anotar con Marcación nativa de macOS (Markup).\n• Arrastrar y soltar: Soltar en Slack, Figma o Finder.\n• Botón ✕: Descartar con caída libre."
-          }
-        }
-      }
-    },
-    "⚠️ Screen permission required..." : {
-      "comment" : "Menu item: screen recording permission is missing",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "⚠️ Screen permission required..."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "⚠️ Permiso de pantalla requerido..."
-          }
-        }
-      }
-    },
-    "✓ Copied to clipboard" : {
-      "comment" : "HUD title after a capture is copied",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "✓ Copied to clipboard"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "✓ Copiado al portapapeles"
-          }
-        }
-      }
-    },
-    "✓ Screen permission: Granted" : {
-      "comment" : "Menu item: screen recording permission is granted",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "✓ Screen permission: Granted"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "✓ Permiso de pantalla: Concedido"
-          }
-        }
-      }
-    },
-    "🔄 Restart to apply permission" : {
-      "comment" : "Menu item: relaunch the app so macOS applies the new permission",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "🔄 Restart to apply permission"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "🔄 Reiniciar para aplicar permiso"
           }
         }
       }
