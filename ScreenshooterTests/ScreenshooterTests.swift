@@ -655,4 +655,327 @@ final class ScreenshooterTests: XCTestCase {
         let names = try FileManager.default.contentsOfDirectory(atPath: dir.path).sorted()
         XCTAssertEqual(names, ["edited.png", "orig.png"], "Sin temporales sobrantes")
     }
+
+    // MARK: - Desplazamiento de la tira (física pura)
+
+    func testStripMetricsMatchCardFramesWhenEverythingFits() {
+        let m = StripScroll.Metrics(count: 3, viewWidth: 900)
+        XCTAssertFalse(m.isScrollable)
+        XCTAssertEqual(m.maxOffset, 0)
+        let frames = StripMotion.cardFrames(count: 3, width: 900)
+        for i in 0..<3 { XCTAssertEqual(m.slotX(i), frames[i].minX, accuracy: 1e-9) }
+    }
+
+    func testStripMetricsBecomeScrollableWithPaddingBothSides() {
+        let m = StripScroll.Metrics(count: 10, viewWidth: 800)
+        XCTAssertTrue(m.isScrollable)
+        XCTAssertEqual(m.start, 24)
+        XCTAssertEqual(m.contentWidth, 10 * 150 + 9 * 14 + 48)
+        XCTAssertEqual(m.maxOffset, m.contentWidth - 800)
+    }
+
+    func testFrictionDependsOnDtNotOnFrameRate() {
+        let one = StripScroll.decayedVelocity(1000, dt: 1.0 / 60, friction: 0.95)
+        XCTAssertEqual(one, 950, accuracy: 1e-6)
+        let twoHalves = StripScroll.decayedVelocity(StripScroll.decayedVelocity(1000, dt: 1.0 / 120, friction: 0.95), dt: 1.0 / 120, friction: 0.95)
+        XCTAssertEqual(twoHalves, one, accuracy: 1e-6)
+    }
+
+    func testInertiaCoastsAndStopsInsideRange() {
+        var s = StripScroller()
+        s.maxOffset = 5000
+        s.offset = 1000
+        s.fling(2000)
+        var frames = 0
+        while s.tick(1.0 / 60), frames < 2000 { frames += 1 }
+        XCTAssertEqual(s.mode, .idle)
+        XCTAssertGreaterThan(s.offset, 1000 + 200)
+        XCTAssertLessThan(s.offset, 5000)
+        XCTAssertEqual(s.velocity, 0)
+    }
+
+    func testRubberBandDampensOutwardPushAndDecreasesWithStretch() {
+        // Dentro del rango: sin resistencia. Empujando hacia fuera en el borde: ×0,55.
+        XCTAssertEqual(StripScroll.rubberDelta(10, offset: 100, maxOffset: 500, reduceMotion: false), 10)
+        XCTAssertEqual(StripScroll.rubberDelta(-10, offset: 0, maxOffset: 500, reduceMotion: false), -5.5, accuracy: 1e-9)
+        let near = abs(StripScroll.rubberDelta(-10, offset: -20, maxOffset: 500, reduceMotion: false))
+        let far = abs(StripScroll.rubberDelta(-10, offset: -120, maxOffset: 500, reduceMotion: false))
+        XCTAssertLessThan(far, near)
+        // Volviendo hacia dentro desde fuera no se frena.
+        XCTAssertEqual(StripScroll.rubberDelta(10, offset: -50, maxOffset: 500, reduceMotion: false), 10)
+        // Final por la derecha.
+        XCTAssertEqual(StripScroll.rubberDelta(10, offset: 500, maxOffset: 500, reduceMotion: false), 5.5, accuracy: 1e-9)
+    }
+
+    func testRubberBandIsHardClampWithReduceMotion() {
+        XCTAssertEqual(StripScroll.rubberDelta(-30, offset: 10, maxOffset: 500, reduceMotion: true), -10)
+        XCTAssertEqual(StripScroll.rubberDelta(40, offset: 490, maxOffset: 500, reduceMotion: true), 10)
+    }
+
+    func testSpringReturnsFromOverscrollToTheEdge() {
+        var s = StripScroller()
+        s.maxOffset = 1000
+        s.offset = -120
+        s.boundsChanged()
+        XCTAssertEqual(s.mode, .free)
+        var t = 0.0
+        while s.tick(1.0 / 60), t < 5 { t += 1.0 / 60 }
+        XCTAssertEqual(s.offset, 0, accuracy: 1e-9)
+        XCTAssertLessThan(t, 3, "El muelle casi crítico no tarda más de unos segundos")
+    }
+
+    func testFlingPastTheEdgeBouncesBackWithoutLeavingRange() {
+        var s = StripScroller()
+        s.maxOffset = 1000
+        s.fling(-3000)
+        var minOffset: CGFloat = 0
+        var frames = 0
+        while s.tick(1.0 / 60), frames < 1000 { minOffset = min(minOffset, s.offset); frames += 1 }
+        XCTAssertLessThan(minOffset, -1, "Hay rebote visible")
+        XCTAssertGreaterThanOrEqual(minOffset, -StripScroll.rubberMax * 1.5)
+        XCTAssertEqual(s.offset, 0, accuracy: 1e-9)
+    }
+
+    func testReduceMotionHasShortInertiaAndNoBounce() {
+        var normal = StripScroller(); normal.maxOffset = 100000; normal.fling(2000)
+        var reduced = StripScroller(); reduced.maxOffset = 100000; reduced.reduceMotion = true; reduced.fling(2000)
+        while normal.tick(1.0 / 60) {}
+        while reduced.tick(1.0 / 60) {}
+        XCTAssertLessThan(reduced.offset, normal.offset / 2)
+
+        var edge = StripScroller(); edge.maxOffset = 500; edge.reduceMotion = true; edge.fling(-3000)
+        var minOffset: CGFloat = 0
+        while edge.tick(1.0 / 60) { minOffset = min(minOffset, edge.offset) }
+        XCTAssertEqual(minOffset, 0, "Con Reducir movimiento no hay rebote")
+        XCTAssertEqual(edge.offset, 0)
+    }
+
+    func testProgrammaticAnimationReachesTargetAndIsNotTilted() {
+        var s = StripScroller()
+        s.maxOffset = 2000
+        XCTAssertFalse(s.animate(to: 800, duration: 0.4))
+        XCTAssertTrue(s.isProgrammatic)
+        XCTAssertEqual(s.targetOffset, 800)
+        var t: CGFloat = 0
+        while s.tick(1.0 / 60), t < 3 { t += 1.0 / 60 }
+        XCTAssertEqual(s.offset, 800, accuracy: 1e-9)
+        XCTAssertEqual(s.mode, .idle)
+        XCTAssertFalse(s.isProgrammatic)
+        _ = s.animate(to: 9999, duration: 0.4)
+        XCTAssertEqual(s.targetOffset, 2000, "El destino se limita al rango")
+    }
+
+    func testAnimateJumpsInstantlyWithReduceMotion() {
+        var s = StripScroller()
+        s.maxOffset = 2000
+        s.reduceMotion = true
+        XCTAssertTrue(s.animate(to: 500, duration: 0.4))
+        XCTAssertEqual(s.offset, 500)
+        XCTAssertEqual(s.mode, .idle)
+    }
+
+    func testSystemDrivenWheelFollowsDeltasAndStopsWithoutOwnInertia() {
+        var s = StripScroller()
+        s.maxOffset = 5000
+        for _ in 0..<10 {
+            s.wheel(delta: 30, systemDriven: true)
+            s.tick(1.0 / 60)
+        }
+        XCTAssertEqual(s.offset, 300, accuracy: 1e-9)
+        XCTAssertEqual(s.mode, .wheel, "Sigue en modo rueda hasta que el sistema acabe el gesto")
+        s.endSystemWheel()
+        s.tick(1.0 / 60)
+        XCTAssertEqual(s.mode, .idle)
+        XCTAssertEqual(s.offset, 300, accuracy: 1e-9, "Sin inercia propia con el trackpad")
+    }
+
+    func testMouseWheelCoastsWithOwnInertiaAfterIdleTimeout() {
+        var s = StripScroller()
+        s.maxOffset = 5000
+        s.wheel(delta: 120, systemDriven: false)
+        s.tick(1.0 / 60)
+        XCTAssertEqual(s.mode, .wheel)
+        for _ in 0..<8 { s.tick(1.0 / 60) } // > 0,1 s sin eventos
+        XCTAssertEqual(s.mode, .free)
+        let before = s.offset
+        while s.tick(1.0 / 60) {}
+        XCTAssertGreaterThan(s.offset, before + 20, "La rueda de ratón tiene inercia propia")
+    }
+
+    func testDragReleaseLaunchesInertiaWithMeasuredVelocity() {
+        var s = StripScroller()
+        s.maxOffset = 5000
+        s.offset = 1000
+        s.beginDrag()
+        for _ in 0..<6 { s.drag(by: 20); s.tick(1.0 / 60) }
+        XCTAssertGreaterThan(s.velocity, 500)
+        s.endDrag()
+        XCTAssertEqual(s.mode, .free)
+        let before = s.offset
+        while s.tick(1.0 / 60) {}
+        XCTAssertGreaterThan(s.offset, before)
+    }
+
+    func testShiftKeepsViewportWhenCardsAreInsertedOnTheLeft() {
+        var s = StripScroller()
+        s.maxOffset = 5000
+        s.offset = 700
+        _ = s.animate(to: 300, duration: 0.3)
+        s.shift(by: 164)
+        XCTAssertEqual(s.offset, 864)
+        XCTAssertEqual(s.targetOffset, 464)
+    }
+
+    func testTiltOpposesVelocityAndIsClamped() {
+        XCTAssertEqual(StripScroll.tiltTarget(velocity: 400, reduceMotion: false), -1, accuracy: 1e-9)
+        XCTAssertEqual(StripScroll.tiltTarget(velocity: 3200, reduceMotion: false), -3.5, accuracy: 1e-9)
+        XCTAssertEqual(StripScroll.tiltTarget(velocity: -9000, reduceMotion: false), 3.5, accuracy: 1e-9)
+        XCTAssertEqual(StripScroll.tiltTarget(velocity: 3200, reduceMotion: true), 0)
+    }
+
+    func testTiltSpringSettlesToTargetAndBackToZeroUnderOneSecond() {
+        var tilt = TiltState()
+        for _ in 0..<60 { tilt.step(target: -3.5, dt: 1.0 / 60, reduceMotion: false) }
+        XCTAssertEqual(tilt.angle, -3.5, accuracy: 0.2)
+        var t = 0.0
+        while tilt.step(target: 0, dt: 1.0 / 60, reduceMotion: false), t < 2 { t += 1.0 / 60 }
+        XCTAssertEqual(tilt.angle, 0)
+        XCTAssertLessThan(t, 1.0, "Vuelve al reposo en menos de 1 s")
+        var reduced = TiltState(angle: 2, velocity: 3)
+        XCTAssertFalse(reduced.step(target: 3, dt: 1.0 / 60, reduceMotion: true))
+        XCTAssertEqual(reduced.angle, 0)
+    }
+
+    func testTiltLagIsAtMostOneFrameAndSamplesHistory() {
+        XCTAssertEqual(StripScroll.lag(fraction: 1, movingRight: true, reduceMotion: false), 1)
+        XCTAssertEqual(StripScroll.lag(fraction: 0, movingRight: true, reduceMotion: false), 0)
+        XCTAssertEqual(StripScroll.lag(fraction: 0, movingRight: false, reduceMotion: false), 1)
+        XCTAssertEqual(StripScroll.lag(fraction: 1, movingRight: true, reduceMotion: true), 0)
+        XCTAssertEqual(StripScroll.sample([10, 20, 30], lag: 0.5), 15, accuracy: 1e-9)
+        XCTAssertEqual(StripScroll.sample([10, 20, 30], lag: 9), 30, accuracy: 1e-9)
+    }
+
+    func testVisibleAndMountedRanges() {
+        let m = StripScroll.Metrics(count: 32, viewWidth: 800)
+        // offset 0: visibles 0…4 (24 + 4·164 + 150 = 830 > 800 → la 4 asoma).
+        XCTAssertEqual(StripScroll.visibleRange(m, offset: 0), 0..<5)
+        XCTAssertEqual(StripScroll.mountedRange(m, offset: 0), 0..<6)
+        // Mitad del recorrido: ±1 de margen.
+        let v = StripScroll.visibleRange(m, offset: 2000)
+        let mounted = StripScroll.mountedRange(m, offset: 2000)
+        XCTAssertEqual(mounted.lowerBound, v.lowerBound - 1)
+        XCTAssertEqual(mounted.upperBound, v.upperBound + 1)
+        XCTAssertLessThanOrEqual(mounted.count, 8, "Nunca más de unas pocas vistas aunque haya 32 capturas")
+        // Final y rebote más allá del borde.
+        XCTAssertEqual(StripScroll.visibleRange(m, offset: m.maxOffset).upperBound, 32)
+        XCTAssertFalse(StripScroll.mountedRange(m, offset: -150).isEmpty)
+        XCTAssertTrue(StripScroll.visibleRange(StripScroll.Metrics(count: 0, viewWidth: 800), offset: 0).isEmpty)
+    }
+
+    func testHiddenCountsUseOnePixelThreshold() {
+        let m = StripScroll.Metrics(count: 32, viewWidth: 800)
+        let atStart = StripScroll.hiddenCounts(m, offset: 0)
+        XCTAssertEqual(atStart.left, 0)
+        XCTAssertEqual(atStart.right, 32 - 4, "La quinta asoma por la derecha y ya cuenta como oculta")
+        // Tarjeta 0 desplazada 1 px a la izquierda del borde (x = −1): aún no cuenta; a 1,5 px sí.
+        let edge = m.start + 1
+        XCTAssertEqual(StripScroll.hiddenCounts(m, offset: edge).left, 0)
+        XCTAssertEqual(StripScroll.hiddenCounts(m, offset: edge + 0.5).left, 1)
+        let end = StripScroll.hiddenCounts(m, offset: m.maxOffset)
+        XCTAssertEqual(end.right, 0)
+        XCTAssertGreaterThan(end.left, 0)
+        XCTAssertEqual(StripScroll.hiddenCounts(StripScroll.Metrics(count: 3, viewWidth: 900), offset: 0).left, 0)
+    }
+
+    func testHiddenCountsAgreeWithBruteForce() {
+        let m = StripScroll.Metrics(count: 20, viewWidth: 640)
+        for off in stride(from: CGFloat(-50), through: m.maxOffset + 50, by: 37.3) {
+            var l = 0, r = 0
+            for i in 0..<m.count {
+                let x = m.slotX(i) - off
+                if x < -1 { l += 1 } else if x + 150 > 640 + 1 { r += 1 }
+            }
+            let got = StripScroll.hiddenCounts(m, offset: off)
+            XCTAssertEqual(got.left, l, "izquierda en offset \(off)")
+            XCTAssertEqual(got.right, r, "derecha en offset \(off)")
+        }
+    }
+
+    func testPageTargetIsEightyPercentOfWidthAndClamped() {
+        XCTAssertEqual(StripScroll.pageTarget(base: 100, direction: 1, viewWidth: 1000, maxOffset: 5000), 900)
+        XCTAssertEqual(StripScroll.pageTarget(base: 100, direction: -1, viewWidth: 1000, maxOffset: 5000), 0)
+        XCTAssertEqual(StripScroll.pageTarget(base: 4900, direction: 1, viewWidth: 1000, maxOffset: 5000), 5000)
+    }
+
+    func testEnsureVisibleKeepsSixtyFourPointMargin() {
+        let m = StripScroll.Metrics(count: 32, viewWidth: 800)
+        // Tarjeta 10 a la derecha de la vista (offset 0): debe quedar a 64 pt del borde derecho.
+        let t = StripScroll.ensureVisibleTarget(index: 10, current: 0, m)
+        XCTAssertEqual(m.slotX(10) + 150 - t, 800 - 64, accuracy: 1e-9)
+        // Ya a la vista: no se mueve.
+        XCTAssertEqual(StripScroll.ensureVisibleTarget(index: 1, current: 0, m), 0)
+        // Por la izquierda.
+        let l = StripScroll.ensureVisibleTarget(index: 3, current: 2000, m)
+        XCTAssertEqual(m.slotX(3) - l, 64, accuracy: 1e-9)
+        // Nunca fuera de rango y sin efecto si no se desplaza.
+        XCTAssertEqual(StripScroll.ensureVisibleTarget(index: 0, current: 300, m), 0)
+        XCTAssertEqual(StripScroll.ensureVisibleTarget(index: 1, current: 0, StripScroll.Metrics(count: 3, viewWidth: 900)), 0)
+    }
+
+    func testAxisLockKeepsAxisUntilOtherExceedsThreeTimes() {
+        var lock = AxisLock()
+        XCTAssertEqual(lock.resolve(dx: 0, dy: 0), 0)
+        XCTAssertNil(lock.axis)
+        XCTAssertEqual(lock.resolve(dx: 10, dy: 4), 10)
+        XCTAssertEqual(lock.axis, .horizontal)
+        XCTAssertEqual(lock.resolve(dx: 5, dy: 14), 5, "14 < 3×5+: sigue en horizontal")
+        XCTAssertEqual(lock.axis, .horizontal)
+        XCTAssertEqual(lock.resolve(dx: 2, dy: 20), 20, "20 > 3×2 y > 4: cambia a vertical")
+        XCTAssertEqual(lock.axis, .vertical)
+        lock.reset()
+        XCTAssertNil(lock.axis)
+    }
+
+    func testEdgeOpacityMatchesFadeMask() {
+        XCTAssertEqual(StripScroll.fadeZone(highContrast: false), 40)
+        XCTAssertEqual(StripScroll.fadeZone(highContrast: true), 16)
+        XCTAssertEqual(StripScroll.edgeOpacity(centerX: 400, viewWidth: 800, zone: 40), 1)
+        XCTAssertEqual(StripScroll.edgeOpacity(centerX: -30, viewWidth: 800, zone: 40), 0, accuracy: 1e-9)
+        XCTAssertEqual(StripScroll.edgeOpacity(centerX: 40, viewWidth: 800, zone: 40), 1, accuracy: 1e-9)
+    }
+
+    // MARK: - Capacidad de la tira
+
+    func testCapacityOverflowPolicy() {
+        XCTAssertEqual(StripCapacity.overflow(count: 9, limit: 8), 1)
+        XCTAssertEqual(StripCapacity.overflow(count: 8, limit: 8), 0)
+        XCTAssertEqual(StripCapacity.overflow(count: 32, limit: 8), 24)
+        XCTAssertEqual(StripCapacity.overflow(count: 500, limit: 0), 0, "0 = sin límite")
+        XCTAssertEqual(StripCapacity.options, [8, 16, 32, 0])
+        XCTAssertEqual(StripCapacity.title(for: 0), "Sin límite")
+        XCTAssertEqual(StripCapacity.removalAnnouncement(3), "Se quitaron 3 capturas más antiguas")
+        XCTAssertEqual(StripCapacity.removalAnnouncement(1), "Se quitaron 1 captura más antigua")
+    }
+
+    func testCapacityPersistsInUserDefaultsWithDefault32() throws {
+        let suite = "tendedero-capacity-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        XCTAssertEqual(StripCapacity.defaultsKey, "stripCapacity")
+        XCTAssertEqual(StripCapacity.load(from: defaults), 32, "Por defecto 32")
+        StripCapacity.save(8, to: defaults)
+        XCTAssertEqual(StripCapacity.load(from: defaults), 8)
+        StripCapacity.save(0, to: defaults)
+        XCTAssertEqual(defaults.object(forKey: "stripCapacity") as? Int, 0)
+        XCTAssertEqual(StripCapacity.load(from: defaults), 0, "0 se guarda y significa sin límite")
+        defaults.set(7, forKey: "stripCapacity")
+        XCTAssertEqual(StripCapacity.load(from: defaults), 32, "Un valor ajeno a las opciones vuelve al predeterminado")
+    }
+
+    func testAccessibilityTextsForCountersAndRest() {
+        XCTAssertEqual(StripScroll.counterLabel(count: 12, side: .right), "Mostrar 12 capturas más a la derecha")
+        XCTAssertEqual(StripScroll.counterLabel(count: 1, side: .left), "Mostrar 1 captura más a la izquierda")
+        XCTAssertEqual(StripScroll.countsDescription(32), "32 capturas")
+        XCTAssertEqual(StripScroll.restAnnouncement(hiddenLeft: 4, hiddenRight: 23, total: 32), "Mostrando de la 5 a la 9 de 32")
+    }
 }

@@ -10,6 +10,7 @@
 		01C6DBB9BED8F72C47DE03B5 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6AA0ECA5757AFF050BAA61A5 /* CoreGraphics.framework */; };
 		06FF21456C48019AF589D1E3 /* SelectionOverlayWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B257E06A7CEDDBFFF91FE5F2 /* SelectionOverlayWindow.swift */; };
 		0C9935E073FF18D199720DAE /* CaptureFlight.swift in Sources */ = {isa = PBXBuildFile; fileRef = B965A94B6F451A94769F4DD7 /* CaptureFlight.swift */; };
+		123C6AC2A0E4EFA521E3D9A8 /* StripScroll.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E6D3CB7FD1C1DFF93ECC0C /* StripScroll.swift */; };
 		1C3BCC2E642377B687C0F4EE /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CDE7BA3B69BEA8670015B341 /* AudioToolbox.framework */; };
 		226A6C0C73AF0BA1FEB58D5A /* TendederoItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB59BC0BC75D24887FF79D9F /* TendederoItem.swift */; };
 		3410F57918EDDCDEA5C1816A /* ClipboardService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15508D845249EB71E7890746 /* ClipboardService.swift */; };
@@ -73,6 +74,7 @@
 		725EA45538F50B72592D85FE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		736F777B9E518671D1BB2B0E /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
 		759759E4AE9A0A053CE15F03 /* ScreenCaptureKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ScreenCaptureKit.framework; path = System/Library/Frameworks/ScreenCaptureKit.framework; sourceTree = SDKROOT; };
+		89E6D3CB7FD1C1DFF93ECC0C /* StripScroll.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripScroll.swift; sourceTree = "<group>"; };
 		8ED58D51EE8FF26D204C4666 /* TendederoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TendederoView.swift; sourceTree = "<group>"; };
 		8F991211C6DB54DB60DDFC98 /* FullScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullScreen.swift; sourceTree = "<group>"; };
 		9460AEBDF763C83905125EF8 /* TendederoPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TendederoPanel.swift; sourceTree = "<group>"; };
@@ -179,6 +181,7 @@
 				8F991211C6DB54DB60DDFC98 /* FullScreen.swift */,
 				E4C463BE6229F6A4089EBB52 /* RevealState.swift */,
 				DAF57C3FFB2B90CDA2C6A690 /* StripMotion.swift */,
+				89E6D3CB7FD1C1DFF93ECC0C /* StripScroll.swift */,
 				244F42061D98B873D949E319 /* TendederoCardView.swift */,
 				AB59BC0BC75D24887FF79D9F /* TendederoItem.swift */,
 				4280D7893115FEF007C73A64 /* TendederoManager.swift */,
@@ -358,6 +361,7 @@
 				848B2FBE4A638BECC605F4E4 /* SelectionView.swift in Sources */,
 				EA0ABEC91EBE89465A8112A5 /* StatusBarController.swift in Sources */,
 				C3FCCB643113333F4945F161 /* StripMotion.swift in Sources */,
+				123C6AC2A0E4EFA521E3D9A8 /* StripScroll.swift in Sources */,
 				745E8106F222C8EFA6D4A1D7 /* TendederoCardView.swift in Sources */,
 				226A6C0C73AF0BA1FEB58D5A /* TendederoItem.swift in Sources */,
 				52068BEE8BB53DD39D732BC8 /* TendederoManager.swift in Sources */,
