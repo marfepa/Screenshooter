@@ -98,6 +98,10 @@ public final class TendederoManager: TendederoViewDelegate {
     ///   - fromRect: Rectángulo de origen en la pantalla para ejecutar la animación de vuelo (opcional).
     ///   - screen: Pantalla donde se originó la captura.
     public func hang(url: URL, cgImage: CGImage, fromRect: CGRect? = nil, screen: NSScreen = NSScreen.main ?? NSScreen.screens.first!) {
+        // Evitar duplicados: si ya hay un item con la misma URL, no se vuelve a colgar.
+        let target = url.standardizedFileURL
+        if items.contains(where: { $0.url.standardizedFileURL == target }) { return }
+        
         // Un único panel: se recoloca en la pantalla de la captura.
         if panel == nil { setupPanel() }
         panel?.place(on: screen)
