@@ -16,6 +16,8 @@ public protocol TendederoCardViewDelegate: AnyObject {
     func cardDidRequestEscape(_ card: TendederoCardView)
     /// VoiceOver enfocó la tarjeta: la tira la lleva a la vista.
     func cardDidGainAccessibilityFocus(_ card: TendederoCardView)
+    /// Se pulsó la tarjeta: la tira detiene la inercia o la animación en curso.
+    func cardDidBeginPress(_ card: TendederoCardView)
 }
 
 // MARK: - Vidrio
@@ -370,7 +372,7 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
     /// Deja la tarjeta lista para representar otra captura (reciclaje de vistas de la tira virtualizada).
     func resetForReuse() {
         resetInteractionState()
-        longPressTimer = nil
+        didTriggerLongPress = false
         badgeWorkItem?.cancel()
         isLeaving = false
         isHovered = false
@@ -392,6 +394,13 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
     /// `true` mientras hay una pulsación, un arrastre o un menú contextual abierto sobre alguna tarjeta
     /// (el panel no debe retraerse ni cambiar el paso de clics).
     public static var isBusy: Bool { !pressing.isEmpty || !menuOpen.isEmpty }
+
+    /// Esta tarjeta concreta está pulsada, con menú abierto o arrastrándose: la tira no debe reciclar su vista.
+    var isInteracting: Bool {
+        isDraggingSession || Self.pressing.contains(id) || Self.menuOpen.contains(id)
+    }
+
+    func setPressingForTesting(_ on: Bool) { setPressing(on) }
 
     public init(item: TendederoItem) {
         self.item = item
@@ -991,6 +1000,7 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
             return
         }
         setPressing(true)
+        delegate?.cardDidBeginPress(self)
         mouseDownLocation = event.locationInWindow
         isDraggingSession = false
         didTriggerLongPress = false

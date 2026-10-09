@@ -25,10 +25,11 @@ public final class TendederoManager: TendederoViewDelegate {
     public private(set) var items: [TendederoItem] = []
     /// Capacidad de la tira: `0` = sin límite. Se guarda en `UserDefaults` (`stripCapacity`).
     public private(set) var capacity: Int
-    /// Compatibilidad: igual que `capacity` (`0` = sin límite).
-    public var maxItems: Int { capacity }
-    /// Almacén de la capacidad. Inyectable para que los tests no toquen los ajustes reales.
-    public var defaults: UserDefaults = .standard
+    /// Almacén de la capacidad. Inyectable para que los tests no toquen los ajustes reales;
+    /// al cambiarlo se vuelve a leer la capacidad guardada en él.
+    public var defaults: UserDefaults = .standard {
+        didSet { capacity = StripCapacity.load(from: defaults) }
+    }
     
     private var panel: TendederoPanel?
     
@@ -174,7 +175,6 @@ public final class TendederoManager: TendederoViewDelegate {
         }
         reloadPanel()
         announce(StripCapacity.removalAnnouncement(excess))
-        if items.isEmpty { panel?.slideUp() }
     }
 
     /// Guarda una CGImage en formato PNG dentro del directorio de capturas del Tendedero.

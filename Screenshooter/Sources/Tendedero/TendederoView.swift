@@ -424,6 +424,8 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
     private var pendingLeftBump = false
     private var proxies: [UUID: StripProxyElement] = [:]
     private var accessibilityDirty = false
+    /// El tirón inicial de la cuerda no se anuncia.
+    private var suppressRestAnnouncement = false
     private var pendingAccessibilityFocusID: UUID?
 
     /// Tarjetas montadas (visibles ±1 y la que tiene el foco de teclado).
@@ -545,7 +547,10 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
         metrics = StripScroll.Metrics(count: currentItems.count, viewWidth: bounds.width)
         scroller.maxOffset = metrics.maxOffset
         scroller.reduceMotion = MotionStyle.current().reduceMotion
+        let before = scroller.offset
         scroller.boundsChanged()
+        // Reducir movimiento recoloca el offset al instante: los historiales (retardo/inclinación) no deben arrastrar el salto.
+        if scroller.offset != before && !scroller.isBusy { fillHistories(scroller.offset) }
         cardStack.setAccessibilityValueDescription(StripScroll.countsDescription(currentItems.count))
         updateFadeMask()
     }
@@ -672,6 +677,8 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
         for i in StripScroll.mountedRange(metrics, offset: scroller.offset) { wanted.append(currentItems[i].id) }
         if let r = rovingID, indexByID[r] != nil, !wanted.contains(r),
            focusPendingID == r || cardViews[r]?.isKeyboardFocused == true { wanted.append(r) }
+        // Una tarjeta pulsada, con menú o arrastrándose conserva su vista aunque salga del rango.
+        for (id, card) in cardViews where card.isInteracting && !wanted.contains(id) { wanted.append(id) }
         let wantedSet = Set(wanted)
         var changed = false
         for (id, card) in cardViews where !wantedSet.contains(id) {
@@ -810,7 +817,8 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
         updateCounters()
         if !active && scroller.moved {
             scroller.moved = false
-            scheduleRestAnnouncement()
+            accessibilityDirty = true // las posiciones de los proxies cambiaron
+            if suppressRestAnnouncement { suppressRestAnnouncement = false } else { scheduleRestAnnouncement() }
         }
         if !active && accessibilityDirty { rebuildAccessibilityChildren() }
         return active
@@ -852,6 +860,7 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
 
     /// Anima el offset (teclado, páginas, volver al inicio). Con Reducir movimiento salta con un fundido de 150 ms.
     private func animateScroll(to target: CGFloat, duration: CGFloat) {
+        userDidScroll()
         scroller.reduceMotion = MotionStyle.current().reduceMotion
         scroller.cancelAnimation()
         if scroller.animate(to: target, duration: duration) {
@@ -873,7 +882,9 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
     /// Lleva la tarjeta `index` a la vista dejando un margen de 64 pt.
     func ensureVisible(index: Int) {
         guard metrics.isScrollable else { return }
-        let target = StripScroll.ensureVisibleTarget(index: index, current: scroller.offset, metrics)
+        // Con una animación en curso se evalúa desde su destino, no desde el offset intermedio.
+        let base = scroller.mode == .anim ? scroller.targetOffset : scroller.offset
+        let target = StripScroll.ensureVisibleTarget(index: index, current: base, metrics)
         guard abs(target - scroller.targetOffset) >= 1 else { return }
         animateScroll(to: target, duration: 0.32)
     }
@@ -916,6 +927,10 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
         layoutCounters()
     }
 
+    /// Hay un arrastre de la cuerda en curso (el panel no cambia el paso de clics).
+    var isRopeDragging: Bool { scroller.mode == .drag }
+    var rovingIDForTesting: UUID? { rovingID }
+
     var leftCounterValue: Int { leftCount.count }
     var rightCounterValue: Int { rightCount.count }
 
@@ -929,6 +944,7 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
             super.scrollWheel(with: event)
             return
         }
+        userDidScroll()
         scroller.reduceMotion = MotionStyle.current().reduceMotion
         let phase = event.phase, momentum = event.momentumPhase
         let precise = event.hasPreciseScrollingDeltas
@@ -971,7 +987,19 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
         return ropeBandContains(NSPoint(x: p.x, y: p.y - dy))
     }
 
+    /// Entrada del usuario o desplazamiento propio: cancela el anuncio de reposo pendiente.
+    private func userDidScroll() {
+        restWork?.cancel()
+        suppressRestAnnouncement = false
+    }
+
+    public func cardDidBeginPress(_ card: TendederoCardView) {
+        userDidScroll()
+        scroller.stopMomentum()
+    }
+
     private func beginRopeDrag() {
+        userDidScroll()
         scroller.reduceMotion = MotionStyle.current().reduceMotion
         scroller.beginDrag()
         kick()
@@ -996,6 +1024,7 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             guard let self, self.scroller.mode == .idle, self.scroller.offset == 0 else { return }
             self.scroller.fling(-380)
+            self.suppressRestAnnouncement = true
             self.kick()
         }
     }
@@ -1053,6 +1082,16 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
     }
 
     private func refreshStops() {
+        // La parada de Tab debe ser una tarjeta montada: si la actual se recicló, pasa a la más cercana al viewport.
+        if let r = rovingID, cardViews[r] == nil, focusPendingID != r {
+            let center = scroller.offset + bounds.width / 2
+            let nearest = cardViews.filter { !$0.value.isHidden && !$0.value.item.isFlying }
+                .min { a, b in
+                    abs(metrics.slotX(indexByID[a.key] ?? 0) + StripScroll.cardWidth / 2 - center)
+                        < abs(metrics.slotX(indexByID[b.key] ?? 0) + StripScroll.cardWidth / 2 - center)
+                }
+            if let nearest { rovingID = nearest.key }
+        }
         let count = currentItems.count
         for (id, card) in cardViews {
             card.isRovingStop = id == rovingID

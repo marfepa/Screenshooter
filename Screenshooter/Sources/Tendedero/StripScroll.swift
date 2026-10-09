@@ -248,6 +248,8 @@ public struct StripScroller: Equatable {
     private var sinceInput: CGFloat = 0
     /// Una rueda de ratón sin fases pasa a inercia propia tras este silencio.
     public static let wheelIdleTimeout: CGFloat = 0.1
+    /// Un gesto del sistema sin eventos durante este tiempo se da por terminado.
+    public static let systemSilenceTimeout: CGFloat = 0.5
 
     public init() {}
 
@@ -264,8 +266,18 @@ public struct StripScroller: Equatable {
         if mode == .anim { mode = .idle }
     }
 
+    /// Detiene la inercia o la animación (se pulsó una tarjeta o la cuerda). Si queda fuera de rango, el muelle lo devuelve.
+    public mutating func stopMomentum() {
+        guard mode == .free || mode == .anim else { return }
+        anim = nil
+        velocity = 0
+        mode = .idle
+        boundsChanged()
+    }
+
     public mutating func beginDrag() {
         cancelAnimation()
+        velocity = 0
         mode = .drag
         pending = 0
         systemDriven = false
@@ -308,13 +320,13 @@ public struct StripScroller: Equatable {
     /// Anima hasta `target`. Con Reducir movimiento salta al instante y devuelve `true`.
     @discardableResult
     public mutating func animate(to target: CGFloat, duration: CGFloat) -> Bool {
+        if mode == .drag { return false } // no se pisa un arrastre en curso (ni su delta pendiente)
         let t = StripScroll.clamp(target, 0, maxOffset)
         pending = 0
         if reduceMotion {
             anim = nil; mode = .idle; velocity = 0; offset = t; moved = true
             return true
         }
-        if mode == .drag { return false }
         anim = Anim(from: offset, to: t, t: 0, dur: duration)
         mode = .anim
         return false
@@ -363,9 +375,15 @@ public struct StripScroller: Equatable {
             if dt > 0 {
                 // Una rueda sin fases conserva su última velocidad entre notches para lanzarla al soltar.
                 if d != 0 || mode == .drag || systemDriven { velocity = velocity * 0.5 + ((offset - prev) / dt) * 0.5 }
-                if mode == .wheel && !systemDriven {
+                if mode == .wheel {
                     sinceInput += dt
-                    if sinceInput >= Self.wheelIdleTimeout { mode = .free }
+                    if !systemDriven && sinceInput >= Self.wheelIdleTimeout {
+                        mode = .free
+                    } else if systemDriven && sinceInput >= Self.systemSilenceTimeout {
+                        // Seguro: el sistema dejó de enviar eventos sin cerrar el gesto.
+                        mode = .free
+                        velocity = 0
+                    }
                 }
             }
         case .anim:

@@ -212,7 +212,8 @@ public final class TendederoPanel: NSPanel {
     
     /// La tira ocupa todo el ancho: solo captura el ratón sobre una tarjeta, un contador o la cuerda; el resto de clics pasa a las apps de debajo.
     private func updateMousePassThrough(_ mouse: NSPoint) {
-        guard !TendederoCardView.isBusy, !tendederoView.isScrollBusy else { return }
+        // Solo un arrastre de la cuerda congela el paso de clics; durante la inercia se reevalúa.
+        guard !TendederoCardView.isBusy, !tendederoView.isRopeDragging else { return }
         let local = convertPoint(fromScreen: mouse)
         // Tarjetas, contadores +N y franja de la cuerda (si la tira se desplaza): la rueda solo se captura ahí.
         let overInteractive = tendederoView.containsInteractivePoint(local)

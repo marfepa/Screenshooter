@@ -160,14 +160,14 @@ final class ScreenshooterTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: dir) }
         
         var urls: [URL] = []
-        for i in 0...manager.maxItems {
+        for i in 0...manager.capacity {
             let url = dir.appendingPathComponent("c\(i).png")
             try Data([0]).write(to: url)
             urls.append(url)
             manager.hang(url: url, cgImage: image)
         }
         
-        XCTAssertEqual(manager.items.count, manager.maxItems)
+        XCTAssertEqual(manager.items.count, manager.capacity)
         XCTAssertEqual(trashed, [urls[0]], "La captura más antigua debe ir a la Papelera")
         XCTAssertTrue(FileManager.default.fileExists(atPath: urls[0].path), "No debe borrarse de forma definitiva (removeItem)")
     }
@@ -1240,5 +1240,99 @@ final class ScreenshooterTests: XCTestCase {
         let list = try XCTUnwrap(view.subviews.first?.subviews.first { $0.accessibilityRole() == .list })
         XCTAssertEqual(list.accessibilityValueDescription(), "32 capturas")
         XCTAssertEqual(list.accessibilityLabel(), "Capturas recientes")
+    }
+
+    // MARK: - Revisión: robustez de la tira
+
+    @MainActor
+    func testBusyCardStaysMountedAfterScrollingFarAway() throws {
+        let (view, items) = try makeStripView(count: 32)
+        let card = try XCTUnwrap(view.mountedCardForTesting(at: 0))
+        card.setPressingForTesting(true)
+        defer { card.setPressingForTesting(false) }
+        view.page(1); view.advanceForTesting(dt: 1.0 / 60, frames: 60)
+        for _ in 0..<5 { view.page(1); view.advanceForTesting(dt: 1.0 / 60, frames: 60) }
+        XCTAssertTrue(view.mountedCardForTesting(at: 0) === card, "Una tarjeta pulsada no se recicla")
+        XCTAssertEqual(card.item.id, items[0].id)
+        card.setPressingForTesting(false)
+        view.advanceForTesting(dt: 1.0 / 60, frames: 1)
+        view.page(1); view.advanceForTesting(dt: 1.0 / 60, frames: 60)
+        XCTAssertNil(view.mountedCardForTesting(at: 0), "Al soltar vuelve a reciclarse")
+    }
+
+    @MainActor
+    func testPressingACardStopsMomentum() throws {
+        let (view, _) = try makeStripView(count: 32)
+        view.page(1); view.advanceForTesting(dt: 1.0 / 60, frames: 5)
+        XCTAssertTrue(view.isScrollBusy)
+        let card = try XCTUnwrap(view.mountedCardForTesting(at: 1))
+        view.cardDidBeginPress(card)
+        view.advanceForTesting(dt: 1.0 / 60, frames: 60)
+        XCTAssertFalse(view.isScrollBusy)
+        XCTAssertLessThan(view.scrollOffset, 640, "La animación se detuvo antes de llegar")
+    }
+
+    @MainActor
+    func testRovingStopMovesToAMountedCardWhenRecycled() throws {
+        let (view, _) = try makeStripView(count: 32)
+        let first = try XCTUnwrap(view.rovingIDForTesting)
+        for _ in 0..<6 { view.page(1); view.advanceForTesting(dt: 1.0 / 60, frames: 60) }
+        let roving = try XCTUnwrap(view.rovingIDForTesting)
+        XCTAssertNotEqual(roving, first)
+        let mountedIDs = (0..<32).compactMap { view.mountedCardForTesting(at: $0)?.item.id }
+        XCTAssertTrue(mountedIDs.contains(roving), "La parada de Tab es una tarjeta montada")
+    }
+
+    func testReduceMotionClampsOffsetWhenRangeShrinks() {
+        var s = StripScroller()
+        s.reduceMotion = true
+        s.maxOffset = 1000
+        s.offset = 900
+        s.maxOffset = 400
+        s.boundsChanged()
+        XCTAssertEqual(s.offset, 400)
+        XCTAssertEqual(s.mode, .idle)
+    }
+
+    func testSystemDrivenWheelEndsAfterSilenceSafetyTimeout() {
+        var s = StripScroller()
+        s.maxOffset = 5000
+        s.wheel(delta: 30, systemDriven: true)
+        for _ in 0..<20 { s.tick(1.0 / 60) }
+        XCTAssertEqual(s.mode, .wheel, "0,33 s sin eventos aún cuenta como gesto")
+        for _ in 0..<20 { s.tick(1.0 / 60) }
+        XCTAssertEqual(s.mode, .idle, "Tras ~0,5 s de silencio se cierra sin inercia propia")
+    }
+
+    func testAnimateDoesNotWipeAPendingDragDelta() {
+        var s = StripScroller()
+        s.maxOffset = 1000
+        s.beginDrag()
+        s.drag(by: 50)
+        XCTAssertFalse(s.animate(to: 300, duration: 0.3))
+        XCTAssertEqual(s.pending, 50)
+        XCTAssertEqual(s.mode, .drag)
+    }
+
+    func testStopMomentumHaltsInertia() {
+        var s = StripScroller()
+        s.maxOffset = 5000
+        s.fling(3000)
+        s.tick(1.0 / 60)
+        s.stopMomentum()
+        XCTAssertEqual(s.mode, .idle)
+        XCTAssertEqual(s.velocity, 0)
+    }
+
+    @MainActor
+    func testInjectedDefaultsDeterminesCapacity() throws {
+        let manager = TendederoManager.shared
+        let original = manager.defaults
+        let suite = "tendedero-inject-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defaults.set(16, forKey: "stripCapacity")
+        defer { defaults.removePersistentDomain(forName: suite); manager.defaults = original }
+        manager.defaults = defaults
+        XCTAssertEqual(manager.capacity, 16)
     }
 }
