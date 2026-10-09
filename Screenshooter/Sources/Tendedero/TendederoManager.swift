@@ -232,7 +232,7 @@ public final class TendederoManager: TendederoViewDelegate {
     /// Anuncia un texto a VoiceOver con prioridad alta.
     public func announce(_ text: String) {
         NSAccessibility.post(
-            element: (panel ?? NSApp) as Any,
+            element: panel ?? (NSApp as NSApplication),
             notification: .announcementRequested,
             userInfo: [
                 .announcement: text,
