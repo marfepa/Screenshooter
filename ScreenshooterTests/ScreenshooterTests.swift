@@ -115,4 +115,113 @@ final class ScreenshooterTests: XCTestCase {
         _ = manager.isEnabled
         XCTAssertNotNil(manager)
     }
+    
+    // MARK: - Tendedero: Papelera y arrastre
+    
+    @MainActor
+    private func makeTestImage() -> CGImage? {
+        guard let context = CGContext(
+            data: nil, width: 10, height: 10, bitsPerComponent: 8, bytesPerRow: 40,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        context.setFillColor(CGColor(red: 0, green: 0, blue: 1, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: 10, height: 10))
+        return context.makeImage()
+    }
+    
+    @MainActor
+    func testEvictionSendsOldestToTrashInsteadOfDeleting() throws {
+        let manager = TendederoManager.shared
+        let originalTrasher = manager.trasher
+        let originalSound = manager.playsTrashSound
+        var trashed: [URL] = []
+        manager.trasher = { trashed.append($0) }
+        manager.playsTrashSound = false
+        defer {
+            manager.clear()
+            manager.trasher = originalTrasher
+            manager.playsTrashSound = originalSound
+        }
+        manager.clear()
+        trashed.removeAll()
+        
+        let image = try XCTUnwrap(makeTestImage())
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("tendedero-evict-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        
+        var urls: [URL] = []
+        for i in 0...manager.maxItems {
+            let url = dir.appendingPathComponent("c\(i).png")
+            try Data([0]).write(to: url)
+            urls.append(url)
+            manager.hang(url: url, cgImage: image)
+        }
+        
+        XCTAssertEqual(manager.items.count, manager.maxItems)
+        XCTAssertEqual(trashed, [urls[0]], "La captura más antigua debe ir a la Papelera")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: urls[0].path), "No debe borrarse de forma definitiva (removeItem)")
+    }
+    
+    @MainActor
+    func testTrashItemRemovesItFromStrip() throws {
+        let manager = TendederoManager.shared
+        let originalTrasher = manager.trasher
+        let originalSound = manager.playsTrashSound
+        var trashed: [URL] = []
+        manager.trasher = { trashed.append($0) }
+        manager.playsTrashSound = false
+        defer {
+            manager.clear()
+            manager.trasher = originalTrasher
+            manager.playsTrashSound = originalSound
+        }
+        manager.clear()
+        
+        let image = try XCTUnwrap(makeTestImage())
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("tendedero-trash-\(UUID().uuidString).png")
+        try Data([0]).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+        manager.hang(url: url, cgImage: image)
+        let id = try XCTUnwrap(manager.items.first?.id)
+        
+        manager.trash(itemID: id)
+        
+        XCTAssertFalse(manager.items.contains { $0.id == id })
+        XCTAssertEqual(trashed, [url])
+    }
+    
+    @MainActor
+    func testTrashFailureKeepsItem() throws {
+        let manager = TendederoManager.shared
+        let originalTrasher = manager.trasher
+        manager.trasher = { _ in throw CocoaError(.fileWriteNoPermission) }
+        defer {
+            manager.trasher = { _ in }
+            manager.clear()
+            manager.trasher = originalTrasher
+        }
+        manager.clear()
+        
+        let image = try XCTUnwrap(makeTestImage())
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("tendedero-fail-\(UUID().uuidString).png")
+        try Data([0]).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+        manager.hang(url: url, cgImage: image)
+        let id = try XCTUnwrap(manager.items.first?.id)
+        
+        manager.trash(itemID: id)
+        
+        XCTAssertTrue(manager.items.contains { $0.id == id }, "Si falla la Papelera el item permanece")
+    }
+    
+    func testDragEndDecision() {
+        typealias M = TendederoManager
+        XCTAssertEqual(M.dragEndDecision(operation: .delete, fileExists: true), .trash)
+        XCTAssertEqual(M.dragEndDecision(operation: .move, fileExists: false), .remove)
+        XCTAssertEqual(M.dragEndDecision(operation: .move, fileExists: true), .keep)
+        XCTAssertEqual(M.dragEndDecision(operation: .copy, fileExists: false), .keep)
+        XCTAssertEqual(M.dragEndDecision(operation: [], fileExists: true), .keep)
+    }
 }
