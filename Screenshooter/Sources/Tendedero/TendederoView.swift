@@ -20,6 +20,11 @@ final class RopeView: NSView {
     override var isOpaque: Bool { false }
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
 
+    /// Cuerda más gruesa mientras el puntero está sobre la franja de arrastre o se arrastra (como la maqueta).
+    var isEmphasized = false {
+        didSet { if isEmphasized != oldValue { needsDisplay = true } }
+    }
+
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         NSWorkspace.shared.notificationCenter.addObserver(
@@ -64,7 +69,7 @@ final class RopeView: NSView {
         ctx.setShadow(offset: CGSize(width: 0, height: -1.2), blur: 2, color: NSColor.black.withAlphaComponent(0.30).cgColor)
         ctx.addPath(path)
         ctx.setStrokeColor(core)
-        ctx.setLineWidth(contrast ? 2 : 1.5)
+        ctx.setLineWidth(isEmphasized ? 2.6 : (contrast ? 2 : 1.5))
         ctx.strokePath()
         ctx.restoreGState()
 
@@ -73,7 +78,7 @@ final class RopeView: NSView {
         ctx.translateBy(x: 0, y: -0.35)
         ctx.addPath(path)
         ctx.setStrokeColor(NSColor.white.withAlphaComponent(0.45).cgColor)
-        ctx.setLineWidth(0.4)
+        ctx.setLineWidth(isEmphasized ? 0.8 : 0.4)
         ctx.strokePath()
         ctx.restoreGState()
 
@@ -85,6 +90,281 @@ final class RopeView: NSView {
             ctx.drawLinearGradient(gradient, start: CGPoint(x: 0, y: 0), end: CGPoint(x: w, y: 0), options: [])
         }
         ctx.endTransparencyLayer()
+    }
+}
+
+// MARK: - Contador de tarjetas fuera de vista
+
+/// Botón de cápsula «‹ +N» / «+N ›» con las capturas ocultas a un lado. Alto 36 pt, relleno de vidrio casi opaco (0,9)
+/// y borde de 1 pt. Clic = una página.
+final class EdgeCountButton: NSView {
+    static let height: CGFloat = 36
+    static let minWidth: CGFloat = 52
+
+    let side: StripScroll.Side
+    var onClick: (() -> Void)?
+    var onEscape: (() -> Void)?
+    private(set) var count = 0
+
+    private let glass = GlassSurface(shape: .capsule)
+    private let fill = NSView()
+    private let label = NSTextField(labelWithString: "")
+    private let chevron = NSImageView()
+    private var isDown = false
+
+    init(side: StripScroll.Side) {
+        self.side = side
+        super.init(frame: NSRect(x: 0, y: 0, width: Self.minWidth, height: Self.height))
+        wantsLayer = true
+        focusRingType = .exterior
+        addSubview(glass)
+
+        fill.wantsLayer = true
+        fill.layer?.cornerCurve = .continuous
+        addSubview(fill)
+
+        label.font = .monospacedDigitSystemFont(ofSize: 12, weight: .semibold)
+        label.textColor = .labelColor
+        label.backgroundColor = .clear
+        label.lineBreakMode = .byClipping
+        addSubview(label)
+
+        let config = NSImage.SymbolConfiguration(pointSize: 10, weight: .bold)
+        chevron.image = NSImage(systemSymbolName: side == .left ? "chevron.left" : "chevron.right", accessibilityDescription: nil)?
+            .withSymbolConfiguration(config)
+        chevron.contentTintColor = .labelColor
+        chevron.imageScaling = .scaleNone
+        addSubview(chevron)
+
+        isHidden = true
+        alphaValue = 0
+        setAccessibilityElement(true)
+        setAccessibilityRole(.button)
+
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self, selector: #selector(optionsChanged),
+            name: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil
+        )
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    @objc private func optionsChanged() { refreshStyle() }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        refreshStyle()
+    }
+
+    /// Relleno de vidrio ~0,9 (sólido con Reducir transparencia) y borde de 1 pt.
+    private func refreshStyle() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            let solid = DisplayAccessibility.reduceTransparency
+            let contrast = DisplayAccessibility.increaseContrast
+            fill.layer?.backgroundColor = NSColor.windowBackgroundColor.withAlphaComponent(solid ? 1 : 0.9).cgColor
+            fill.layer?.borderWidth = 1
+            fill.layer?.borderColor = (contrast ? NSColor.labelColor : NSColor.separatorColor).cgColor
+        }
+        glass.refreshStyle()
+    }
+
+    /// Actualiza el número. Con 0 el botón se desvanece y se oculta (también para VoiceOver).
+    func setCount(_ n: Int, animated: Bool) {
+        guard n != count else { return }
+        count = n
+        if n > 0 {
+            label.stringValue = "+\(n)"
+            label.sizeToFit()
+            let width = max(Self.minWidth, ceil(label.frame.width) + 13 * 2 + 5 + 8)
+            setFrameSize(NSSize(width: width, height: Self.height))
+            let description = StripScroll.counterLabel(count: n, side: side)
+            setAccessibilityLabel(description)
+            toolTip = description
+            needsLayout = true
+            layoutSubtreeIfNeeded()
+            refreshStyle()
+            isHidden = false
+            fade(to: 1, animated: animated)
+        } else {
+            setAccessibilityLabel(nil)
+            fade(to: 0, animated: animated) { [weak self] in
+                guard let self, self.count == 0 else { return }
+                self.isHidden = true
+            }
+        }
+    }
+
+    private func fade(to alpha: CGFloat, animated: Bool, completion: (() -> Void)? = nil) {
+        guard animated else {
+            alphaValue = alpha
+            completion?()
+            return
+        }
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = MotionStyle.current().reduceMotion ? 0.2 : 0.18
+            animator().alphaValue = alpha
+        }, completionHandler: {
+            MainActor.assumeIsolated { completion?() }
+        })
+    }
+
+    /// Resalta el contador cuando entra una captura nueva por ese lado (fundido con Reducir movimiento).
+    func bump() {
+        guard let layer, !isHidden else { return }
+        if MotionStyle.current().reduceMotion {
+            layer.removeAnimation(forKey: "bump")
+            let fade = CABasicAnimation(keyPath: "opacity")
+            fade.fromValue = 0.4
+            fade.toValue = 1
+            fade.duration = 0.4
+            layer.add(fade, forKey: "bump")
+            return
+        }
+        let pivot = TendederoCardView.pivotOffset(of: self, at: CGPoint(x: bounds.midX, y: bounds.midY))
+        let big = StripMotion.cardTransform(tilt: 0, scale: 1.22, pivotOffset: pivot)
+        let anim = CAKeyframeAnimation(keyPath: "transform")
+        anim.values = [CATransform3DIdentity, big, CATransform3DIdentity].map { NSValue(caTransform3D: $0) }
+        anim.keyTimes = [0, 0.25, 1]
+        anim.duration = 0.6
+        anim.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        layer.add(anim, forKey: "bump")
+    }
+
+    override func layout() {
+        super.layout()
+        glass.frame = bounds
+        fill.frame = bounds
+        fill.layer?.cornerRadius = bounds.height / 2
+        let iconW: CGFloat = 8, gap: CGFloat = 5
+        let contentW = ceil(label.frame.width) + gap + iconW
+        var x = (bounds.width - contentW) / 2
+        let chevronFrame = { (x: CGFloat) in NSRect(x: x, y: 0, width: iconW, height: self.bounds.height) }
+        let labelY = (bounds.height - label.frame.height) / 2
+        if side == .left {
+            chevron.frame = chevronFrame(x)
+            x += iconW + gap
+            label.setFrameOrigin(NSPoint(x: x, y: labelY))
+        } else {
+            label.setFrameOrigin(NSPoint(x: x, y: labelY))
+            x += ceil(label.frame.width) + gap
+            chevron.frame = chevronFrame(x)
+        }
+    }
+
+    // Ratón y teclado
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        guard !isHidden, alphaValue > 0.05 else { return nil }
+        return bounds.contains(convert(point, from: superview)) ? self : nil
+    }
+
+    override var mouseDownCanMoveWindow: Bool { false }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func mouseDown(with event: NSEvent) {
+        isDown = true
+        fill.alphaValue = 0.75
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        fill.alphaValue = 1
+        defer { isDown = false }
+        if isDown && bounds.contains(convert(event.locationInWindow, from: nil)) { onClick?() }
+    }
+
+    override var acceptsFirstResponder: Bool { window?.canBecomeKey == true && !isHidden && count > 0 }
+
+    override func keyDown(with event: NSEvent) {
+        if event.keyCode == 53 { onEscape?(); return }
+        switch event.specialKey {
+        case .carriageReturn?, .enter?: onClick?()
+        default:
+            if event.charactersIgnoringModifiers == " " { onClick?() }
+        }
+    }
+
+    override var focusRingMaskBounds: NSRect { bounds }
+
+    override func drawFocusRingMask() {
+        NSBezierPath(roundedRect: bounds, xRadius: bounds.height / 2, yRadius: bounds.height / 2).fill()
+    }
+
+    override func accessibilityPerformPress() -> Bool {
+        onClick?()
+        return true
+    }
+}
+
+// MARK: - Franja de arrastre de la cuerda
+
+/// Capa transparente que solo captura el ratón en una franja de ±10 pt alrededor de la curva de la cuerda.
+/// Arrastrar desplaza la tira (cursor mano abierta / cerrada).
+final class RopeDragView: NSView {
+    /// ¿El punto (en coordenadas de esta vista) cae en la franja? La decide la tira (curva y si es desplazable).
+    var bandContains: (NSPoint) -> Bool = { _ in false }
+    var onDragBegan: (() -> Void)?
+    var onDragged: ((CGFloat) -> Void)?
+    var onDragEnded: (() -> Void)?
+    var onHoverChanged: ((Bool) -> Void)?
+    private(set) var isDragging = false
+    private var lastX: CGFloat = 0
+    private var hovering = false
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        bandContains(convert(point, from: superview)) ? self : nil
+    }
+
+    override var mouseDownCanMoveWindow: Bool { false }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        for area in trackingAreas { removeTrackingArea(area) }
+        addTrackingArea(NSTrackingArea(
+            rect: bounds,
+            options: [.mouseMoved, .mouseEnteredAndExited, .cursorUpdate, .activeAlways, .inVisibleRect],
+            owner: self, userInfo: nil
+        ))
+    }
+
+    private func updateHover(_ event: NSEvent) {
+        let over = bandContains(convert(event.locationInWindow, from: nil))
+        if over != hovering { hovering = over; onHoverChanged?(over || isDragging) }
+        if !isDragging { (over ? NSCursor.openHand : NSCursor.arrow).set() }
+    }
+
+    override func mouseMoved(with event: NSEvent) { updateHover(event) }
+    override func cursorUpdate(with event: NSEvent) { updateHover(event) }
+
+    override func mouseExited(with event: NSEvent) {
+        hovering = false
+        if !isDragging { onHoverChanged?(false); NSCursor.arrow.set() }
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        guard !event.modifierFlags.contains(.control) else { return }
+        isDragging = true
+        lastX = event.locationInWindow.x
+        NSCursor.closedHand.set()
+        onHoverChanged?(true)
+        onDragBegan?()
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard isDragging else { return }
+        let x = event.locationInWindow.x
+        onDragged?(lastX - x) // arrastrar a la izquierda = el contenido avanza (offset crece)
+        lastX = x
+        NSCursor.closedHand.set()
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        guard isDragging else { return }
+        isDragging = false
+        onDragEnded?()
+        let over = bandContains(convert(event.locationInWindow, from: nil))
+        onHoverChanged?(over)
+        (over ? NSCursor.openHand : NSCursor.arrow).set()
     }
 }
 
@@ -119,6 +399,11 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
     private let cardStack = PassthroughView()
     private let emptyCapsule = GlassCapsuleLabel(font: .systemFont(ofSize: 12, weight: .medium), height: 28, horizontalPadding: 13)
     private let fadeMask = CAGradientLayer()
+    private let ropeDragView = RopeDragView()
+    private let leftCount = EdgeCountButton(side: .left)
+    private let rightCount = EdgeCountButton(side: .right)
+    private var axisLock = AxisLock()
+    private var pendingLeftBump = false
 
     /// Tarjetas montadas (visibles ±1 y la que tiene el foco de teclado).
     private var cardViews: [UUID: TendederoCardView] = [:]
@@ -166,10 +451,27 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
         ropeView.autoresizingMask = [.width, .height]
         slideHost.addSubview(ropeView)
 
+        // La franja de la cuerda va debajo de las tarjetas: donde se solapan manda la tarjeta.
+        ropeDragView.frame = bounds
+        ropeDragView.autoresizingMask = [.width, .height]
+        ropeDragView.bandContains = { [weak self] p in self?.ropeBandContains(p) ?? false }
+        ropeDragView.onDragBegan = { [weak self] in self?.beginRopeDrag() }
+        ropeDragView.onDragged = { [weak self] dx in self?.ropeDragged(by: dx) }
+        ropeDragView.onDragEnded = { [weak self] in self?.endRopeDrag() }
+        ropeDragView.onHoverChanged = { [weak self] on in self?.ropeView.isEmphasized = on }
+        slideHost.addSubview(ropeDragView)
+
         cardStack.frame = bounds
         cardStack.autoresizingMask = [.width, .height]
         cardStack.wantsLayer = true
         slideHost.addSubview(cardStack)
+
+        for button in [leftCount, rightCount] {
+            slideHost.addSubview(button)
+            button.onEscape = { [weak self] in self?.onEscape?() }
+        }
+        leftCount.onClick = { [weak self] in self?.page(-1) }
+        rightCount.onClick = { [weak self] in self?.page(1) }
 
         cardStack.setAccessibilityElement(true)
         cardStack.setAccessibilityRole(.list)
@@ -199,6 +501,7 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
         CATransaction.setDisableActions(true)
         fadeMask.frame = cardStack.bounds
         CATransaction.commit()
+        layoutCounters()
         if abs(bounds.width - laidOutWidth) > 0.5 { relayout() }
     }
 
@@ -330,6 +633,7 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
     }
 
     private func insertedWhileInteracting() {
+        pendingLeftBump = true
         onAnnounce?(StripScroll.newCaptureLeftNote)
     }
 
@@ -481,6 +785,8 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
         if velHistory.contains(where: { abs($0) > 0.5 }) || offHistory.contains(where: { $0 != offHistory[0] }) { active = true }
         syncMounted()
         if placeCards(dt: dt) { active = true }
+        if scroller.mode != .wheel && scroller.mode != .drag { axisLock.reset() }
+        updateCounters()
         if !active && scroller.moved {
             scroller.moved = false
             scheduleRestAnnouncement()
@@ -556,6 +862,104 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
 
     /// Algo se está desplazando (arrastre, rueda, inercia o animación): la tira no debe recogerse.
     var isScrollBusy: Bool { scroller.isBusy || displayLink != nil }
+
+    // MARK: Contadores
+
+    private func layoutCounters() {
+        let y = bounds.height - 56 - EdgeCountButton.height
+        leftCount.setFrameOrigin(NSPoint(x: 10, y: y))
+        rightCount.setFrameOrigin(NSPoint(x: bounds.width - 10 - rightCount.frame.width, y: y))
+    }
+
+    /// Capturas fuera de vista a cada lado (una tarjeta parcialmente oculta ya cuenta si sobresale más de 1 px).
+    private func updateCounters() {
+        let hidden = StripScroll.hiddenCounts(metrics, offset: scroller.offset)
+        let animated = window?.isVisible == true
+        for (button, n) in [(leftCount, hidden.left), (rightCount, hidden.right)] {
+            let before = button.count
+            button.setCount(n, animated: animated)
+            if n == 0, before > 0, window?.firstResponder === button, let id = rovingID, let card = cardViews[id] {
+                window?.makeFirstResponder(card) // el contador desaparece: el foco vuelve a la tira
+            }
+        }
+        if pendingLeftBump, leftCount.count > 0 {
+            pendingLeftBump = false
+            leftCount.bump()
+        }
+        layoutCounters()
+    }
+
+    var leftCounterValue: Int { leftCount.count }
+    var rightCounterValue: Int { rightCount.count }
+
+    // MARK: Entrada: rueda, trackpad y cuerda
+
+    /// Rueda y trackpad. El trackpad (con fases del sistema) se sigue tal cual, con rubber band en los bordes y sin
+    /// inercia propia; la rueda de ratón tiene inercia propia. Los signos los resuelve el sistema (desplazamiento
+    /// natural incluido): aquí solo se traducen a coordenadas de offset (contenido a la derecha = offset menor).
+    public override func scrollWheel(with event: NSEvent) {
+        guard metrics.isScrollable else {
+            super.scrollWheel(with: event)
+            return
+        }
+        scroller.reduceMotion = MotionStyle.current().reduceMotion
+        let phase = event.phase, momentum = event.momentumPhase
+        let precise = event.hasPreciseScrollingDeltas
+        let systemDriven = precise && (!phase.isEmpty || !momentum.isEmpty)
+        if phase.contains(.mayBegin) { return }
+        if phase.contains(.began) { axisLock.reset() }
+
+        var dx = event.scrollingDeltaX, dy = event.scrollingDeltaY
+        if !precise {
+            dx *= StripScroll.wheelLineHeight
+            dy *= StripScroll.wheelLineHeight
+        }
+        let d = axisLock.resolve(dx: dx, dy: dy)
+        if d != 0 { scroller.wheel(delta: -d, systemDriven: systemDriven) }
+        if phase.contains(.ended) || phase.contains(.cancelled) || momentum.contains(.ended) || momentum.contains(.cancelled) {
+            scroller.endSystemWheel()
+            if momentum.contains(.ended) || momentum.contains(.cancelled) { axisLock.reset() }
+        }
+        kick()
+        if window == nil { _ = step(dt: 0) }
+    }
+
+    /// ¿El punto (coordenadas de la vista) cae en la franja de ±10 pt alrededor de la curva de la cuerda?
+    func ropeBandContains(_ p: NSPoint) -> Bool {
+        guard metrics.isScrollable, isRevealed else { return false }
+        let w = bounds.width
+        guard w > 0, p.x >= 0, p.x <= w else { return false }
+        let centerY = bounds.height - (StripMotion.ropeBase + StripMotion.ropeY(x: p.x, width: w))
+        return abs(p.y - centerY) <= StripScroll.ropeBandHalfWidth
+    }
+
+    /// Zonas que capturan el ratón (y la rueda): tarjetas, contadores visibles y franja de la cuerda si la tira se
+    /// desplaza. Fuera de ellas el evento pasa a la app de debajo. `p` en coordenadas del panel.
+    public func containsInteractivePoint(_ p: NSPoint, margin: CGFloat = 4) -> Bool {
+        if cardHitRects.contains(where: { $0.insetBy(dx: -margin, dy: -margin).contains(p) }) { return true }
+        let dy = slideOffset
+        for button in [leftCount, rightCount] where !button.isHidden && button.alphaValue > 0.01 {
+            if button.frame.offsetBy(dx: 0, dy: dy).insetBy(dx: -margin, dy: -margin).contains(p) { return true }
+        }
+        return ropeBandContains(NSPoint(x: p.x, y: p.y - dy))
+    }
+
+    private func beginRopeDrag() {
+        scroller.reduceMotion = MotionStyle.current().reduceMotion
+        scroller.beginDrag()
+        kick()
+    }
+
+    private func ropeDragged(by dx: CGFloat) {
+        scroller.drag(by: dx)
+        kick()
+    }
+
+    private func endRopeDrag() {
+        scroller.endDrag()
+        kick()
+        if window == nil { _ = step(dt: 0) }
+    }
 
     // MARK: Tirón de la cuerda
 
@@ -765,11 +1169,16 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
 
     /// Marco de la miniatura de una captura en coordenadas de pantalla (destino del vuelo de la captura).
     /// Si la tarjeta no está montada se calcula con la geometría del destino del desplazamiento; si queda fuera
-    /// de la vista devuelve `nil` y la captura aparece sin vuelo.
+    /// de la vista por la izquierda, el destino es el contador «+N».
     public func screenFrame(for itemID: UUID) -> CGRect? {
         guard let window, let index = indexByID[itemID] else { return nil }
         let sx = metrics.slotX(index) - scroller.targetOffset
-        guard sx + StripScroll.cardWidth > 0, sx < bounds.width else { return nil }
+        guard sx + StripScroll.cardWidth > 0, sx < bounds.width else {
+            // La captura entra por la izquierda con la vista sin moverse: vuela al contador «+N».
+            guard metrics.isScrollable, sx < 0 else { return nil }
+            layoutCounters()
+            return window.convertToScreen(convert(leftCount.frame, to: nil))
+        }
         let card = cardViews[itemID] ?? TendederoCardView(item: currentItems[index])
         let y = StripMotion.slotTopBase + StripMotion.ropeY(x: sx + StripScroll.cardWidth / 2, width: max(bounds.width, 1))
         let origin = NSPoint(x: sx, y: bounds.height - y - StripMotion.slotSize.height)

@@ -210,12 +210,13 @@ public final class TendederoPanel: NSPanel {
         }
     }
     
-    /// La tira ocupa todo el ancho: solo captura el ratón sobre una tarjeta; el resto de clics pasa a las apps de debajo.
+    /// La tira ocupa todo el ancho: solo captura el ratón sobre una tarjeta, un contador o la cuerda; el resto de clics pasa a las apps de debajo.
     private func updateMousePassThrough(_ mouse: NSPoint) {
         guard !TendederoCardView.isBusy, !tendederoView.isScrollBusy else { return }
         let local = convertPoint(fromScreen: mouse)
-        let overCard = tendederoView.cardHitRects.contains { $0.insetBy(dx: -4, dy: -4).contains(local) }
-        if ignoresMouseEvents == overCard { ignoresMouseEvents = !overCard }
+        // Tarjetas, contadores +N y franja de la cuerda (si la tira se desplaza): la rueda solo se captura ahí.
+        let overInteractive = tendederoView.containsInteractivePoint(local)
+        if ignoresMouseEvents == overInteractive { ignoresMouseEvents = !overInteractive }
     }
     
     /// Un clic en la barra de menús de cualquier pantalla guarda la tira y la suprime hasta salir de la franja.

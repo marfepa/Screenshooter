@@ -1130,4 +1130,78 @@ final class ScreenshooterTests: XCTestCase {
         }
         XCTAssertEqual(maxTilt, 0, "Los desplazamientos programáticos no inclinan las tarjetas")
     }
+
+    // MARK: - Contadores, cuerda y rueda
+
+    @MainActor
+    func testEdgeCountersTrackHiddenCardsOnBothSides() throws {
+        let (view, _) = try makeStripView(count: 32)
+        let atStart = StripScroll.hiddenCounts(view.stripMetrics, offset: 0)
+        XCTAssertEqual(view.leftCounterValue, 0)
+        XCTAssertEqual(view.rightCounterValue, atStart.right)
+        view.page(1)
+        view.advanceForTesting(dt: 1.0 / 60, frames: 60)
+        let mid = StripScroll.hiddenCounts(view.stripMetrics, offset: view.scrollOffset)
+        XCTAssertGreaterThan(mid.left, 0)
+        XCTAssertEqual(view.leftCounterValue, mid.left)
+        XCTAssertEqual(view.rightCounterValue, mid.right)
+        XCTAssertLessThan(view.leftCounterValue + view.rightCounterValue, 32, "Siempre hay alguna visible")
+    }
+
+    func testEdgeCountButtonIsRealAndLargeEnough() {
+        XCTAssertGreaterThanOrEqual(EdgeCountButton.height, 36)
+        let button = EdgeCountButton(side: .right)
+        XCTAssertTrue(button.isHidden, "Sin capturas ocultas no se muestra")
+        button.setCount(12, animated: false)
+        XCTAssertFalse(button.isHidden)
+        XCTAssertEqual(button.accessibilityRole(), .button)
+        XCTAssertEqual(button.accessibilityLabel(), "Mostrar 12 capturas más a la derecha")
+        XCTAssertGreaterThanOrEqual(button.frame.height, 36)
+        XCTAssertGreaterThanOrEqual(button.frame.width, 52)
+        var clicked = 0
+        button.onClick = { clicked += 1 }
+        XCTAssertTrue(button.accessibilityPerformPress())
+        XCTAssertEqual(clicked, 1)
+        button.setCount(0, animated: false)
+        XCTAssertTrue(button.isHidden)
+    }
+
+    @MainActor
+    func testRopeBandIsTenPointsAroundTheCurveOnlyWhenScrollable() throws {
+        let (view, _) = try makeStripView(count: 32)
+        view.playReveal(motion: .current(reduceMotion: true), sway: false)
+        let x: CGFloat = 400
+        let centerY = view.bounds.height - (StripMotion.ropeBase + StripMotion.ropeY(x: x, width: 800))
+        XCTAssertTrue(view.ropeBandContains(NSPoint(x: x, y: centerY)))
+        XCTAssertTrue(view.ropeBandContains(NSPoint(x: x, y: centerY + 9.5)))
+        XCTAssertTrue(view.ropeBandContains(NSPoint(x: x, y: centerY - 9.5)))
+        XCTAssertFalse(view.ropeBandContains(NSPoint(x: x, y: centerY + 10.5)))
+        XCTAssertFalse(view.ropeBandContains(NSPoint(x: x, y: centerY - 10.5)))
+        XCTAssertFalse(view.ropeBandContains(NSPoint(x: -1, y: centerY)))
+        // Pass-through: la franja cuenta como zona interactiva (la rueda se captura), un hueco lejano no.
+        XCTAssertTrue(view.containsInteractivePoint(NSPoint(x: x, y: centerY)))
+        XCTAssertFalse(view.containsInteractivePoint(NSPoint(x: 5, y: 5)))
+
+        let (few, _) = try makeStripView(count: 3, width: 900)
+        few.playReveal(motion: .current(reduceMotion: true), sway: false)
+        XCTAssertFalse(few.ropeBandContains(NSPoint(x: 450, y: few.bounds.height - StripMotion.ropeBase)),
+                       "Si todo cabe la cuerda no se arrastra")
+    }
+
+    @MainActor
+    func testWheelEventScrollsHorizontallyAndKeepsBusyState() throws {
+        let (view, _) = try makeStripView(count: 32)
+        view.page(1)
+        view.advanceForTesting(dt: 1.0 / 60, frames: 60)
+        let start = view.scrollOffset
+        let cg = try XCTUnwrap(CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 2, wheel1: 0, wheel2: 40, wheel3: 0))
+        let event = try XCTUnwrap(NSEvent(cgEvent: cg))
+        view.scrollWheel(with: event)
+        view.advanceForTesting(dt: 1.0 / 60, frames: 1)
+        XCTAssertTrue(view.isScrollBusy)
+        // El signo lo decide el sistema: un delta X positivo mueve el contenido a la derecha (offset menor).
+        XCTAssertEqual(event.scrollingDeltaX > 0, view.scrollOffset < start)
+        view.advanceForTesting(dt: 1.0 / 60, frames: 600)
+        XCTAssertFalse(view.isScrollBusy, "En reposo el bucle se para")
+    }
 }
