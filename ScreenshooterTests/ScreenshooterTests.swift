@@ -68,4 +68,51 @@ final class ScreenshooterTests: XCTestCase {
         let expectedLevel = NSWindow.Level(rawValue: NSWindow.Level.popUpMenu.rawValue + 1)
         XCTAssertEqual(window.level, expectedLevel, "La ventana debe situarse por encima de popUpMenu pero por debajo de alertas del sistema")
     }
+    
+    @MainActor
+    func testTendederoItemAndCaching() {
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(
+            data: nil,
+            width: 20,
+            height: 20,
+            bitsPerComponent: 8,
+            bytesPerRow: 80,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            XCTFail("No se pudo crear contexto gráfico")
+            return
+        }
+        context.setFillColor(CGColor(red: 1, green: 0, blue: 0, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: 20, height: 20))
+        guard let cgImg = context.makeImage() else {
+            XCTFail("No se pudo crear CGImage")
+            return
+        }
+        
+        guard let savedURL = TendederoManager.shared.saveToCache(cgImage: cgImg) else {
+            XCTFail("No se pudo guardar la imagen en caché del Tendedero")
+            return
+        }
+        
+        XCTAssertTrue(FileManager.default.fileExists(atPath: savedURL.path))
+        
+        let item = TendederoItem(url: savedURL, cgImage: cgImg)
+        XCTAssertEqual(item.pixelSize.width, 20)
+        XCTAssertEqual(item.pixelSize.height, 20)
+        XCTAssertFalse(item.isFalling)
+        XCTAssertFalse(item.isFlying)
+        
+        // Limpiar archivo de prueba
+        try? FileManager.default.removeItem(at: savedURL)
+    }
+    
+    @MainActor
+    func testLaunchAtLoginManagerAvailability() {
+        // Verificar que el manager se inicialice sin errores de runtime
+        let manager = LaunchAtLoginManager.shared
+        _ = manager.isEnabled
+        XCTAssertNotNil(manager)
+    }
 }
