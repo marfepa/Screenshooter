@@ -24,6 +24,7 @@
 		66890EDD083A3B14DB51DAA1 /* MarkupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF4A01BC0F50F3722617C120 /* MarkupService.swift */; };
 		67C0279971A1D6A7BAD72021 /* StripCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE96DE64A89AED3614B3FB7C /* StripCardView.swift */; };
 		680010CDD993EBD5C1EB91D5 /* LocalizedTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74A370E64F45D8639DB9D4F0 /* LocalizedTestSupport.swift */; };
+		6FC29CA18716EE473F9FCAD5 /* LocalizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE47C625087F59DEAFB53AD0 /* LocalizationTests.swift */; };
 		72E774F8225110DF8095EAE8 /* LaunchAtLoginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4FBD565BD370B5BF7FB4839 /* LaunchAtLoginManager.swift */; };
 		7DA1FF9C6E2A8EBD95EE9BB9 /* HUDNotificationWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20E2823015DF063215FA3F84 /* HUDNotificationWindow.swift */; };
 		7EACFA5BBF5E611A9DB293C1 /* StripStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A118FD173727EBC8166893 /* StripStorageTests.swift */; };
@@ -101,6 +102,7 @@
 		DB73AFB7DBA00B120E616728 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		DC72841618ECC34A2FA1FAEA /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		FBBA1B82AE00BEDB7BBBF98A /* ScreenshooterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScreenshooterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		FE47C625087F59DEAFB53AD0 /* LocalizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -142,6 +144,7 @@
 		57CB90B5587750135261A8B5 /* ScreenshooterTests */ = {
 			isa = PBXGroup;
 			children = (
+				FE47C625087F59DEAFB53AD0 /* LocalizationTests.swift */,
 				74A370E64F45D8639DB9D4F0 /* LocalizedTestSupport.swift */,
 				6CE53794E55E8C22EE433E6B /* ScreenshooterTests.swift */,
 				D8A118FD173727EBC8166893 /* StripStorageTests.swift */,
@@ -398,6 +401,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6FC29CA18716EE473F9FCAD5 /* LocalizationTests.swift in Sources */,
 				680010CDD993EBD5C1EB91D5 /* LocalizedTestSupport.swift in Sources */,
 				979A92A039BB3976BBB25DEB /* ScreenshooterTests.swift in Sources */,
 				7EACFA5BBF5E611A9DB293C1 /* StripStorageTests.swift in Sources */,
