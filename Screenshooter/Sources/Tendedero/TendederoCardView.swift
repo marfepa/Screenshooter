@@ -14,6 +14,8 @@ public protocol TendederoCardViewDelegate: AnyObject {
     func cardDidEndDrag(_ card: TendederoCardView, item: TendederoItem, operation: NSDragOperation)
     func cardDidRequestFocusMove(_ card: TendederoCardView, to target: TendederoCardView.FocusTarget)
     func cardDidRequestEscape(_ card: TendederoCardView)
+    /// VoiceOver enfocó la tarjeta: la tira la lleva a la vista.
+    func cardDidGainAccessibilityFocus(_ card: TendederoCardView)
 }
 
 // MARK: - Vidrio
@@ -291,7 +293,7 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
     private var longPressTimer: Timer?
     private var badgeWorkItem: DispatchWorkItem?
 
-    public enum FocusTarget { case previous, next, first, last }
+    public enum FocusTarget { case previous, next, first, last, pageUp, pageDown }
 
     public private(set) var isHovered = false
     /// La tarjeta tiene el foco de teclado (la tira es key por petición del usuario).
@@ -337,6 +339,54 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
             let target = targetTransform(motion: MotionStyle.current())
             if !CATransform3DEqualToTransform(layer.transform, target) { layer.transform = target }
         }
+        applyScrollTilt(force: true)
+    }
+
+    // MARK: Desplazamiento de la tira
+
+    /// Inclinación (grados) que la tira aplica mientras se desplaza; gira la ranura sobre la pinza.
+    private(set) var scrollTilt: CGFloat = 0
+
+    /// Coloca la ranura sin animar (la tira mueve las tarjetas en cada fotograma).
+    func place(origin: NSPoint) {
+        if frame.origin != origin { setFrameOrigin(origin) }
+    }
+
+    /// Inclinación por velocidad. Se hornea el pivote real (pinza) en la matriz, como el resto de giros.
+    func setScrollTilt(_ degrees: CGFloat) {
+        guard abs(degrees - scrollTilt) > 0.004 || (degrees == 0 && scrollTilt != 0) else { return }
+        scrollTilt = degrees
+        applyScrollTilt(force: false)
+    }
+
+    private func applyScrollTilt(force: Bool) {
+        guard let layer = swingView.layer else { return }
+        let target = scrollTilt == 0
+            ? CATransform3DIdentity
+            : StripMotion.cardTransform(tilt: Double(scrollTilt), scale: 1, pivotOffset: swingPivot)
+        if force || !CATransform3DEqualToTransform(layer.transform, target) { layer.transform = target }
+    }
+
+    /// Deja la tarjeta lista para representar otra captura (reciclaje de vistas de la tira virtualizada).
+    func resetForReuse() {
+        resetInteractionState()
+        longPressTimer = nil
+        badgeWorkItem?.cancel()
+        isLeaving = false
+        isHovered = false
+        isKeyboardFocused = false
+        isRovingStop = false
+        isDraggingSession = false
+        suppressNextMouseUp = false
+        scrollTilt = 0
+        alphaValue = 1
+        for l in [layer, swingView.layer, cardBody.layer, badge.layer] { l?.removeAllAnimations() }
+        layer?.opacity = 1
+        swingView.layer?.transform = CATransform3DIdentity
+        badge.isHidden = true
+        badge.alphaValue = 0
+        isHidden = false
+        applyState(animated: false)
     }
 
     /// `true` mientras hay una pulsación, un arrastre o un menú contextual abierto sobre alguna tarjeta
@@ -511,6 +561,17 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
         refreshMissingState()
     }
 
+    /// Reutiliza la tarjeta para otra captura sin animar el cambio de inclinación (reciclaje de la tira virtualizada).
+    func reconfigure(with newItem: TendederoItem) {
+        item = newItem
+        imageView.image = newItem.image
+        layoutThumbnail()
+        meta.set(text: StripMotion.metaText(for: newItem))
+        meta.setFrameOrigin(NSPoint(x: (bounds.width - meta.frame.width) / 2, y: bounds.height - 118 - meta.frame.height))
+        applyState(animated: false)
+        refreshMissingState()
+    }
+
     /// Comprueba que el archivo siga existiendo y atenúa la tarjeta si no.
     @discardableResult
     public func refreshMissingState() -> Bool {
@@ -558,6 +619,12 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
         return true
     }
 
+    /// VoiceOver llevó el cursor a la tarjeta: la tira la desplaza a la vista.
+    public override func setAccessibilityFocused(_ accessibilityFocused: Bool) {
+        super.setAccessibilityFocused(accessibilityFocused)
+        if accessibilityFocused { delegate?.cardDidGainAccessibilityFocus(self) }
+    }
+
     public override func accessibilityPerformShowMenu() -> Bool {
         showContextMenuFromKeyboard()
         return true
@@ -595,6 +662,8 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
         case .rightArrow?: delegate?.cardDidRequestFocusMove(self, to: .next)
         case .home?: delegate?.cardDidRequestFocusMove(self, to: .first)
         case .end?: delegate?.cardDidRequestFocusMove(self, to: .last)
+        case .pageUp?: delegate?.cardDidRequestFocusMove(self, to: .pageUp)
+        case .pageDown?: delegate?.cardDidRequestFocusMove(self, to: .pageDown)
         case .carriageReturn?, .enter?: perform(.copy)
         case .deleteForward?: perform(.trash)
         case .menu?: showContextMenuFromKeyboard()
@@ -767,9 +836,14 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
     func move(to newFrame: NSRect, animated: Bool) {
         let old = frame.origin
         frame = newFrame
-        guard animated, let layer, old != newFrame.origin else { return }
+        guard animated, old != newFrame.origin else { return }
+        reposition(delta: CGPoint(x: old.x - newFrame.origin.x, y: old.y - newFrame.origin.y))
+    }
+
+    /// Animación aditiva de `delta` → 0 sobre la posición (no toca el frame real que gestiona AppKit).
+    func reposition(delta: CGPoint) {
+        guard let layer, delta != .zero else { return }
         let motion = MotionStyle.current()
-        let delta = CGPoint(x: old.x - newFrame.origin.x, y: old.y - newFrame.origin.y)
         let anim: CABasicAnimation
         if let spring = motion.repositionSpring {
             let s = CASpringAnimation(keyPath: "position")

@@ -453,4 +453,9 @@ extension StripScroll {
     }
 
     public enum Side { case left, right }
+
+    /// Nota al reposar tras colgar una captura con la tira en su inicio (`{n}` = total).
+    public static let newCaptureAtStartNote = "Nueva captura. Tira al inicio, {n} capturas"
+    /// Anuncio inmediato cuando entra una captura mientras el usuario interactúa (la vista no se mueve).
+    public static let newCaptureLeftNote = "Nueva captura añadida a la izquierda"
 }

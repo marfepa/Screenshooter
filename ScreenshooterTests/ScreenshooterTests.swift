@@ -1064,4 +1064,70 @@ final class ScreenshooterTests: XCTestCase {
         XCTAssertEqual(StripScroll.countsDescription(32), "32 capturas")
         XCTAssertEqual(StripScroll.restAnnouncement(hiddenLeft: 4, hiddenRight: 23, total: 32), "Mostrando de la 5 a la 9 de 32")
     }
+
+    // MARK: - Vista de la tira (virtualización y cuerda)
+
+    @MainActor
+    private func makeStripView(count: Int, width: CGFloat = 800) throws -> (TendederoView, [TendederoItem]) {
+        let image = try XCTUnwrap(makeTestImage())
+        let view = TendederoView(frame: NSRect(x: 0, y: 0, width: width, height: StripMotion.stripHeight))
+        let items = (0..<count).map { i in
+            TendederoItem(url: URL(fileURLWithPath: "/tmp/strip-test-\(i).png"), cgImage: image, tilt: 0)
+        }
+        view.reload(items: items)
+        return (view, items)
+    }
+
+    @MainActor
+    func testStripMountsOnlyVisibleCardsPlusOneOfMargin() throws {
+        let (view, _) = try makeStripView(count: 32)
+        XCTAssertTrue(view.stripMetrics.isScrollable)
+        XCTAssertLessThanOrEqual(view.mountedCardCount, 6, "32 capturas, solo las visibles ±1 tienen vista")
+        view.page(1)
+        view.advanceForTesting(dt: 1.0 / 60, frames: 60)
+        XCTAssertEqual(view.scrollOffset, 640, accuracy: 1e-6, "Una página es 0,8 del ancho")
+        XCTAssertLessThanOrEqual(view.mountedCardCount, 8)
+        XCTAssertGreaterThan(view.mountedCardCount, 0)
+    }
+
+    @MainActor
+    func testStripMountedCardsFollowTheRopeCurveAtRest() throws {
+        let (view, items) = try makeStripView(count: 32)
+        view.page(1)
+        view.advanceForTesting(dt: 1.0 / 60, frames: 90)
+        _ = items
+        let m = view.stripMetrics
+        for index in StripScroll.visibleRange(m, offset: view.scrollOffset) {
+            let card = try XCTUnwrap(view.mountedCardForTesting(at: index))
+            let screenX = m.slotX(index) - view.scrollOffset
+            XCTAssertEqual(card.frame.minX, screenX, accuracy: 0.01)
+            let expectedTop = StripMotion.slotTopBase + StripMotion.ropeY(x: screenX + 75, width: 800)
+            XCTAssertEqual(view.bounds.height - card.frame.maxY, expectedTop, accuracy: 0.01, "La y sigue la curva en la x de pantalla")
+            XCTAssertEqual(card.scrollTilt, 0, "En reposo no hay inclinación")
+        }
+    }
+
+    @MainActor
+    func testStripFewCardsStayCenteredAndAllMounted() throws {
+        let (view, _) = try makeStripView(count: 3, width: 900)
+        XCTAssertFalse(view.stripMetrics.isScrollable)
+        XCTAssertEqual(view.mountedCardCount, 3)
+        let frames = StripMotion.cardFrames(count: 3, width: 900)
+        for i in 0..<3 {
+            let card = try XCTUnwrap(view.mountedCardForTesting(at: i))
+            XCTAssertEqual(card.frame.minX, frames[i].minX, accuracy: 0.01)
+        }
+    }
+
+    @MainActor
+    func testProgrammaticScrollDoesNotTiltCards() throws {
+        let (view, _) = try makeStripView(count: 32)
+        view.page(1)
+        var maxTilt: CGFloat = 0
+        for _ in 0..<40 {
+            view.advanceForTesting(dt: 1.0 / 60, frames: 1)
+            for i in 0..<32 { if let c = view.mountedCardForTesting(at: i) { maxTilt = max(maxTilt, abs(c.scrollTilt)) } }
+        }
+        XCTAssertEqual(maxTilt, 0, "Los desplazamientos programáticos no inclinan las tarjetas")
+    }
 }

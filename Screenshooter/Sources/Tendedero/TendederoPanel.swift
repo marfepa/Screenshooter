@@ -180,10 +180,12 @@ public final class TendederoPanel: NSPanel {
         let inMenuBar = screenUnder.map { NSMouseInRect(mouse, Self.menuBarBand(of: $0), false) } ?? false
         
         var inZone = false
+        if !isRevealed { tendederoView.pointerInside = false }
         if isRevealed {
             var zone = frame
             if let s = screen { zone.size.height = s.frame.maxY - zone.minY }
             inZone = NSMouseInRect(mouse, zone, false)
+            tendederoView.pointerInside = inZone
             updateMousePassThrough(mouse)
             if !TendederoCardView.isBusy {
                 let hoverable = !ignoresMouseEvents && !tendederoView.isSliding
@@ -193,8 +195,9 @@ public final class TendederoPanel: NSPanel {
         
         // La consulta de pantalla completa solo hace falta si podría revelarse.
         let fullScreen = (inMenuBar && !isRevealed) ? (screenUnder.map { FullScreen.isActive(on: $0) } ?? false) : false
-        // Una pulsación, un arrastre, un menú contextual o el foco de teclado en la tira impiden recogerla.
-        let busy = TendederoCardView.isBusy || (keyboardRequested && isKeyWindow)
+        // Una pulsación, un arrastre, un menú contextual, el foco de teclado o un desplazamiento (scroll,
+        // inercia, arrastre de la cuerda) impiden recogerla.
+        let busy = TendederoCardView.isBusy || tendederoView.isScrollBusy || (keyboardRequested && isKeyWindow)
         
         switch state.tick(now: Date(), inMenuBar: inMenuBar, inZone: inZone, fullScreen: fullScreen, busy: busy) {
         case .reveal:
@@ -209,7 +212,7 @@ public final class TendederoPanel: NSPanel {
     
     /// La tira ocupa todo el ancho: solo captura el ratón sobre una tarjeta; el resto de clics pasa a las apps de debajo.
     private func updateMousePassThrough(_ mouse: NSPoint) {
-        guard !TendederoCardView.isBusy else { return }
+        guard !TendederoCardView.isBusy, !tendederoView.isScrollBusy else { return }
         let local = convertPoint(fromScreen: mouse)
         let overCard = tendederoView.cardHitRects.contains { $0.insetBy(dx: -4, dy: -4).contains(local) }
         if ignoresMouseEvents == overCard { ignoresMouseEvents = !overCard }
