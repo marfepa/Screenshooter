@@ -224,6 +224,7 @@ public final class TendederoManager: TendederoViewDelegate {
     public func removeFromStrip(itemID: UUID) {
         guard items.contains(where: { $0.id == itemID }) else { return }
         items.removeAll { $0.id == itemID }
+        stopMarkupWatch(itemID: itemID)
         reloadPanel()
         announce("Archivo no encontrado, quitada de la tira")
         if items.isEmpty { panel?.slideUp() }
@@ -254,6 +255,7 @@ public final class TendederoManager: TendederoViewDelegate {
                 let exists = FileManager.default.fileExists(atPath: item.url.path)
                 if Self.dragEndDecision(operation: .move, fileExists: exists) == .remove {
                     self.items.removeAll { $0.id == itemID }
+                    self.stopMarkupWatch(itemID: itemID)
                     self.reloadPanel()
                     if self.items.isEmpty {
                         self.panel?.slideUp()
@@ -269,6 +271,7 @@ public final class TendederoManager: TendederoViewDelegate {
             moveToTrashQuietly(item.url)
         }
         items.removeAll()
+        for id in Array(markupWatchers.keys) { stopMarkupWatch(itemID: id) }
         reloadPanel()
         panel?.slideUp()
     }
@@ -296,20 +299,54 @@ public final class TendederoManager: TendederoViewDelegate {
     
     public func tendederoViewDidRequestMarkup(item: TendederoItem) {
         announce("Abriendo en Marcación")
-        MarkupService.shared.edit(url: item.url) { [weak self] updatedURL in
-            guard let self = self else { return }
-            if let idx = self.items.firstIndex(where: { $0.id == item.id }) {
-                self.items[idx].reloadFromDisk()
-                self.reloadPanel()
-                
-                // Actualizar portapapeles con la versión anotada
-                ClipboardService.shared.copy(
-                    cgImage: self.items[idx].cgImage,
-                    logicalSize: self.items[idx].logicalSize,
-                    playSound: true
-                )
-            }
+        let itemID = item.id
+        startMarkupWatch(itemID: itemID, url: item.url)
+        MarkupService.shared.edit(url: item.url, onSaved: { [weak self] _ in
+            // Resultado devuelto por Marcación (ya aplicado al archivo): recargar ya;
+            // el vigilante cubre escrituras posteriores al callback.
+            self?.markupFileChanged(itemID: itemID)
+        }, onFinished: { [weak self] in
+            self?.markupWatchers[itemID]?.scheduleStop(after: 10)
+        })
+    }
+    
+    // MARK: - Vigilancia del archivo durante Marcación
+    
+    private var markupWatchers: [UUID: MarkupFileWatcher] = [:]
+    
+    private func startMarkupWatch(itemID: UUID, url: URL) {
+        markupWatchers[itemID]?.stop()
+        let watcher = MarkupFileWatcher(url: url) { [weak self] in
+            self?.markupFileChanged(itemID: itemID)
         }
+        watcher.onExpire = { [weak self, weak watcher] in
+            guard let self, let watcher, self.markupWatchers[itemID] === watcher else { return }
+            self.markupWatchers.removeValue(forKey: itemID)
+        }
+        markupWatchers[itemID] = watcher
+        watcher.start()
+    }
+    
+    private func stopMarkupWatch(itemID: UUID) {
+        markupWatchers.removeValue(forKey: itemID)?.stop()
+    }
+    
+    /// Recarga la miniatura y el portapapeles tras un cambio en el archivo. El sonido solo suena una vez por sesión.
+    private func markupFileChanged(itemID: UUID) {
+        guard let idx = items.firstIndex(where: { $0.id == itemID }) else {
+            stopMarkupWatch(itemID: itemID)
+            return
+        }
+        guard items[idx].reloadFromDisk() else { return }
+        reloadPanel()
+        let watcher = markupWatchers[itemID]
+        let playSound = !(watcher?.didPlaySound ?? false)
+        watcher?.didPlaySound = true
+        ClipboardService.shared.copy(
+            cgImage: items[idx].cgImage,
+            logicalSize: items[idx].logicalSize,
+            playSound: playSound
+        )
     }
     
     public func tendederoViewDidRequestPreview(item: TendederoItem) {
@@ -323,5 +360,93 @@ public final class TendederoManager: TendederoViewDelegate {
     
     public func tendederoViewDidRequestDismiss(item: TendederoItem, cardView: TendederoCardView) {
         trash(itemID: item.id)
+    }
+}
+
+/// Vigila un archivo con `DispatchSource` mientras Marcación lo edita. Si la escritura es atómica
+/// (`.rename`/`.delete`) el inode cambia, así que se reabre el descriptor sobre la misma ruta.
+/// Los cambios se notifican con debounce y esperando a que el tamaño se estabilice.
+@MainActor
+final class MarkupFileWatcher {
+    private let url: URL
+    private let onChange: () -> Void
+    private var source: DispatchSourceFileSystemObject?
+    private var debounceTask: Task<Void, Never>?
+    private var stopTask: Task<Void, Never>?
+    private var stopped = false
+    var didPlaySound = false
+    var onExpire: (() -> Void)?
+    
+    init(url: URL, onChange: @escaping () -> Void) {
+        self.url = url
+        self.onChange = onChange
+    }
+    
+    func start() {
+        guard !stopped else { return }
+        source?.cancel()
+        source = nil
+        let fd = open(url.path, O_EVTONLY)
+        guard fd >= 0 else {
+            // El archivo puede estar a mitad de sustitución: reintentar enseguida.
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(nanoseconds: 100_000_000)
+                self?.start()
+            }
+            return
+        }
+        let src = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: fd,
+            eventMask: [.write, .extend, .rename, .delete, .attrib],
+            queue: .main
+        )
+        src.setEventHandler { [weak self, weak src] in
+            guard let self, let src else { return }
+            let flags = src.data
+            MainActor.assumeIsolated {
+                if flags.contains(.rename) || flags.contains(.delete) {
+                    self.start()   // inode sustituido: reabrir sobre la misma ruta
+                }
+                self.scheduleChange()
+            }
+        }
+        src.setCancelHandler { close(fd) }
+        source = src
+        src.resume()
+    }
+    
+    /// Debounce ~0,15 s y tamaño estable antes de notificar.
+    private func scheduleChange() {
+        debounceTask?.cancel()
+        debounceTask = Task { @MainActor [weak self] in
+            var last: Int = -1
+            while true {
+                try? await Task.sleep(nanoseconds: 150_000_000)
+                guard !Task.isCancelled, let self, !self.stopped else { return }
+                let size = (try? self.url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+                if size > 0 && size == last { break }
+                last = size
+            }
+            guard let self, !self.stopped else { return }
+            self.onChange()
+        }
+    }
+    
+    func scheduleStop(after seconds: TimeInterval) {
+        stopTask?.cancel()
+        stopTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            self?.stop()
+            self?.onExpire?()
+        }
+    }
+    
+    func stop() {
+        stopped = true
+        debounceTask?.cancel()
+        stopTask?.cancel()
+        source?.cancel()
+        source = nil
     }
 }
