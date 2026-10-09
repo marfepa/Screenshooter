@@ -2,10 +2,12 @@ import AppKit
 
 @MainActor
 public protocol TendederoViewDelegate: AnyObject {
-    func tendederoViewDidRequestCopy(item: TendederoItem)
+    func tendederoViewDidRequestCopy(item: TendederoItem) -> Bool
     func tendederoViewDidRequestMarkup(item: TendederoItem)
     func tendederoViewDidRequestPreview(item: TendederoItem)
+    func tendederoViewDidRequestShowInFinder(item: TendederoItem)
     func tendederoViewDidRequestDismiss(item: TendederoItem, cardView: TendederoCardView)
+    func tendederoViewDidRequestRemoveMissing(item: TendederoItem)
     func tendederoViewDidEndDrag(item: TendederoItem, operation: NSDragOperation)
 }
 
@@ -202,6 +204,11 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
         }
     }
 
+    /// Comprueba de nuevo que los archivos existan (al desplegar la tira).
+    public func refreshMissingStates() {
+        for card in cardViews.values { card.refreshMissingState() }
+    }
+
     // MARK: Despliegue
 
     /// Desliza la tira desde arriba con muelle; con Reducir movimiento, solo un fundido.
@@ -273,8 +280,8 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
 
     // MARK: - TendederoCardViewDelegate
 
-    public func cardDidRequestCopy(_ card: TendederoCardView, item: TendederoItem) {
-        delegate?.tendederoViewDidRequestCopy(item: item)
+    public func cardDidRequestCopy(_ card: TendederoCardView, item: TendederoItem) -> Bool {
+        delegate?.tendederoViewDidRequestCopy(item: item) ?? false
     }
 
     public func cardDidRequestMarkup(_ card: TendederoCardView, item: TendederoItem) {
@@ -283,6 +290,14 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
 
     public func cardDidRequestPreview(_ card: TendederoCardView, item: TendederoItem) {
         delegate?.tendederoViewDidRequestPreview(item: item)
+    }
+
+    public func cardDidRequestShowInFinder(_ card: TendederoCardView, item: TendederoItem) {
+        delegate?.tendederoViewDidRequestShowInFinder(item: item)
+    }
+
+    public func cardDidRequestRemoveMissing(_ card: TendederoCardView, item: TendederoItem) {
+        delegate?.tendederoViewDidRequestRemoveMissing(item: item)
     }
 
     public func cardDidRequestDismiss(_ card: TendederoCardView, item: TendederoItem) {

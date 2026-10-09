@@ -3,10 +3,14 @@ import UniformTypeIdentifiers
 
 @MainActor
 public protocol TendederoCardViewDelegate: AnyObject {
-    func cardDidRequestCopy(_ card: TendederoCardView, item: TendederoItem)
+    /// Devuelve `false` si no se pudo copiar al portapapeles.
+    func cardDidRequestCopy(_ card: TendederoCardView, item: TendederoItem) -> Bool
     func cardDidRequestMarkup(_ card: TendederoCardView, item: TendederoItem)
     func cardDidRequestPreview(_ card: TendederoCardView, item: TendederoItem)
+    func cardDidRequestShowInFinder(_ card: TendederoCardView, item: TendederoItem)
     func cardDidRequestDismiss(_ card: TendederoCardView, item: TendederoItem)
+    /// El archivo ya no existe: quitar de la tira sin tocar la Papelera.
+    func cardDidRequestRemoveMissing(_ card: TendederoCardView, item: TendederoItem)
     func cardDidEndDrag(_ card: TendederoCardView, item: TendederoItem, operation: NSDragOperation)
 }
 
@@ -259,7 +263,7 @@ final class GlassCapsuleLabel: NSView {
 /// Tarjeta de vidrio de una captura colgada de la cuerda.
 /// Soporta arrastre (Drag & Drop), clic (copiar), doble clic (Vista Previa), mantener (Marcación),
 /// botones ✕ y lápiz al pasar el puntero y cápsula con hora y tamaño.
-public final class TendederoCardView: NSView, NSDraggingSource {
+public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
     public weak var delegate: TendederoCardViewDelegate?
     public private(set) var item: TendederoItem
 
@@ -284,6 +288,7 @@ public final class TendederoCardView: NSView, NSDraggingSource {
     private var mouseDownLocation: CGPoint = .zero
     private var isDraggingSession = false
     private var didTriggerLongPress = false
+    private var suppressNextMouseUp = false
     private var longPressTimer: Timer?
     private var badgeWorkItem: DispatchWorkItem?
 
@@ -293,8 +298,12 @@ public final class TendederoCardView: NSView, NSDraggingSource {
     /// La tarjeta está cayendo/desapareciendo: ya no recibe eventos.
     private(set) var isLeaving = false
 
-    /// `true` mientras hay una pulsación o arrastre en curso sobre alguna tarjeta (el panel no debe retraerse).
-    public private(set) static var isBusy = false
+    private static var pressActive = false
+    private static var menuOpen = false
+
+    /// `true` mientras hay una pulsación, un arrastre o un menú contextual abierto sobre alguna tarjeta
+    /// (el panel no debe retraerse ni cambiar el paso de clics).
+    public static var isBusy: Bool { pressActive || menuOpen }
 
     public init(item: TendederoItem) {
         self.item = item
@@ -379,14 +388,8 @@ public final class TendederoCardView: NSView, NSDraggingSource {
         let centerY = cardRect.maxY - 5 - CircleGlassButton.visualSize / 2
         closeButton.setFrameOrigin(NSPoint(x: 5 + CircleGlassButton.visualSize / 2 - side / 2, y: centerY - side / 2))
         actionButton.setFrameOrigin(NSPoint(x: bounds.width - 5 - CircleGlassButton.visualSize / 2 - side / 2, y: centerY - side / 2))
-        closeButton.onClick = { [weak self] in
-            guard let self else { return }
-            self.delegate?.cardDidRequestDismiss(self, item: self.item)
-        }
-        actionButton.onClick = { [weak self] in
-            guard let self else { return }
-            self.delegate?.cardDidRequestMarkup(self, item: self.item)
-        }
+        closeButton.onClick = { [weak self] in self?.perform(.trash) }
+        actionButton.onClick = { [weak self] in self?.perform(.markup) }
         for b in [closeButton, actionButton] {
             b.isHidden = true
             b.alphaValue = 0
@@ -645,11 +648,44 @@ public final class TendederoCardView: NSView, NSDraggingSource {
         CATransaction.commit()
     }
 
+    // MARK: Acciones
+
+    public enum Action { case copy, preview, markup, finder, trash }
+
+    /// Punto único de entrada de las acciones (ratón, menú, teclado y VoiceOver).
+    /// Se vuelve a comprobar que el archivo exista: si no, copiar y descartar quitan la tarjeta de la tira
+    /// (sin Papelera) y el resto no hace nada.
+    public func perform(_ action: Action) {
+        if refreshMissingState() {
+            if action == .copy || action == .trash { delegate?.cardDidRequestRemoveMissing(self, item: item) }
+            return
+        }
+        switch action {
+        case .copy:
+            triggerCopy()
+        case .preview:
+            delegate?.cardDidRequestPreview(self, item: item)
+            showBadge(text: "Abriendo en Vista Previa…", symbol: nil)
+        case .markup:
+            delegate?.cardDidRequestMarkup(self, item: item)
+            showBadge(text: "Abriendo en Marcación…", symbol: nil)
+        case .finder:
+            delegate?.cardDidRequestShowInFinder(self, item: item)
+            showBadge(text: "Mostrando en Finder…", symbol: nil)
+        case .trash:
+            delegate?.cardDidRequestDismiss(self, item: item)
+        }
+    }
+
     // MARK: Efecto Copiado
 
     public func triggerCopy() {
-        delegate?.cardDidRequestCopy(self, item: item)
-        showCopyFeedback()
+        let ok = delegate?.cardDidRequestCopy(self, item: item) ?? false
+        if ok {
+            showCopyFeedback()
+        } else {
+            showBadge(text: "No se pudo copiar", symbol: "exclamationmark.triangle")
+        }
     }
 
     public func showCopyFeedback() { showBadge(text: "Copiado", symbol: "checkmark") }
@@ -698,22 +734,33 @@ public final class TendederoCardView: NSView, NSDraggingSource {
     // MARK: - Eventos de ratón y gestos
 
     public override func mouseDown(with event: NSEvent) {
-        Self.isBusy = true
+        // Control + clic = clic derecho.
+        if event.modifierFlags.contains(.control) {
+            rightMouseDown(with: event)
+            return
+        }
+        Self.pressActive = true
         mouseDownLocation = event.locationInWindow
         isDraggingSession = false
         didTriggerLongPress = false
+        suppressNextMouseUp = false
+        longPressTimer?.invalidate()
+        longPressTimer = nil
+
+        // Archivo desaparecido: sin pulsación larga ni arrastre; el clic la quita (en mouseUp).
+        if refreshMissingState() { return }
+
         isPressed = true
         applyState()
 
-        // Mantener 0,5 s: abrir en Marcación.
-        longPressTimer?.invalidate()
+        // Mantener 0,5 s: abrir en Marcación (el mouseUp posterior no copia).
         let timer = Timer(timeInterval: 0.5, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self, !self.isDraggingSession else { return }
                 self.didTriggerLongPress = true
                 self.isPressed = false
                 self.applyState()
-                self.delegate?.cardDidRequestMarkup(self, item: self.item)
+                self.perform(.markup)
             }
         }
         RunLoop.main.add(timer, forMode: .common)
@@ -723,20 +770,64 @@ public final class TendederoCardView: NSView, NSDraggingSource {
     public override func mouseUp(with event: NSEvent) {
         longPressTimer?.invalidate()
         longPressTimer = nil
-        Self.isBusy = false
+        Self.pressActive = false
         isPressed = false
         applyState()
 
-        guard !isDraggingSession, !didTriggerLongPress else { return }
+        // Soltar un arrastre (incluso sobre la propia tarjeta) o una pulsación larga no copia.
+        guard !isDraggingSession, !didTriggerLongPress, !suppressNextMouseUp else { return }
 
         if event.clickCount == 2 {
             // Doble clic (intervalo del sistema, NSEvent.doubleClickInterval): Vista Previa.
             // La copia del primer clic ya se hizo.
-            delegate?.cardDidRequestPreview(self, item: item)
+            perform(.preview)
         } else if event.clickCount == 1 {
-            triggerCopy()
+            perform(.copy)
         }
     }
+
+    // MARK: Menú contextual
+
+    public override func menu(for event: NSEvent) -> NSMenu? { makeContextMenu() }
+
+    public override func rightMouseDown(with event: NSEvent) {
+        NSMenu.popUpContextMenu(makeContextMenu(), with: event, for: self)
+    }
+
+    /// Menú nativo: Copiar | Abrir en Vista Previa, Abrir con Marcación | Mostrar en Finder | Mover a la Papelera.
+    /// Sin rojo ni atajos de teclado (el panel no los recibe). Archivo no encontrado: todo desactivado
+    /// salvo "Quitar de la tira".
+    func makeContextMenu() -> NSMenu {
+        let missing = refreshMissingState()
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        menu.delegate = self
+
+        func add(_ title: String, _ action: Selector, enabled: Bool = true) {
+            let entry = NSMenuItem(title: title, action: action, keyEquivalent: "")
+            entry.target = self
+            entry.isEnabled = enabled
+            menu.addItem(entry)
+        }
+        add("Copiar", #selector(menuCopy), enabled: !missing)
+        menu.addItem(.separator())
+        add("Abrir en Vista Previa", #selector(menuPreview), enabled: !missing)
+        add("Abrir con Marcación", #selector(menuMarkup), enabled: !missing)
+        menu.addItem(.separator())
+        add("Mostrar en Finder", #selector(menuFinder), enabled: !missing)
+        menu.addItem(.separator())
+        add(missing ? "Quitar de la tira" : "Mover a la Papelera", #selector(menuTrash))
+        return menu
+    }
+
+    @objc private func menuCopy() { perform(.copy) }
+    @objc private func menuPreview() { perform(.preview) }
+    @objc private func menuMarkup() { perform(.markup) }
+    @objc private func menuFinder() { perform(.finder) }
+    @objc private func menuTrash() { perform(.trash) }
+
+    public func menuWillOpen(_ menu: NSMenu) { Self.menuOpen = true }
+    public func menuDidClose(_ menu: NSMenu) { Self.menuOpen = false }
 
     // MARK: Arrastre (Drag & Drop)
 
@@ -752,6 +843,7 @@ public final class TendederoCardView: NSView, NSDraggingSource {
 
             if !isDraggingSession {
                 isDraggingSession = true
+                suppressNextMouseUp = true
                 applyState()
                 startDraggingSession(with: event)
             }
@@ -774,7 +866,7 @@ public final class TendederoCardView: NSView, NSDraggingSource {
 
     public func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
         isDraggingSession = false
-        Self.isBusy = false
+        Self.pressActive = false
         applyState()
         delegate?.cardDidEndDrag(self, item: item, operation: operation)
     }

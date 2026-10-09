@@ -201,6 +201,7 @@ public final class TendederoManager: TendederoViewDelegate {
         items.removeAll { $0.id == itemID }
         panel?.tendederoView.markForFall(itemID: itemID)
         reloadPanel()
+        announce("Movida a la Papelera")
         
         if playsTrashSound {
             let soundPath = "/System/Library/Components/CoreAudio.component/Contents/SharedSupport/SystemSounds/dock/drag to trash.aif"
@@ -217,6 +218,27 @@ public final class TendederoManager: TendederoViewDelegate {
                 self.panel?.slideUp()
             }
         }
+    }
+    
+    /// Quita una captura de la tira SIN tocar la Papelera (el archivo ya no existe).
+    public func removeFromStrip(itemID: UUID) {
+        guard items.contains(where: { $0.id == itemID }) else { return }
+        items.removeAll { $0.id == itemID }
+        reloadPanel()
+        announce("Archivo no encontrado, quitada de la tira")
+        if items.isEmpty { panel?.slideUp() }
+    }
+    
+    /// Anuncia un texto a VoiceOver con prioridad alta.
+    public func announce(_ text: String) {
+        NSAccessibility.post(
+            element: (panel ?? NSApp) as Any,
+            notification: .announcementRequested,
+            userInfo: [
+                .announcement: text,
+                .priority: NSAccessibilityPriorityLevel.high.rawValue
+            ]
+        )
     }
     
     /// Gestiona el final de un arrastre iniciado desde una tarjeta.
@@ -253,12 +275,22 @@ public final class TendederoManager: TendederoViewDelegate {
     
     // MARK: - TendederoViewDelegate
     
-    public func tendederoViewDidRequestCopy(item: TendederoItem) {
-        ClipboardService.shared.copy(
+    public func tendederoViewDidRequestCopy(item: TendederoItem) -> Bool {
+        let ok = ClipboardService.shared.copy(
             cgImage: item.cgImage,
             logicalSize: item.logicalSize,
             playSound: true
         )
+        announce(ok ? "Copiado" : "No se pudo copiar")
+        return ok
+    }
+
+    public func tendederoViewDidRequestShowInFinder(item: TendederoItem) {
+        NSWorkspace.shared.activateFileViewerSelecting([item.url])
+    }
+
+    public func tendederoViewDidRequestRemoveMissing(item: TendederoItem) {
+        removeFromStrip(itemID: item.id)
     }
     
     public func tendederoViewDidRequestMarkup(item: TendederoItem) {

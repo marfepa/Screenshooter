@@ -85,6 +85,7 @@ public final class TendederoPanel: NSPanel {
         guard !isRevealed else { return }
         state.didReveal()
         alphaValue = 1.0
+        tendederoView.refreshMissingStates()
         orderFront(nil)
         // La tira se desliza desde arriba (la ventana recorta el contenido bajo la barra de menús).
         let sway = !Self.hasSwayedThisSession

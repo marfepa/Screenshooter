@@ -193,6 +193,44 @@ final class ScreenshooterTests: XCTestCase {
     }
     
     @MainActor
+    func testRemoveFromStripDoesNotTouchTrash() throws {
+        let manager = TendederoManager.shared
+        let originalTrasher = manager.trasher
+        var trashed: [URL] = []
+        manager.trasher = { trashed.append($0) }
+        defer {
+            manager.clear()
+            manager.trasher = originalTrasher
+        }
+        manager.clear()
+        trashed.removeAll()
+
+        let image = try XCTUnwrap(makeTestImage())
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("tendedero-missing-\(UUID().uuidString).png")
+        try Data([0]).write(to: url)
+        manager.hang(url: url, cgImage: image)
+        let id = try XCTUnwrap(manager.items.first?.id)
+        try FileManager.default.removeItem(at: url)
+
+        manager.removeFromStrip(itemID: id)
+
+        XCTAssertFalse(manager.items.contains { $0.id == id })
+        XCTAssertTrue(trashed.isEmpty, "Un archivo no encontrado se quita de la tira sin pasar por la Papelera")
+    }
+
+    @MainActor
+    func testCardDetectsMissingFile() throws {
+        let image = try XCTUnwrap(makeTestImage())
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("tendedero-card-\(UUID().uuidString).png")
+        try Data([0]).write(to: url)
+        let card = TendederoCardView(item: TendederoItem(url: url, cgImage: image))
+        XCTAssertFalse(card.isMissing)
+        try FileManager.default.removeItem(at: url)
+        XCTAssertTrue(card.refreshMissingState())
+        XCTAssertTrue(card.isMissing)
+    }
+
+    @MainActor
     func testTrashFailureKeepsItem() throws {
         let manager = TendederoManager.shared
         let originalTrasher = manager.trasher
