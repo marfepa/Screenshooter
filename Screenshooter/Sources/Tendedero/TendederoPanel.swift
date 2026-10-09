@@ -62,11 +62,23 @@ public final class TendederoPanel: NSPanel {
     
     public func toggle() {
         if isRevealed {
-            slideUp()
+            // Revelada por el ratón: ⌃⌥T le da foco de teclado; si ya lo tenía, se recoge.
+            if !keyboardRequested && tendederoView.hasCards {
+                state.pin()
+                beginKeyboardSession()
+            } else {
+                slideUp()
+            }
         } else {
             place(on: screenUnderPointer() ?? screen ?? NSScreen.main ?? NSScreen.screens[0])
             reveal(pinned: true, keyboard: true)
         }
+    }
+
+    private func beginKeyboardSession() {
+        keyboardRequested = true
+        makeKey()
+        tendederoView.focusFirstCard()
     }
 
     /// Esc o fin de la sesión de teclado: el panel deja de poder ser key (no se activa la app; el foco sigue en la app de debajo).
@@ -98,20 +110,18 @@ public final class TendederoPanel: NSPanel {
     public func reveal(pinned: Bool, keyboard: Bool = false) {
         if pinned { state.pin() }
         guard !isRevealed else { return }
+        // Un panel que se quedó key sin petición de teclado no debe seguir recibiendo teclas.
+        if isKeyWindow && !keyboardRequested { orderOut(nil) }
         state.didReveal()
         alphaValue = 1.0
         tendederoView.refreshMissingStates()
         orderFront(nil)
         // La tira se desliza desde arriba (la ventana recorta el contenido bajo la barra de menús).
-        let sway = !Self.hasSwayedThisSession
-        Self.hasSwayedThisSession = true
+        let sway = !Self.hasSwayedThisSession && tendederoView.hasCards
+        if sway { Self.hasSwayedThisSession = true }
         tendederoView.playReveal(motion: .current(), sway: sway)
         updateTimer()
-        if keyboard && tendederoView.hasCards {
-            keyboardRequested = true
-            makeKey()
-            tendederoView.focusFirstCard()
-        }
+        if keyboard && tendederoView.hasCards { beginKeyboardSession() }
     }
     
     public func slideUp() {
@@ -176,7 +186,8 @@ public final class TendederoPanel: NSPanel {
             inZone = NSMouseInRect(mouse, zone, false)
             updateMousePassThrough(mouse)
             if !TendederoCardView.isBusy {
-                tendederoView.updateHover(pointer: ignoresMouseEvents ? nil : convertPoint(fromScreen: mouse))
+                let hoverable = !ignoresMouseEvents && !tendederoView.isSliding
+                tendederoView.updateHover(pointer: hoverable ? convertPoint(fromScreen: mouse) : nil)
             }
         }
         
@@ -210,6 +221,12 @@ public final class TendederoPanel: NSPanel {
             MainActor.assumeIsolated {
                 guard let self else { return }
                 let p = NSEvent.mouseLocation
+                // Clic fuera de la tira durante una sesión de teclado: se acaba la sesión y se recoge.
+                if self.keyboardRequested && !NSMouseInRect(p, self.frame, false) {
+                    self.endKeyboardSession()
+                    self.slideUp()
+                    return
+                }
                 guard NSScreen.screens.contains(where: { NSMouseInRect(p, Self.menuBarBand(of: $0), false) }) else { return }
                 if self.state.menuBarClicked() == .retract { self.slideUp() }
             }

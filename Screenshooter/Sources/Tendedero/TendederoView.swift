@@ -133,6 +133,7 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
         cardStack.wantsLayer = true
         slideHost.addSubview(cardStack)
 
+        cardStack.setAccessibilityElement(true)
         cardStack.setAccessibilityRole(.list)
         cardStack.setAccessibilityLabel("Capturas recientes")
 
@@ -161,12 +162,13 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
         let canAnimate = window?.isVisible == true
         let previousRovingIndex = rovingID.flatMap { id in currentItems.firstIndex { $0.id == id } }
         currentItems = items
-        emptyCapsule.isHidden = !items.isEmpty
+        var animatedRemoval = false
 
         let currentIDs = Set(items.map { $0.id })
         for (id, card) in cardViews where !currentIDs.contains(id) {
             cardViews.removeValue(forKey: id)
             if canAnimate {
+                animatedRemoval = true
                 if fallingIDs.contains(id) {
                     card.playFall { [weak card] in card?.removeFromSuperview() }
                 } else {
@@ -177,6 +179,16 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
             }
         }
         fallingIDs.removeAll()
+        if items.isEmpty && animatedRemoval {
+            // La cápsula de estado vacío espera a que termine la caída de la última tarjeta.
+            emptyCapsule.isHidden = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + MotionStyle.current().fallDuration) { [weak self] in
+                guard let self else { return }
+                self.emptyCapsule.isHidden = !self.currentItems.isEmpty
+            }
+        } else {
+            emptyCapsule.isHidden = !items.isEmpty
+        }
 
         var arrivals: [(TendederoCardView, Bool)] = []
         for item in items {
@@ -281,7 +293,10 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
     /// Desliza la tira desde arriba con muelle; con Reducir movimiento, solo un fundido.
     public func playReveal(motion: MotionStyle, sway: Bool) {
         guard let layer = slideHost.layer else { return }
+        // Se lee la posición mostrada ANTES de tocar el modelo o quitar animaciones.
         let inFlight = layer.animation(forKey: "slide") != nil
+        let shownY = layer.presentation()?.value(forKeyPath: "transform.translation.y") as? CGFloat
+        let shownOpacity = layer.presentation()?.opacity
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         if motion.reduceMotion {
@@ -293,10 +308,10 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
 
         if motion.reduceMotion {
             layer.removeAnimation(forKey: "slide")
-            layer.animateValue("opacity", to: 1.0, from: inFlight ? nil : 0.0, duration: motion.fadeDuration, key: "slide")
+            let from: Float = inFlight ? (shownOpacity ?? 0) : 0
+            layer.animateValue("opacity", to: 1.0, from: from, duration: motion.fadeDuration, key: "slide")
         } else {
-            let from: Any = inFlight ? (layer.presentation()?.value(forKeyPath: "transform.translation.y") ?? StripMotion.stripHeight)
-                                     : StripMotion.stripHeight
+            let from = inFlight ? (shownY ?? StripMotion.stripHeight) : StripMotion.stripHeight
             layer.animateValue("transform.translation.y", to: 0.0, from: from, spring: motion.revealSpring,
                                duration: motion.revealDuration, key: "slide")
         }
@@ -335,8 +350,20 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
 
     /// Marcos de las tarjetas visibles en coordenadas del panel (origen abajo-izquierda, como la ventana).
     public var cardHitRects: [CGRect] {
-        cardViews.values.filter { !$0.isHidden }.map { $0.convert($0.hitRect, to: self) }
+        // Durante el deslizamiento las tarjetas visibles están desplazadas: se usa la posición mostrada.
+        let dy = slideOffset
+        return cardViews.values.filter { !$0.isHidden }.map { $0.convert($0.hitRect, to: self).offsetBy(dx: 0, dy: dy) }
     }
+
+    /// Desplazamiento vertical visible de la tira (positivo = hacia arriba, fuera de pantalla).
+    private var slideOffset: CGFloat {
+        guard let layer = slideHost.layer, layer.animation(forKey: "slide") != nil,
+              let y = layer.presentation()?.value(forKeyPath: "transform.translation.y") as? CGFloat else { return 0 }
+        return y
+    }
+
+    /// `true` mientras la tira se despliega o se recoge.
+    public var isSliding: Bool { slideHost.layer?.animation(forKey: "slide") != nil }
 
     /// Marco de la miniatura de una tarjeta en coordenadas de pantalla (destino del vuelo de la captura).
     public func screenFrame(for itemID: UUID) -> CGRect? {

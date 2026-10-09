@@ -286,6 +286,7 @@ public final class TendederoManager: TendederoViewDelegate {
     }
 
     public func tendederoViewDidRequestShowInFinder(item: TendederoItem) {
+        announce("Mostrando en Finder")
         NSWorkspace.shared.activateFileViewerSelecting([item.url])
     }
 
@@ -294,6 +295,7 @@ public final class TendederoManager: TendederoViewDelegate {
     }
     
     public func tendederoViewDidRequestMarkup(item: TendederoItem) {
+        announce("Abriendo en Marcación")
         MarkupService.shared.edit(url: item.url) { [weak self] updatedURL in
             guard let self = self else { return }
             if let idx = self.items.firstIndex(where: { $0.id == item.id }) {
@@ -311,6 +313,7 @@ public final class TendederoManager: TendederoViewDelegate {
     }
     
     public func tendederoViewDidRequestPreview(item: TendederoItem) {
+        announce("Abriendo en Vista Previa")
         NSWorkspace.shared.open(item.url)
     }
     
