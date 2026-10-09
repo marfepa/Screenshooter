@@ -43,6 +43,14 @@ public final class TendederoManager: TendederoViewDelegate {
         return dir
     }()
     
+    /// Carpeta vigilada por el Modo Inbox (capturas nativas). Distinta de `screenshotsDirectory`
+    /// para que las capturas propias no se cuelguen dos veces.
+    public static let inboxDirectory: URL = {
+        let dir = screenshotsDirectory.appendingPathComponent("Inbox", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }()
+
     private init() {
         setupPanel()
     }

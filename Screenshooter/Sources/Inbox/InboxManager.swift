@@ -22,6 +22,30 @@ public final class InboxManager {
     
     private var fileWatcherSource: DispatchSourceFileSystemObject?
     private var knownFiles = Set<String>()
+    /// Archivos en espera de tamaño estable (evita dos esperas para el mismo archivo).
+    private var pendingFiles = Set<String>()
+    
+    /// Intervalo y máximo de intentos para esperar a que el archivo termine de escribirse.
+    private static let stabilityInterval: TimeInterval = 0.15
+    private static let stabilityMaxAttempts = 10
+    
+    /// Lógica pura: ¿es un nombre de archivo de captura que debemos colgar?
+    /// Descarta ocultos (screencapture escribe primero `.Captura…png` y luego renombra).
+    nonisolated static func shouldConsider(filename: String) -> Bool {
+        guard !filename.hasPrefix(".") else { return false }
+        let ext = (filename as NSString).pathExtension.lowercased()
+        return ["png", "jpg", "jpeg", "heic"].contains(ext)
+    }
+    
+    /// Carpeta en la que macOS guarda las capturas nativas y que vigilamos.
+    private static var watchedFolder: URL { TendederoManager.inboxDirectory }
+    
+    /// ¿Es una ruta nuestra (caché o Inbox) y por tanto nunca una location "original" del usuario?
+    nonisolated static func isOwnFolder(path: String) -> Bool {
+        let own = [TendederoManager.screenshotsDirectory, TendederoManager.inboxDirectory]
+            .map { $0.standardizedFileURL.path }
+        return own.contains(URL(fileURLWithPath: path).standardizedFileURL.path)
+    }
     
     public var isEnabled: Bool {
         get { UserDefaults.standard.bool(forKey: Self.isEnabledKey) }
@@ -46,7 +70,7 @@ public final class InboxManager {
     public func enableInboxMode() {
         saveOriginalPreferencesIfNeeded()
         
-        let destinationPath = TendederoManager.screenshotsDirectory.path
+        let destinationPath = Self.watchedFolder.path
         
         // 1. Redirigir la carpeta donde macOS guarda las capturas
         CFPreferencesSetAppValue(Self.locationKey, destinationPath as CFString, Self.domain)
@@ -79,9 +103,13 @@ public final class InboxManager {
         
         // Guardar location previa si aún no se guardó
         if UserDefaults.standard.object(forKey: Self.savedLocationKey) == nil {
-            let oldLocation = (CFPreferencesCopyAppValue(Self.screenshotLocationKey, Self.domain) as? String)
+            var oldLocation = (CFPreferencesCopyAppValue(Self.screenshotLocationKey, Self.domain) as? String)
                 ?? (CFPreferencesCopyAppValue(Self.locationKey, Self.domain) as? String)
                 ?? ""
+            // Si ya apunta a una carpeta nuestra (migración de versión anterior) no es la original.
+            if !oldLocation.isEmpty, Self.isOwnFolder(path: oldLocation) {
+                oldLocation = ""
+            }
             UserDefaults.standard.set(oldLocation, forKey: Self.savedLocationKey)
         }
         
@@ -96,7 +124,7 @@ public final class InboxManager {
         CFPreferencesAppSynchronize(Self.domain)
         
         if let savedLocation = UserDefaults.standard.string(forKey: Self.savedLocationKey) {
-            if savedLocation.isEmpty {
+            if savedLocation.isEmpty || Self.isOwnFolder(path: savedLocation) {
                 CFPreferencesSetAppValue(Self.locationKey, nil, Self.domain)
                 CFPreferencesSetAppValue(Self.screenshotLocationKey, nil, Self.domain)
             } else {
@@ -127,7 +155,7 @@ public final class InboxManager {
     private func startWatchingScreenshotsFolder() {
         stopWatchingScreenshotsFolder()
         
-        let folder = TendederoManager.screenshotsDirectory
+        let folder = Self.watchedFolder
         
         // Inventario inicial
         if let contents = try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil) {
@@ -163,21 +191,52 @@ public final class InboxManager {
     }
     
     private func checkForNewFiles() {
-        let folder = TendederoManager.screenshotsDirectory
-        guard let current = try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.contentModificationDateKey]) else {
+        let folder = Self.watchedFolder
+        guard let current = try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil) else {
             return
         }
         
         for url in current {
             let filename = url.lastPathComponent
-            guard !knownFiles.contains(filename),
-                  ["png", "jpg", "jpeg", "heic"].contains(url.pathExtension.lowercased()) else {
+            guard Self.shouldConsider(filename: filename),
+                  !knownFiles.contains(filename),
+                  !pendingFiles.contains(filename) else {
                 continue
             }
             
-            knownFiles.insert(filename)
-            handleNewScreenshot(url: url)
+            pendingFiles.insert(filename)
+            waitForStableSize(url: url, previousSize: nil, attempt: 1)
         }
+    }
+    
+    /// Espera (sin bloquear el main thread) a que el tamaño sea estable y >0 en dos lecturas seguidas.
+    private func waitForStableSize(url: URL, previousSize: Int?, attempt: Int) {
+        let filename = url.lastPathComponent
+        let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.intValue
+        
+        if size == nil && !FileManager.default.fileExists(atPath: url.path) {
+            // Desapareció (renombrado/borrado): descartar definitivamente.
+            finishPending(filename, hang: false, url: url)
+            return
+        }
+        if let size, size > 0, size == previousSize {
+            finishPending(filename, hang: true, url: url)
+            return
+        }
+        if attempt >= Self.stabilityMaxAttempts {
+            // Último intento: colgar si hay contenido, descartar si no.
+            finishPending(filename, hang: (size ?? 0) > 0, url: url)
+            return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.stabilityInterval) { [weak self] in
+            self?.waitForStableSize(url: url, previousSize: size, attempt: attempt + 1)
+        }
+    }
+    
+    private func finishPending(_ filename: String, hang: Bool, url: URL) {
+        pendingFiles.remove(filename)
+        knownFiles.insert(filename)
+        if hang { handleNewScreenshot(url: url) }
     }
     
     private func handleNewScreenshot(url: URL) {
