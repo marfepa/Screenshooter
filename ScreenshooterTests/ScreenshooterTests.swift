@@ -101,7 +101,6 @@ final class ScreenshooterTests: XCTestCase {
         let item = TendederoItem(url: savedURL, cgImage: cgImg)
         XCTAssertEqual(item.pixelSize.width, 20)
         XCTAssertEqual(item.pixelSize.height, 20)
-        XCTAssertFalse(item.isFalling)
         XCTAssertFalse(item.isFlying)
         
         // Limpiar archivo de prueba
@@ -518,10 +517,50 @@ final class ScreenshooterTests: XCTestCase {
         let date = try XCTUnwrap(Calendar.current.date(from: DateComponents(year: 2026, month: 10, day: 9, hour: 14, minute: 32)))
         let item = TendederoItem(url: URL(fileURLWithPath: "/tmp/x.png"), cgImage: cg,
                                  pixelSize: CGSize(width: 1440, height: 900), createdAt: date)
-        XCTAssertEqual(StripMotion.accessibilityLabel(for: item, missing: false), "Captura, 14:32, 1440 por 900")
-        XCTAssertEqual(StripMotion.accessibilityLabel(for: item, missing: true), "Captura no encontrada, 14:32")
-        XCTAssertEqual(StripMotion.metaText(for: item), "14:32 · 1440×900")
+        let es = Locale(identifier: "es_ES")
+        XCTAssertEqual(StripMotion.accessibilityLabel(for: item, missing: false, locale: es), "Captura, 14:32, 1440 por 900")
+        XCTAssertEqual(StripMotion.accessibilityLabel(for: item, missing: true, locale: es), "Captura no encontrada, 14:32")
+        XCTAssertEqual(StripMotion.metaText(for: item, locale: es), "14:32 · 1440×900")
         XCTAssertEqual(StripMotion.positionText(index: 1, count: 8), "2 de 8")
+    }
+
+    func testTimeTextFollowsLocaleClockStyle() throws {
+        let date = try XCTUnwrap(Calendar.current.date(from: DateComponents(year: 2026, month: 10, day: 9, hour: 14, minute: 32)))
+        XCTAssertEqual(StripMotion.timeText(date, locale: Locale(identifier: "es_ES")), "14:32")
+        XCTAssertTrue(StripMotion.timeText(date, locale: Locale(identifier: "en_US")).contains("2:32"))
+    }
+
+    @MainActor
+    func testCardHoverAndTiltKeepTopCenterFixedInParent() throws {
+        let image = try XCTUnwrap(makeTestImage())
+        let url = URL(fileURLWithPath: "/tmp/anchor-test.png")
+        let card = TendederoCardView(item: TendederoItem(url: url, cgImage: image, tilt: 2.5))
+        card.layoutSubtreeIfNeeded()
+        let layer = try XCTUnwrap(card.cardBodyLayerForTesting)
+        // Punto de la capa en coordenadas del padre con el anchorPoint REAL: pos + T·(p − anchor·size).
+        func inParent(_ p: CGPoint) -> CGPoint {
+            let a = CGPoint(x: layer.anchorPoint.x * layer.bounds.width, y: layer.anchorPoint.y * layer.bounds.height)
+            let t = layer.transform
+            let v = CGPoint(x: p.x - a.x, y: p.y - a.y)
+            return CGPoint(x: layer.position.x + t.m11 * v.x + t.m21 * v.y + t.m41,
+                           y: layer.position.y + t.m12 * v.x + t.m22 * v.y + t.m42)
+        }
+        XCTAssertEqual(layer.bounds.height, StripMotion.cardSize.height, accuracy: 0.001)
+        let top = CGPoint(x: layer.bounds.midX, y: layer.bounds.maxY)
+
+        layer.transform = CATransform3DIdentity
+        let base = inParent(top)
+
+        card.setHovered(true)   // fuera de ventana: se aplica sin animar
+        let hovered = inParent(top)
+        XCTAssertEqual(hovered.x, base.x, accuracy: 1e-6)
+        XCTAssertEqual(hovered.y, base.y, accuracy: 1e-6)
+
+        card.setHovered(false)
+        let rest = inParent(top)
+        XCTAssertEqual(rest.x, base.x, accuracy: 1e-6)
+        XCTAssertEqual(rest.y, base.y, accuracy: 1e-6)
+        XCTAssertFalse(CATransform3DIsIdentity(layer.transform), "La inclinación se mantiene en reposo")
     }
 
     func testAspectFitCentersImageInsideRect() {

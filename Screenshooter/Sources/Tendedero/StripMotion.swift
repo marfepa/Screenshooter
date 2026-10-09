@@ -78,7 +78,6 @@ public struct MotionStyle: Equatable {
 public enum DisplayAccessibility {
     public static var reduceTransparency: Bool { NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency }
     public static var increaseContrast: Bool { NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast }
-    public static var reduceMotion: Bool { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
 }
 
 // MARK: - Geometría y transformaciones puras
@@ -153,21 +152,23 @@ public enum StripMotion {
 
     // MARK: Textos
 
-    private static func timeText(_ date: Date) -> String {
+    /// Hora corta según la configuración regional (respeta 12/24 h).
+    static func timeText(_ date: Date, locale: Locale = .current) -> String {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "HH:mm"
+        f.locale = locale
+        f.dateStyle = .none
+        f.timeStyle = .short
         return f.string(from: date)
     }
 
-    /// "HH:mm · W×H" (píxeles reales del archivo).
-    public static func metaText(for item: TendederoItem) -> String {
-        "\(timeText(item.createdAt)) · \(Int(item.pixelSize.width))×\(Int(item.pixelSize.height))"
+    /// "HH:mm · W×H" (píxeles reales del archivo; la hora sigue 12/24 h del sistema).
+    public static func metaText(for item: TendederoItem, locale: Locale = .current) -> String {
+        "\(timeText(item.createdAt, locale: locale)) · \(Int(item.pixelSize.width))×\(Int(item.pixelSize.height))"
     }
 
     /// Etiqueta de VoiceOver: "Captura, HH:mm, W por H" o "Captura no encontrada, HH:mm".
-    public static func accessibilityLabel(for item: TendederoItem, missing: Bool) -> String {
-        let time = timeText(item.createdAt)
+    public static func accessibilityLabel(for item: TendederoItem, missing: Bool, locale: Locale = .current) -> String {
+        let time = timeText(item.createdAt, locale: locale)
         if missing { return "Captura no encontrada, \(time)" }
         return "Captura, \(time), \(Int(item.pixelSize.width)) por \(Int(item.pixelSize.height))"
     }

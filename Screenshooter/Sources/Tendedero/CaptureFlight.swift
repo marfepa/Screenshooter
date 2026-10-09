@@ -15,7 +15,7 @@ public final class CaptureFlight {
     private let glassLayer = CALayer()
     private var completion: (() -> Void)?
     
-    private init(image: CGImage, from fromRect: CGRect, to toRect: CGRect, tilt: Double, screen: NSScreen) {
+    private init(image: CGImage, from fromRect: CGRect, to toRect: CGRect, screen: NSScreen) {
         // Ventana invisible que cubre la pantalla para animar libremente
         self.window = NSWindow(
             contentRect: screen.frame,
@@ -91,7 +91,7 @@ public final class CaptureFlight {
             completion()
             return
         }
-        let flight = CaptureFlight(image: image, from: fromRect, to: toRect, tilt: tilt, screen: screen)
+        let flight = CaptureFlight(image: image, from: fromRect, to: toRect, screen: screen)
         activeFlights.append(flight)
         flight.completion = { [weak flight] in
             completion()

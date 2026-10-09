@@ -58,15 +58,6 @@ public final class TendederoPanel: NSPanel {
     public override var canBecomeKey: Bool { keyboardRequested }
     public override var canBecomeMain: Bool { false }
     
-    /// Detiene timer y monitores y oculta el panel (antes de descartarlo).
-    public func tearDown() {
-        tickTimer?.invalidate()
-        tickTimer = nil
-        clickMonitors.forEach { NSEvent.removeMonitor($0) }
-        clickMonitors.removeAll()
-        orderOut(nil)
-    }
-    
     // MARK: - API pública
     
     public func toggle() {

@@ -269,9 +269,6 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
     public weak var delegate: TendederoCardViewDelegate?
     public private(set) var item: TendederoItem
 
-    public static let defaultWidth: CGFloat = StripMotion.slotSize.width
-    public static let defaultHeight: CGFloat = StripMotion.slotSize.height
-
     // Jerarquía: swingView (balanceo) > cardBody (inclinación/escala) > glass + miniatura + avisos.
     private let swingView = NSView()
     private let cardBody = NSView()
@@ -306,12 +303,45 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
     /// La tarjeta está cayendo/desapareciendo: ya no recibe eventos.
     private(set) var isLeaving = false
 
-    private static var pressActive = false
-    private static var menuOpen = false
+    /// Estado agregado por instancia: así una tarjeta que desaparece o sale de la ventana no deja `busy` pegado.
+    private static var pressing: Set<ObjectIdentifier> = []
+    private static var menuOpen: Set<ObjectIdentifier> = []
+    private var id: ObjectIdentifier { ObjectIdentifier(self) }
+
+    private func setPressing(_ on: Bool) {
+        if on { Self.pressing.insert(id) } else { Self.pressing.remove(id) }
+    }
+
+    private func setMenuOpen(_ on: Bool) {
+        if on { Self.menuOpen.insert(id) } else { Self.menuOpen.remove(id) }
+    }
+
+    /// Libera todo estado de interacción pendiente (temporizador, pulsación, menú, arrastre).
+    private func resetInteractionState() {
+        longPressTimer?.invalidate()
+        longPressTimer = nil
+        setPressing(false)
+        setMenuOpen(false)
+        isPressed = false
+    }
+
+    public override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window == nil { resetInteractionState() }
+    }
+
+    public override func layout() {
+        super.layout()
+        // AppKit puede reasignar la geometría de la capa: se reaplica la transformación de reposo.
+        if let layer = cardBody.layer, layer.animation(forKey: "state") == nil {
+            let target = targetTransform(motion: MotionStyle.current())
+            if !CATransform3DEqualToTransform(layer.transform, target) { layer.transform = target }
+        }
+    }
 
     /// `true` mientras hay una pulsación, un arrastre o un menú contextual abierto sobre alguna tarjeta
     /// (el panel no debe retraerse ni cambiar el paso de clics).
-    public static var isBusy: Bool { pressActive || menuOpen }
+    public static var isBusy: Bool { !pressing.isEmpty || !menuOpen.isEmpty }
 
     public init(item: TendederoItem) {
         self.item = item
@@ -342,8 +372,29 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
         convert(imageView.frame, from: cardBody)
     }
 
-    private var cardPivot: CGPoint { CGPoint(x: 0, y: StripMotion.cardSize.height / 2) }
-    private var swingPivot: CGPoint { CGPoint(x: 0, y: StripMotion.slotSize.height / 2 - 2) }
+    /// Vector desde el `anchorPoint` REAL de la capa de `view` hasta `point` (coordenadas de la capa).
+    /// En una `NSView` con capa el anchorPoint no es el centro (en macOS suele ser (0,0)) y AppKit puede
+    /// reasignarlo; por eso el pivote se hornea en la matriz a partir del valor leído en cada aplicación.
+    static func pivotOffset(of view: NSView, at point: CGPoint) -> CGPoint {
+        guard let l = view.layer else { return .zero }
+        return CGPoint(x: point.x - l.anchorPoint.x * view.bounds.width,
+                       y: point.y - l.anchorPoint.y * view.bounds.height)
+    }
+
+    /// Pivote de la tarjeta: centro superior de `cardBody`.
+    private var cardPivot: CGPoint {
+        Self.pivotOffset(of: cardBody, at: CGPoint(x: cardBody.bounds.width / 2, y: cardBody.bounds.height))
+    }
+    /// Pivote del balanceo: la pinza (2 pt bajo el borde superior de la ranura).
+    private var swingPivot: CGPoint {
+        Self.pivotOffset(of: swingView, at: CGPoint(x: swingView.bounds.width / 2, y: swingView.bounds.height - 2))
+    }
+    private func centerPivot(of view: NSView) -> CGPoint {
+        Self.pivotOffset(of: view, at: CGPoint(x: view.bounds.width / 2, y: view.bounds.height / 2))
+    }
+
+    /// Capa de la tarjeta y punto superior-centro en coordenadas de la capa (para tests).
+    var cardBodyLayerForTesting: CALayer? { cardBody.layer }
 
     // MARK: Montaje
 
@@ -384,12 +435,12 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
         badge.alphaValue = 0
         cardBody.addSubview(badge)
 
-        pressRing.frame = cardRect.insetBy(dx: -3, dy: -3)
+        pressRing.frame = cardBody.bounds.insetBy(dx: -3, dy: -3)
         pressRing.wantsLayer = true
         pressRing.layer?.cornerRadius = 13
         pressRing.layer?.borderWidth = 2
         pressRing.alphaValue = 0
-        swingView.addSubview(pressRing)
+        cardBody.addSubview(pressRing) // sigue la inclinación y la escala de la tarjeta
 
         peg.frame = NSRect(x: (bounds.width - 8) / 2, y: bounds.height - 14, width: 8, height: 14)
         swingView.addSubview(peg)
@@ -590,11 +641,15 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
 
     private var showsControls: Bool { (isHovered || isKeyboardFocused) && !isDraggingSession && !isLeaving }
 
+    private func targetTransform(motion: MotionStyle) -> CATransform3D {
+        let scale: CGFloat = isPressed ? motion.pressScale : (showsControls ? motion.hoverScale : 1)
+        return StripMotion.cardTransform(tilt: item.tilt, scale: scale, pivotOffset: cardPivot)
+    }
+
     private func applyState(animated: Bool = true) {
         let motion = MotionStyle.current()
         let animate = animated && window?.isVisible == true
-        let scale: CGFloat = isPressed ? motion.pressScale : (showsControls ? motion.hoverScale : 1)
-        let target = StripMotion.cardTransform(tilt: item.tilt, scale: scale, pivotOffset: cardPivot)
+        let target = targetTransform(motion: motion)
 
         // Una sola transformación (inclinación + escala): sin saltos al entrar/salir el puntero.
         if let layer = cardBody.layer, !CATransform3DEqualToTransform(layer.transform, target) {
@@ -646,11 +701,13 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
         setAlpha(view, to: visible ? 1 : 0, animate: animate) {
             if !visible && view.alphaValue == 0 { view.isHidden = true }
         }
-        if scaled, !motion.reduceMotion, let layer = view.layer {
-            let target = visible ? CATransform3DIdentity : CATransform3DMakeScale(0.6, 0.6, 1)
-            if animate {
+        if scaled, let layer = view.layer {
+            let hidden = StripMotion.cardTransform(tilt: 0, scale: 0.6, pivotOffset: centerPivot(of: view))
+            let target = (visible || motion.reduceMotion) ? CATransform3DIdentity : hidden
+            if animate && !motion.reduceMotion {
                 layer.animateValue("transform", to: NSValue(caTransform3D: target), duration: 0.18, key: "scale")
             } else {
+                layer.removeAnimation(forKey: "scale")
                 layer.transform = target
             }
         }
@@ -735,6 +792,7 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
     /// Salida sin caída (desalojo, arrastre a otra carpeta): fundido corto.
     func playDisappear(completion: @escaping () -> Void) {
         isLeaving = true
+        resetInteractionState()
         applyState(animated: false)
         guard let layer else { completion(); return }
         CATransaction.begin()
@@ -747,6 +805,7 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
     func playFall(completion: @escaping () -> Void) {
         let motion = MotionStyle.current()
         isLeaving = true
+        resetInteractionState()
         applyState(animated: false)
         guard let layer else { completion(); return }
         CATransaction.begin()
@@ -755,7 +814,7 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
             layer.animateValue("opacity", to: 0.0, from: 1.0, duration: motion.fadeDuration, key: "fall")
         } else {
             let angle = Double.random(in: 12...motion.fallMaxRotation) * (Bool.random() ? 1 : -1)
-            let rotate = StripMotion.cardTransform(tilt: angle, scale: 1, pivotOffset: CGPoint(x: 0, y: bounds.height / 2))
+            let rotate = StripMotion.cardTransform(tilt: angle, scale: 1, pivotOffset: Self.pivotOffset(of: self, at: CGPoint(x: bounds.width / 2, y: bounds.height)))
             let end = CATransform3DConcat(rotate, CATransform3DMakeTranslation(0, -520, 0))
             let timing = CAMediaTimingFunction(controlPoints: 0.55, 0, 1, 0.45)
             layer.animateValue("transform", to: NSValue(caTransform3D: end), from: NSValue(caTransform3D: CATransform3DIdentity),
@@ -817,8 +876,9 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
         badge.isHidden = false
         setAlpha(badge, to: 1, animate: animate)
         if animate, !motion.reduceMotion, let layer = badge.layer {
+            let small = StripMotion.cardTransform(tilt: 0, scale: 0.85, pivotOffset: centerPivot(of: badge))
             layer.animateValue("transform", to: NSValue(caTransform3D: CATransform3DIdentity),
-                               from: NSValue(caTransform3D: CATransform3DMakeScale(0.85, 0.85, 1)),
+                               from: NSValue(caTransform3D: small),
                                spring: motion.hoverSpring, duration: 0.25, key: "pop")
         }
         badgeWorkItem?.cancel()
@@ -856,7 +916,7 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
             rightMouseDown(with: event)
             return
         }
-        Self.pressActive = true
+        setPressing(true)
         mouseDownLocation = event.locationInWindow
         isDraggingSession = false
         didTriggerLongPress = false
@@ -887,7 +947,7 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
     public override func mouseUp(with event: NSEvent) {
         longPressTimer?.invalidate()
         longPressTimer = nil
-        Self.pressActive = false
+        setPressing(false)
         isPressed = false
         applyState()
 
@@ -943,12 +1003,13 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
     @objc private func menuFinder() { perform(.finder) }
     @objc private func menuTrash() { perform(.trash) }
 
-    public func menuWillOpen(_ menu: NSMenu) { Self.menuOpen = true }
-    public func menuDidClose(_ menu: NSMenu) { Self.menuOpen = false }
+    public func menuWillOpen(_ menu: NSMenu) { setMenuOpen(true) }
+    public func menuDidClose(_ menu: NSMenu) { setMenuOpen(false) }
 
     // MARK: Arrastre (Drag & Drop)
 
     public override func mouseDragged(with event: NSEvent) {
+        guard !isMissing else { return }
         let currentLocation = event.locationInWindow
         let dx = abs(currentLocation.x - mouseDownLocation.x)
         let dy = abs(currentLocation.y - mouseDownLocation.y)
@@ -983,7 +1044,7 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
 
     public func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
         isDraggingSession = false
-        Self.pressActive = false
+        setPressing(false)
         applyState()
         delegate?.cardDidEndDrag(self, item: item, operation: operation)
     }

@@ -11,7 +11,6 @@ public struct TendederoItem: Identifiable, Equatable {
     /// Ligera inclinación aleatoria (-2.5° a +2.5°) para simular una foto colgada con pinzas
     public let tilt: Double
     public let createdAt: Date
-    public var isFalling: Bool = false
     public var isFlying: Bool = false
     
     public init(
@@ -22,7 +21,6 @@ public struct TendederoItem: Identifiable, Equatable {
         logicalSize: CGSize? = nil,
         tilt: Double = Double.random(in: -2.5...2.5),
         createdAt: Date = Date(),
-        isFalling: Bool = false,
         isFlying: Bool = false
     ) {
         self.id = id
@@ -35,7 +33,6 @@ public struct TendederoItem: Identifiable, Equatable {
         self.image = NSImage(cgImage: cgImage, size: lSize)
         self.tilt = tilt
         self.createdAt = createdAt
-        self.isFalling = isFalling
         self.isFlying = isFlying
     }
     
@@ -51,6 +48,6 @@ public struct TendederoItem: Identifiable, Equatable {
     }
     
     public static func == (lhs: TendederoItem, rhs: TendederoItem) -> Bool {
-        return lhs.id == rhs.id && lhs.isFalling == rhs.isFalling && lhs.isFlying == rhs.isFlying
+        return lhs.id == rhs.id && lhs.isFlying == rhs.isFlying
     }
 }
