@@ -216,6 +216,45 @@ final class ScreenshooterTests: XCTestCase {
         XCTAssertTrue(manager.items.contains { $0.id == id }, "Si falla la Papelera el item permanece")
     }
     
+    func testInboxIgnoresHiddenAndNonImageFiles() {
+        XCTAssertFalse(InboxManager.shouldConsider(filename: ".Captura de pantalla 2026.png"))
+        XCTAssertTrue(InboxManager.shouldConsider(filename: "Captura de pantalla 2026.png"))
+        XCTAssertFalse(InboxManager.shouldConsider(filename: "notas.txt"))
+        XCTAssertTrue(InboxManager.shouldConsider(filename: "foto.HEIC"))
+    }
+    
+    func testInboxDirectoryIsSubfolderOfScreenshotsDirectory() {
+        let inbox = TendederoManager.inboxDirectory.standardizedFileURL
+        let cache = TendederoManager.screenshotsDirectory.standardizedFileURL
+        XCTAssertNotEqual(inbox, cache)
+        XCTAssertEqual(inbox.deletingLastPathComponent(), cache)
+    }
+    
+    @MainActor
+    func testHangSameURLTwiceKeepsSingleItem() throws {
+        let manager = TendederoManager.shared
+        let originalTrasher = manager.trasher
+        let originalSound = manager.playsTrashSound
+        manager.trasher = { _ in }
+        manager.playsTrashSound = false
+        defer {
+            manager.clear()
+            manager.trasher = originalTrasher
+            manager.playsTrashSound = originalSound
+        }
+        manager.clear()
+        
+        let image = try XCTUnwrap(makeTestImage())
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("tendedero-dup-\(UUID().uuidString).png")
+        try Data([0]).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+        
+        manager.hang(url: url, cgImage: image)
+        manager.hang(url: url, cgImage: image)
+        
+        XCTAssertEqual(manager.items.count, 1)
+    }
+    
     func testDragEndDecision() {
         typealias M = TendederoManager
         XCTAssertEqual(M.dragEndDecision(operation: .delete, fileExists: true), .trash)
