@@ -30,6 +30,7 @@
 		B1B79DD0DE7364C0D4BC7A79 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 736F777B9E518671D1BB2B0E /* AppIcon.icns */; };
 		BBD5149E2AF110D4663E24B6 /* CaptureCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 398A7FE622D552DF4D181E99 /* CaptureCoordinator.swift */; };
 		BBE1432A8E31747C9F3A3318 /* HotKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 487772EA4005D0123A6F06EB /* HotKeyManager.swift */; };
+		C3FCCB643113333F4945F161 /* StripMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAF57C3FFB2B90CDA2C6A690 /* StripMotion.swift */; };
 		D656EBC200A4B44E20E761EB /* FullScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F991211C6DB54DB60DDFC98 /* FullScreen.swift */; };
 		EA0ABEC91EBE89465A8112A5 /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 249BC331C7971BC17920AF4F /* StatusBarController.swift */; };
 		EA53B02C7327A48581D74791 /* ScreenCaptureKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 759759E4AE9A0A053CE15F03 /* ScreenCaptureKit.framework */; };
@@ -82,6 +83,7 @@
 		B965A94B6F451A94769F4DD7 /* CaptureFlight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureFlight.swift; sourceTree = "<group>"; };
 		CDE7BA3B69BEA8670015B341 /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		D4FBD565BD370B5BF7FB4839 /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
+		DAF57C3FFB2B90CDA2C6A690 /* StripMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripMotion.swift; sourceTree = "<group>"; };
 		DB73AFB7DBA00B120E616728 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		E4C463BE6229F6A4089EBB52 /* RevealState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevealState.swift; sourceTree = "<group>"; };
 		FBBA1B82AE00BEDB7BBBF98A /* ScreenshooterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScreenshooterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -176,6 +178,7 @@
 				B965A94B6F451A94769F4DD7 /* CaptureFlight.swift */,
 				8F991211C6DB54DB60DDFC98 /* FullScreen.swift */,
 				E4C463BE6229F6A4089EBB52 /* RevealState.swift */,
+				DAF57C3FFB2B90CDA2C6A690 /* StripMotion.swift */,
 				244F42061D98B873D949E319 /* TendederoCardView.swift */,
 				AB59BC0BC75D24887FF79D9F /* TendederoItem.swift */,
 				4280D7893115FEF007C73A64 /* TendederoManager.swift */,
@@ -354,6 +357,7 @@
 				06FF21456C48019AF589D1E3 /* SelectionOverlayWindow.swift in Sources */,
 				848B2FBE4A638BECC605F4E4 /* SelectionView.swift in Sources */,
 				EA0ABEC91EBE89465A8112A5 /* StatusBarController.swift in Sources */,
+				C3FCCB643113333F4945F161 /* StripMotion.swift in Sources */,
 				745E8106F222C8EFA6D4A1D7 /* TendederoCardView.swift in Sources */,
 				226A6C0C73AF0BA1FEB58D5A /* TendederoItem.swift in Sources */,
 				52068BEE8BB53DD39D732BC8 /* TendederoManager.swift in Sources */,

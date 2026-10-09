@@ -365,4 +365,131 @@ final class ScreenshooterTests: XCTestCase {
         XCTAssertFalse(st.pinned)
         XCTAssertEqual(st.peekUntil, .distantPast)
     }
+
+    // MARK: - StripMotion (lógica pura de la tira)
+
+    private func assertTransform(_ a: CATransform3D, equals b: CATransform3D, accuracy: CGFloat = 1e-9, file: StaticString = #filePath, line: UInt = #line) {
+        let x = [a.m11, a.m12, a.m13, a.m14, a.m21, a.m22, a.m23, a.m24, a.m31, a.m32, a.m33, a.m34, a.m41, a.m42, a.m43, a.m44]
+        let y = [b.m11, b.m12, b.m13, b.m14, b.m21, b.m22, b.m23, b.m24, b.m31, b.m32, b.m33, b.m34, b.m41, b.m42, b.m43, b.m44]
+        for (i, (u, v)) in zip(x, y).enumerated() {
+            XCTAssertEqual(u, v, accuracy: accuracy, "elemento \(i)", file: file, line: line)
+        }
+    }
+
+    func testCardTransformWithUnitScaleIsPureRotation() {
+        assertTransform(StripMotion.cardTransform(tilt: 2.5, scale: 1),
+                        equals: CATransform3DMakeRotation(2.5 * .pi / 180, 0, 0, 1))
+    }
+
+    func testCardTransformWithZeroTiltIsPureScale() {
+        assertTransform(StripMotion.cardTransform(tilt: 0, scale: 1.035),
+                        equals: CATransform3DMakeScale(1.035, 1.035, 1))
+    }
+
+    func testCardTransformComposesScaleOverTiltWithoutJump() {
+        // Una sola matriz: el giro se conserva al escalar (sin saltos entre reposo y hover).
+        let rest = StripMotion.cardTransform(tilt: -2, scale: 1)
+        let hover = StripMotion.cardTransform(tilt: -2, scale: 1.035)
+        XCTAssertEqual(hover.m11 / rest.m11, 1.035, accuracy: 1e-9)
+        XCTAssertEqual(hover.m12 / rest.m12, 1.035, accuracy: 1e-9)
+    }
+
+    func testCardTransformKeepsTopCenterFixed() {
+        let height: CGFloat = 104
+        let t = StripMotion.cardTransform(tilt: 2.5, scale: 1.035, anchoredAtTopOfHeight: height)
+        // Punto superior central respecto al centro de la capa: (0, h/2).
+        let p = CGPoint(x: 0, y: height / 2)
+        let x = t.m11 * p.x + t.m21 * p.y + t.m41
+        let y = t.m12 * p.x + t.m22 * p.y + t.m42
+        XCTAssertEqual(x, 0, accuracy: 1e-9)
+        XCTAssertEqual(y, height / 2, accuracy: 1e-9)
+    }
+
+    func testRopeSagIsCappedAndProportional() {
+        XCTAssertEqual(StripMotion.ropeSag(width: 600), 5, accuracy: 1e-9)
+        XCTAssertEqual(StripMotion.ropeSag(width: 3000), 10, accuracy: 1e-9)
+    }
+
+    func testRopeYIsZeroAtEndsAndMaxInCenter() {
+        let w: CGFloat = 1440
+        XCTAssertEqual(StripMotion.ropeY(x: 0, width: w), 0, accuracy: 1e-9)
+        XCTAssertEqual(StripMotion.ropeY(x: w, width: w), 0, accuracy: 1e-9)
+        XCTAssertEqual(StripMotion.ropeY(x: w / 2, width: w), StripMotion.ropeSag(width: w), accuracy: 1e-9)
+    }
+
+    func testCardFramesAreCenteredWithGap() {
+        let w: CGFloat = 1440
+        for count in 1...8 {
+            let frames = StripMotion.cardFrames(count: count, width: w)
+            XCTAssertEqual(frames.count, count)
+            let midpoint = (frames.first!.minX + frames.last!.maxX) / 2
+            XCTAssertEqual(midpoint, w / 2, accuracy: 1e-9, "\(count) tarjetas")
+            for pair in zip(frames, frames.dropFirst()) {
+                XCTAssertEqual(pair.1.minX - pair.0.maxX, StripMotion.gap, accuracy: 1e-9)
+            }
+        }
+        XCTAssertTrue(StripMotion.cardFrames(count: 0, width: w).isEmpty)
+    }
+
+    func testCardFramesRespectMinimumLeadingOnNarrowStrip() {
+        let frames = StripMotion.cardFrames(count: 8, width: 600)
+        XCTAssertEqual(frames.first!.minX, StripMotion.minLeading, accuracy: 1e-9)
+    }
+
+    func testCentralCardHangsLowerThanEdges() {
+        let frames = StripMotion.cardFrames(count: 5, width: 1440)
+        XCTAssertGreaterThan(frames[2].minY, frames[0].minY)
+        XCTAssertGreaterThan(frames[2].minY, frames[4].minY)
+        XCTAssertEqual(frames[0].minY, frames[4].minY, accuracy: 1e-9)
+    }
+
+    func testMotionStyleWithReduceMotionHasNoSpringsOrRotations() {
+        let reduced = MotionStyle.current(reduceMotion: true)
+        XCTAssertTrue(reduced.reduceMotion)
+        XCTAssertFalse(reduced.usesSprings)
+        XCTAssertEqual(reduced.fadeDuration, 0.2, accuracy: 1e-9)
+        XCTAssertEqual(reduced.revealDuration, 0.2, accuracy: 1e-9)
+        XCTAssertEqual(reduced.fallDuration, 0.2, accuracy: 1e-9)
+        XCTAssertEqual(reduced.hoverScale, 1)
+        XCTAssertEqual(reduced.pressScale, 1)
+        XCTAssertEqual(reduced.arrivalSwingDegrees, 0)
+        XCTAssertEqual(reduced.swayDegrees, 0)
+        XCTAssertEqual(reduced.fallMaxRotation, 0)
+    }
+
+    func testMotionStyleDefaultUsesSpringsAndSpecValues() {
+        let full = MotionStyle.current(reduceMotion: false)
+        XCTAssertTrue(full.usesSprings)
+        XCTAssertEqual(full.revealSpring, SpringSpec(response: 0.42, dampingRatio: 0.82))
+        XCTAssertEqual(full.hoverScale, 1.035, accuracy: 1e-9)
+        XCTAssertEqual(full.pressScale, 0.95, accuracy: 1e-9)
+        XCTAssertEqual(full.retractDuration, 0.22, accuracy: 1e-9)
+        XCTAssertEqual(full.arrivalSwingDegrees, 10)
+        XCTAssertLessThan(full.fallMaxRotation, 22.0001)
+    }
+
+    func testSpringSpecPhysicalParameters() {
+        let s = SpringSpec(response: 0.5, dampingRatio: 1)
+        XCTAssertEqual(s.stiffness, pow(2 * Double.pi / 0.5, 2), accuracy: 1e-9)
+        XCTAssertEqual(s.damping, 2 * s.stiffness.squareRoot(), accuracy: 1e-9)
+    }
+
+    @MainActor
+    func testAccessibilityLabelForPresentAndMissingCapture() throws {
+        let cg = try XCTUnwrap(makeTestImage())
+        let date = try XCTUnwrap(Calendar.current.date(from: DateComponents(year: 2026, month: 10, day: 9, hour: 14, minute: 32)))
+        let item = TendederoItem(url: URL(fileURLWithPath: "/tmp/x.png"), cgImage: cg,
+                                 pixelSize: CGSize(width: 1440, height: 900), createdAt: date)
+        XCTAssertEqual(StripMotion.accessibilityLabel(for: item, missing: false), "Captura, 14:32, 1440 por 900")
+        XCTAssertEqual(StripMotion.accessibilityLabel(for: item, missing: true), "Captura no encontrada, 14:32")
+        XCTAssertEqual(StripMotion.metaText(for: item), "14:32 · 1440×900")
+        XCTAssertEqual(StripMotion.positionText(index: 1, count: 8), "2 de 8")
+    }
+
+    func testAspectFitCentersImageInsideRect() {
+        let r = StripMotion.aspectFit(imageSize: CGSize(width: 200, height: 100), in: CGRect(x: 0, y: 0, width: 140, height: 94))
+        XCTAssertEqual(r.width, 140, accuracy: 1e-9)
+        XCTAssertEqual(r.height, 70, accuracy: 1e-9)
+        XCTAssertEqual(r.midY, 47, accuracy: 1e-9)
+    }
 }
