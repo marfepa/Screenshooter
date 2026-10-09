@@ -154,8 +154,9 @@ final class LocalizationTests: XCTestCase {
         XCTAssertGreaterThan(checked, 40, "Debería haber decenas de usos de String(localized:)")
     }
 
-    func testNoTendederoNameOutsideNotice() throws {
+    func testOldProjectNameAppearsOnlyInNotice() throws {
         let root = Self.repoRoot
+        let oldName = "tende" + "dero"  // partido para que el propio test no contenga el nombre
         for sub in ["Screenshooter", "ScreenshooterTests", "docs", "project.yml"] {
             let url = root.appendingPathComponent(sub)
             let files: [URL]
@@ -165,7 +166,7 @@ final class LocalizationTests: XCTestCase {
             }
             for f in files where f.lastPathComponent != "LocalizationTests.swift" {
                 let text = try String(contentsOf: f, encoding: .utf8)
-                XCTAssertFalse(text.lowercased().contains("tendedero"), "\(f.lastPathComponent) menciona el nombre antiguo")
+                XCTAssertFalse(text.lowercased().contains(oldName), "\(f.lastPathComponent) menciona el nombre antiguo")
             }
         }
     }
