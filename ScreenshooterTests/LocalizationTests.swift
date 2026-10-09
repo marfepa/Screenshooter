@@ -157,12 +157,12 @@ final class LocalizationTests: XCTestCase {
     func testOldProjectNameAppearsOnlyInNotice() throws {
         let root = Self.repoRoot
         let oldName = "tende" + "dero"  // partido para que el propio test no contenga el nombre
-        for sub in ["Screenshooter", "ScreenshooterTests", "docs", "project.yml"] {
+        for sub in ["Screenshooter", "ScreenshooterTests", "docs", "mockup", "project.yml"] {
             let url = root.appendingPathComponent(sub)
             let files: [URL]
             if url.pathExtension == "yml" { files = [url] } else {
                 files = (FileManager.default.enumerator(at: url, includingPropertiesForKeys: nil)?.allObjects as? [URL] ?? [])
-                    .filter { ["swift", "md", "xcstrings", "plist", "yml"].contains($0.pathExtension) }
+                    .filter { ["swift", "md", "xcstrings", "plist", "yml", "html"].contains($0.pathExtension) }
             }
             for f in files where f.lastPathComponent != "LocalizationTests.swift" {
                 let text = try String(contentsOf: f, encoding: .utf8)

@@ -16,6 +16,6 @@ enum LocalizedTestSupport {
 
     static func reset() {
         L10n.bundle = .main
-        L10n.locale = .current
+        L10n.locale = .autoupdatingCurrent
     }
 }

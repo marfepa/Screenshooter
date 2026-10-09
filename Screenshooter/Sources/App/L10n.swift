@@ -8,5 +8,5 @@ import Foundation
 /// con claves en inglés natural (idioma de desarrollo) y catálogo `Localizable.xcstrings`.
 enum L10n {
     static var bundle: Bundle = .main
-    static var locale: Locale = .current
+    static var locale: Locale = .autoupdatingCurrent
 }
