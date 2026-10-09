@@ -30,6 +30,7 @@ targets:
       - sdk: CoreGraphics.framework
       - sdk: AudioToolbox.framework
       - sdk: ScreenCaptureKit.framework
+      - sdk: ServiceManagement.framework
   ScreenshooterTests:
     type: bundle.unit-test
     platform: macOS

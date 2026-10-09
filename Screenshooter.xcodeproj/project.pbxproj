@@ -9,12 +9,18 @@
 /* Begin PBXBuildFile section */
 		01C6DBB9BED8F72C47DE03B5 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6AA0ECA5757AFF050BAA61A5 /* CoreGraphics.framework */; };
 		06FF21456C48019AF589D1E3 /* SelectionOverlayWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B257E06A7CEDDBFFF91FE5F2 /* SelectionOverlayWindow.swift */; };
+		0C9935E073FF18D199720DAE /* CaptureFlight.swift in Sources */ = {isa = PBXBuildFile; fileRef = B965A94B6F451A94769F4DD7 /* CaptureFlight.swift */; };
 		1C3BCC2E642377B687C0F4EE /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CDE7BA3B69BEA8670015B341 /* AudioToolbox.framework */; };
+		226A6C0C73AF0BA1FEB58D5A /* TendederoItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB59BC0BC75D24887FF79D9F /* TendederoItem.swift */; };
 		3410F57918EDDCDEA5C1816A /* ClipboardService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15508D845249EB71E7890746 /* ClipboardService.swift */; };
 		3D4D2B232545AAABA0FE5431 /* ScreenCaptureEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEB515DCE044BAE6D81D56E7 /* ScreenCaptureEngine.swift */; };
 		4AB953028BB60918D5F52546 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 47C393AFF90FCC997EB753B3 /* Assets.xcassets */; };
+		52068BEE8BB53DD39D732BC8 /* TendederoManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4280D7893115FEF007C73A64 /* TendederoManager.swift */; };
 		5532AC50C63B7203C5F12437 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 69DA5129D75C999F736C3C0B /* Carbon.framework */; };
 		5E6839BF7539C931CC429043 /* PermissionsHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47DF73E0CCE786EF5B3E99DD /* PermissionsHelper.swift */; };
+		66890EDD083A3B14DB51DAA1 /* MarkupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF4A01BC0F50F3722617C120 /* MarkupService.swift */; };
+		72E774F8225110DF8095EAE8 /* LaunchAtLoginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4FBD565BD370B5BF7FB4839 /* LaunchAtLoginManager.swift */; };
+		745E8106F222C8EFA6D4A1D7 /* TendederoCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244F42061D98B873D949E319 /* TendederoCardView.swift */; };
 		7DA1FF9C6E2A8EBD95EE9BB9 /* HUDNotificationWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20E2823015DF063215FA3F84 /* HUDNotificationWindow.swift */; };
 		848B2FBE4A638BECC605F4E4 /* SelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 647E94BFFA852B13698CE778 /* SelectionView.swift */; };
 		9482C3831A8FF008E4F3260F /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 57143BFF2FFD3B93D618C5F7 /* AppKit.framework */; };
@@ -26,6 +32,10 @@
 		BBE1432A8E31747C9F3A3318 /* HotKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 487772EA4005D0123A6F06EB /* HotKeyManager.swift */; };
 		EA0ABEC91EBE89465A8112A5 /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 249BC331C7971BC17920AF4F /* StatusBarController.swift */; };
 		EA53B02C7327A48581D74791 /* ScreenCaptureKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 759759E4AE9A0A053CE15F03 /* ScreenCaptureKit.framework */; };
+		EA7EF6F5DB2A8AC53A4C2D85 /* TendederoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8ED58D51EE8FF26D204C4666 /* TendederoView.swift */; };
+		F1B939C40057319C5E9E4BB1 /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 340EFBB7382FB9E75DBBFEA6 /* ServiceManagement.framework */; };
+		F6804F00BD10117948321F70 /* InboxManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AA85C03D34204DC71AC7B95 /* InboxManager.swift */; };
+		F70F171AA4C35275F567E105 /* TendederoPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9460AEBDF763C83905125EF8 /* TendederoPanel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -41,9 +51,12 @@
 /* Begin PBXFileReference section */
 		15508D845249EB71E7890746 /* ClipboardService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardService.swift; sourceTree = "<group>"; };
 		20E2823015DF063215FA3F84 /* HUDNotificationWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDNotificationWindow.swift; sourceTree = "<group>"; };
+		244F42061D98B873D949E319 /* TendederoCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TendederoCardView.swift; sourceTree = "<group>"; };
 		249BC331C7971BC17920AF4F /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
 		265CBAEFC805626BE3B8F746 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		340EFBB7382FB9E75DBBFEA6 /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
 		398A7FE622D552DF4D181E99 /* CaptureCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureCoordinator.swift; sourceTree = "<group>"; };
+		4280D7893115FEF007C73A64 /* TendederoManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TendederoManager.swift; sourceTree = "<group>"; };
 		47C393AFF90FCC997EB753B3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		47DF73E0CCE786EF5B3E99DD /* PermissionsHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsHelper.swift; sourceTree = "<group>"; };
 		487772EA4005D0123A6F06EB /* HotKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyManager.swift; sourceTree = "<group>"; };
@@ -51,14 +64,21 @@
 		647E94BFFA852B13698CE778 /* SelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionView.swift; sourceTree = "<group>"; };
 		69DA5129D75C999F736C3C0B /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 		6AA0ECA5757AFF050BAA61A5 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		6AA85C03D34204DC71AC7B95 /* InboxManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxManager.swift; sourceTree = "<group>"; };
 		6CE53794E55E8C22EE433E6B /* ScreenshooterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshooterTests.swift; sourceTree = "<group>"; };
 		6D25B61308BADA1567430B49 /* Screenshooter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Screenshooter.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		725EA45538F50B72592D85FE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		736F777B9E518671D1BB2B0E /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
 		759759E4AE9A0A053CE15F03 /* ScreenCaptureKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ScreenCaptureKit.framework; path = System/Library/Frameworks/ScreenCaptureKit.framework; sourceTree = SDKROOT; };
+		8ED58D51EE8FF26D204C4666 /* TendederoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TendederoView.swift; sourceTree = "<group>"; };
+		9460AEBDF763C83905125EF8 /* TendederoPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TendederoPanel.swift; sourceTree = "<group>"; };
+		AB59BC0BC75D24887FF79D9F /* TendederoItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TendederoItem.swift; sourceTree = "<group>"; };
 		AEB515DCE044BAE6D81D56E7 /* ScreenCaptureEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureEngine.swift; sourceTree = "<group>"; };
+		AF4A01BC0F50F3722617C120 /* MarkupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkupService.swift; sourceTree = "<group>"; };
 		B257E06A7CEDDBFFF91FE5F2 /* SelectionOverlayWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionOverlayWindow.swift; sourceTree = "<group>"; };
+		B965A94B6F451A94769F4DD7 /* CaptureFlight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureFlight.swift; sourceTree = "<group>"; };
 		CDE7BA3B69BEA8670015B341 /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
+		D4FBD565BD370B5BF7FB4839 /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
 		DB73AFB7DBA00B120E616728 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		FBBA1B82AE00BEDB7BBBF98A /* ScreenshooterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScreenshooterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -73,6 +93,7 @@
 				01C6DBB9BED8F72C47DE03B5 /* CoreGraphics.framework in Frameworks */,
 				1C3BCC2E642377B687C0F4EE /* AudioToolbox.framework in Frameworks */,
 				EA53B02C7327A48581D74791 /* ScreenCaptureKit.framework in Frameworks */,
+				F1B939C40057319C5E9E4BB1 /* ServiceManagement.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -83,6 +104,7 @@
 			isa = PBXGroup;
 			children = (
 				725EA45538F50B72592D85FE /* AppDelegate.swift */,
+				D4FBD565BD370B5BF7FB4839 /* LaunchAtLoginManager.swift */,
 				DB73AFB7DBA00B120E616728 /* main.swift */,
 			);
 			path = App;
@@ -112,6 +134,7 @@
 				69DA5129D75C999F736C3C0B /* Carbon.framework */,
 				6AA0ECA5757AFF050BAA61A5 /* CoreGraphics.framework */,
 				759759E4AE9A0A053CE15F03 /* ScreenCaptureKit.framework */,
+				340EFBB7382FB9E75DBBFEA6 /* ServiceManagement.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -134,10 +157,42 @@
 				B34400982E10C096C2E023F2 /* Capture */,
 				B7F9781D4EE28BF97A1256CB /* Clipboard */,
 				473D64CDE578F03AA2747E65 /* HotKey */,
+				8691802AE3007C027318E69B /* Inbox */,
+				8845DAF5E5731198F0D59C13 /* Markup */,
+				7BE37BD131AD13AEEC37650B /* Tendedero */,
 				D32526ACABF3A9EE43E16129 /* UI */,
 			);
 			name = Sources;
 			path = Screenshooter/Sources;
+			sourceTree = "<group>";
+		};
+		7BE37BD131AD13AEEC37650B /* Tendedero */ = {
+			isa = PBXGroup;
+			children = (
+				B965A94B6F451A94769F4DD7 /* CaptureFlight.swift */,
+				244F42061D98B873D949E319 /* TendederoCardView.swift */,
+				AB59BC0BC75D24887FF79D9F /* TendederoItem.swift */,
+				4280D7893115FEF007C73A64 /* TendederoManager.swift */,
+				9460AEBDF763C83905125EF8 /* TendederoPanel.swift */,
+				8ED58D51EE8FF26D204C4666 /* TendederoView.swift */,
+			);
+			path = Tendedero;
+			sourceTree = "<group>";
+		};
+		8691802AE3007C027318E69B /* Inbox */ = {
+			isa = PBXGroup;
+			children = (
+				6AA85C03D34204DC71AC7B95 /* InboxManager.swift */,
+			);
+			path = Inbox;
+			sourceTree = "<group>";
+		};
+		8845DAF5E5731198F0D59C13 /* Markup */ = {
+			isa = PBXGroup;
+			children = (
+				AF4A01BC0F50F3722617C120 /* MarkupService.swift */,
+			);
+			path = Markup;
 			sourceTree = "<group>";
 		};
 		9A9BCE1AD802F46D0D2DA60E /* Resources */ = {
@@ -279,14 +334,23 @@
 			files = (
 				A0EB0DB656496D35624891AD /* AppDelegate.swift in Sources */,
 				BBD5149E2AF110D4663E24B6 /* CaptureCoordinator.swift in Sources */,
+				0C9935E073FF18D199720DAE /* CaptureFlight.swift in Sources */,
 				3410F57918EDDCDEA5C1816A /* ClipboardService.swift in Sources */,
 				7DA1FF9C6E2A8EBD95EE9BB9 /* HUDNotificationWindow.swift in Sources */,
 				BBE1432A8E31747C9F3A3318 /* HotKeyManager.swift in Sources */,
+				F6804F00BD10117948321F70 /* InboxManager.swift in Sources */,
+				72E774F8225110DF8095EAE8 /* LaunchAtLoginManager.swift in Sources */,
+				66890EDD083A3B14DB51DAA1 /* MarkupService.swift in Sources */,
 				5E6839BF7539C931CC429043 /* PermissionsHelper.swift in Sources */,
 				3D4D2B232545AAABA0FE5431 /* ScreenCaptureEngine.swift in Sources */,
 				06FF21456C48019AF589D1E3 /* SelectionOverlayWindow.swift in Sources */,
 				848B2FBE4A638BECC605F4E4 /* SelectionView.swift in Sources */,
 				EA0ABEC91EBE89465A8112A5 /* StatusBarController.swift in Sources */,
+				745E8106F222C8EFA6D4A1D7 /* TendederoCardView.swift in Sources */,
+				226A6C0C73AF0BA1FEB58D5A /* TendederoItem.swift in Sources */,
+				52068BEE8BB53DD39D732BC8 /* TendederoManager.swift in Sources */,
+				F70F171AA4C35275F567E105 /* TendederoPanel.swift in Sources */,
+				EA7EF6F5DB2A8AC53A4C2D85 /* TendederoView.swift in Sources */,
 				A489D750B5BE327FD3A297DD /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

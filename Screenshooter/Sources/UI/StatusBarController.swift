@@ -41,6 +41,37 @@ public final class StatusBarController {
         captureItem.target = self
         menu.addItem(captureItem)
         
+        // 2. Control del Tendedero
+        let tendederoItem = NSMenuItem(
+            title: "Mostrar / Ocultar Tendedero",
+            action: #selector(handleToggleTendederoClicked),
+            keyEquivalent: "t"
+        )
+        tendederoItem.keyEquivalentModifierMask = [.control, .option]
+        tendederoItem.target = self
+        menu.addItem(tendederoItem)
+        
+        let clearTendederoItem = NSMenuItem(
+            title: "Vaciar Tendedero",
+            action: #selector(handleClearTendederoClicked),
+            keyEquivalent: ""
+        )
+        clearTendederoItem.target = self
+        menu.addItem(clearTendederoItem)
+        
+        menu.addItem(NSMenuItem.separator())
+        
+        // 3. Modo Inbox (Interceptar capturas nativas de macOS)
+        let isInboxOn = InboxManager.shared.isEnabled
+        let inboxItem = NSMenuItem(
+            title: "Modo Inbox (Capturas nativas directas al Tendedero)",
+            action: #selector(handleToggleInboxClicked),
+            keyEquivalent: ""
+        )
+        inboxItem.state = isInboxOn ? .on : .off
+        inboxItem.target = self
+        menu.addItem(inboxItem)
+        
         menu.addItem(NSMenuItem.separator())
         
         // 2. Estado de permisos
@@ -68,8 +99,18 @@ public final class StatusBarController {
         menu.addItem(NSMenuItem.separator())
         
         // 3. Ajustes / Preferencias
+        let isLaunchAtLogin = LaunchAtLoginManager.shared.isEnabled
+        let launchItem = NSMenuItem(
+            title: "Abrir al iniciar el Mac",
+            action: #selector(handleToggleLaunchAtLoginClicked),
+            keyEquivalent: ""
+        )
+        launchItem.state = isLaunchAtLogin ? .on : .off
+        launchItem.target = self
+        menu.addItem(launchItem)
+        
         let prefsItem = NSMenuItem(
-            title: "Preferencias...",
+            title: "Preferencias y Atajos...",
             action: #selector(handlePreferencesClicked),
             keyEquivalent: ","
         )
@@ -96,6 +137,24 @@ public final class StatusBarController {
         CaptureCoordinator.shared.startCapture()
     }
     
+    @objc private func handleToggleTendederoClicked() {
+        TendederoManager.shared.toggle()
+    }
+    
+    @objc private func handleClearTendederoClicked() {
+        TendederoManager.shared.clear()
+    }
+    
+    @objc private func handleToggleInboxClicked() {
+        InboxManager.shared.isEnabled.toggle()
+        setupMenu()
+    }
+    
+    @objc private func handleToggleLaunchAtLoginClicked() {
+        LaunchAtLoginManager.shared.toggle()
+        setupMenu()
+    }
+    
     @objc private func handlePermissionClicked() {
         if PermissionsHelper.shared.isScreenCaptureGranted {
             let alert = NSAlert()
@@ -114,9 +173,22 @@ public final class StatusBarController {
     }
     
     @objc private func handlePreferencesClicked() {
+        let launchStatus = LaunchAtLoginManager.shared.isEnabled ? "Activado" : "Desactivado"
         let alert = NSAlert()
-        alert.messageText = "Screenshooter — Ajustes"
-        alert.informativeText = "Atajo global activo: ⌥⌘S (Option + Command + S)\n\nLa captura se guarda automáticamente en el portapapeles y se reproduce el sonido de obturador del sistema."
+        alert.messageText = "Screenshooter — Ajustes y Gestos"
+        alert.informativeText = """
+        • ⌥⌘S: Capturar área seleccionada.
+        • ⌃⌥T: Mostrar / Ocultar el Tendedero.
+        • Abrir al iniciar el Mac: \(launchStatus) (puedes alternarlo desde el menú).
+        • Barra de menús: Posar el cursor arriba desliza el Tendedero automáticamente.
+        
+        Gestos en cada captura colgada:
+        • Clic simple: Copiar al portapapeles.
+        • Doble clic: Abrir en Vista Previa.
+        • Mantener pulsado (o botón lápiz): Anotar con Marcación nativa de macOS (Markup).
+        • Arrastrar (Drag & Drop): Soltar en Slack, Figma o Finder.
+        • Botón ✕: Descartar con caída libre.
+        """
         alert.alertStyle = .informational
         alert.addButton(withTitle: "Entendido")
         alert.runModal()
