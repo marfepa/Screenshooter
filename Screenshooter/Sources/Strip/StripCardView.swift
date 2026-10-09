@@ -278,13 +278,13 @@ public final class StripCardView: NSView, NSDraggingSource, NSMenuDelegate {
     private let cardBody = NSView()
     private let glass = GlassSurface(shape: .rounded(10))
     private let imageView = NSImageView()
-    private let missingLabel = NSTextField(labelWithString: "Archivo no encontrado")
+    private let missingLabel = NSTextField(labelWithString: String(localized: "File not found", bundle: L10n.bundle, locale: L10n.locale, comment: "Label on a card whose capture file no longer exists"))
     private let badge = GlassCapsuleLabel(font: .systemFont(ofSize: 12, weight: .semibold), height: 24, horizontalPadding: 11)
     private let meta = GlassCapsuleLabel(font: .systemFont(ofSize: 11, weight: .medium), height: 18, horizontalPadding: 8)
     private let peg = GlassSurface(shape: .rounded(3))
     private let pressRing = NSView()
-    private let closeButton = CircleGlassButton(symbol: "xmark", label: "Mover a la Papelera")
-    private let actionButton = CircleGlassButton(symbol: "pencil.tip", label: "Abrir en Marcación")
+    private let closeButton = CircleGlassButton(symbol: "xmark", label: String(localized: "Move to Trash", bundle: L10n.bundle, locale: L10n.locale, comment: "Card button and menu item: move the capture to the Trash"))
+    private let actionButton = CircleGlassButton(symbol: "pencil.tip", label: String(localized: "Open in Markup", bundle: L10n.bundle, locale: L10n.locale, comment: "Card button: annotate the capture with Markup"))
     private let shadowLayer = CALayer()
     private let shadowMask = CAShapeLayer()
 
@@ -608,7 +608,9 @@ public final class StripCardView: NSView, NSDraggingSource, NSMenuDelegate {
 
     private func updateAccessibility() {
         setAccessibilityLabel(StripMotion.accessibilityLabel(for: item, missing: isMissing))
-        setAccessibilityHelp(isMissing ? "Clic para quitar de la tira" : "Clic para copiar. Mantener para Marcación")
+        setAccessibilityHelp(isMissing
+            ? String(localized: "Click to remove from the Shelf", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver hint of a card whose file is missing")
+            : String(localized: "Click to copy. Hold for Markup", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver hint of a capture card: click copies, press and hold opens Markup"))
         setAccessibilityIndex(position.index)
         setAccessibilityValueDescription(StripMotion.positionText(index: position.index, count: position.count))
         func action(_ name: String, _ a: Action) -> NSAccessibilityCustomAction {
@@ -618,9 +620,11 @@ public final class StripCardView: NSView, NSDraggingSource, NSMenuDelegate {
             }
         }
         setAccessibilityCustomActions(isMissing
-            ? [action("Quitar de la tira", .trash)]
-            : [action("Abrir con Marcación", .markup), action("Abrir en Vista Previa", .preview),
-               action("Mostrar en Finder", .finder), action("Mover a la Papelera", .trash)])
+            ? [action(String(localized: "Remove from the Shelf", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver action and menu item: remove a capture whose file is missing"), .trash)]
+            : [action(String(localized: "Open with Markup", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver action and menu item: open the capture with Markup"), .markup),
+               action(String(localized: "Open in Preview", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver action and menu item: open the capture in Preview"), .preview),
+               action(String(localized: "Show in Finder", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver action and menu item: reveal the capture in Finder"), .finder),
+               action(String(localized: "Move to Trash", bundle: L10n.bundle, locale: L10n.locale, comment: "Card button and menu item: move the capture to the Trash"), .trash)])
     }
 
     public override func accessibilityPerformPress() -> Bool {
@@ -924,13 +928,13 @@ public final class StripCardView: NSView, NSDraggingSource, NSMenuDelegate {
             triggerCopy()
         case .preview:
             delegate?.cardDidRequestPreview(self, item: item)
-            showBadge(text: "Abriendo en Vista Previa…", symbol: nil)
+            showBadge(text: String(localized: "Opening in Preview…", bundle: L10n.bundle, locale: L10n.locale, comment: "Badge over a card while opening the capture in Preview"), symbol: nil)
         case .markup:
             delegate?.cardDidRequestMarkup(self, item: item)
-            showBadge(text: "Abriendo en Marcación…", symbol: nil)
+            showBadge(text: String(localized: "Opening in Markup…", bundle: L10n.bundle, locale: L10n.locale, comment: "Badge over a card while opening the capture in Markup"), symbol: nil)
         case .finder:
             delegate?.cardDidRequestShowInFinder(self, item: item)
-            showBadge(text: "Mostrando en Finder…", symbol: nil)
+            showBadge(text: String(localized: "Showing in Finder…", bundle: L10n.bundle, locale: L10n.locale, comment: "Badge over a card while revealing the file in Finder"), symbol: nil)
         case .trash:
             delegate?.cardDidRequestDismiss(self, item: item)
         }
@@ -943,11 +947,11 @@ public final class StripCardView: NSView, NSDraggingSource, NSMenuDelegate {
         if ok {
             showCopyFeedback()
         } else {
-            showBadge(text: "No se pudo copiar", symbol: "exclamationmark.triangle")
+            showBadge(text: String(localized: "Couldn't copy", bundle: L10n.bundle, locale: L10n.locale, comment: "Badge and VoiceOver announcement: copying failed"), symbol: "exclamationmark.triangle")
         }
     }
 
-    public func showCopyFeedback() { showBadge(text: "Copiado", symbol: "checkmark") }
+    public func showCopyFeedback() { showBadge(text: String(localized: "Copied", bundle: L10n.bundle, locale: L10n.locale, comment: "Badge and VoiceOver announcement: capture copied to the clipboard"), symbol: "checkmark") }
 
     /// Cápsula de vidrio centrada sobre la tarjeta durante 1 s.
     func showBadge(text: String, symbol: String?) {
@@ -1070,14 +1074,16 @@ public final class StripCardView: NSView, NSDraggingSource, NSMenuDelegate {
             entry.isEnabled = enabled
             menu.addItem(entry)
         }
-        add("Copiar", #selector(menuCopy), enabled: !missing)
+        add(String(localized: "Copy", bundle: L10n.bundle, locale: L10n.locale, comment: "Context menu item: copy the capture"), #selector(menuCopy), enabled: !missing)
         menu.addItem(.separator())
-        add("Abrir en Vista Previa", #selector(menuPreview), enabled: !missing)
-        add("Abrir con Marcación", #selector(menuMarkup), enabled: !missing)
+        add(String(localized: "Open in Preview", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver action and menu item: open the capture in Preview"), #selector(menuPreview), enabled: !missing)
+        add(String(localized: "Open with Markup", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver action and menu item: open the capture with Markup"), #selector(menuMarkup), enabled: !missing)
         menu.addItem(.separator())
-        add("Mostrar en Finder", #selector(menuFinder), enabled: !missing)
+        add(String(localized: "Show in Finder", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver action and menu item: reveal the capture in Finder"), #selector(menuFinder), enabled: !missing)
         menu.addItem(.separator())
-        add(missing ? "Quitar de la tira" : "Mover a la Papelera", #selector(menuTrash))
+        add(missing
+            ? String(localized: "Remove from the Shelf", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver action and menu item: remove a capture whose file is missing")
+            : String(localized: "Move to Trash", bundle: L10n.bundle, locale: L10n.locale, comment: "Card button and menu item: move the capture to the Trash"), #selector(menuTrash))
         return menu
     }
 

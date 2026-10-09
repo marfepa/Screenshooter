@@ -1,6 +1,7 @@
 name: Screenshooter
 options:
   bundleIdPrefix: com.marfepa
+  developmentLanguage: en
   deploymentTarget:
     macOS: "14.0"
 targets:

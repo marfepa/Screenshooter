@@ -161,20 +161,30 @@ public enum StripMotion {
         return f.string(from: date)
     }
 
+    /// Píxeles como texto plano: las dimensiones no llevan separador de millares (1440, no 1.440 / 1,440).
+    private static func pixelSizeStrings(_ item: StripItem) -> (String, String) {
+        (String(Int(item.pixelSize.width)), String(Int(item.pixelSize.height)))
+    }
+
     /// "HH:mm · W×H" (píxeles reales del archivo; la hora sigue 12/24 h del sistema).
     public static func metaText(for item: StripItem, locale: Locale = .current) -> String {
-        "\(timeText(item.createdAt, locale: locale)) · \(Int(item.pixelSize.width))×\(Int(item.pixelSize.height))"
+        let time = timeText(item.createdAt, locale: locale)
+        let (w, h) = pixelSizeStrings(item)
+        return String(localized: "\(time) · \(w)×\(h)", bundle: L10n.bundle, locale: locale, comment: "Caption under a card: time, then size in pixels as width×height")
     }
 
     /// Etiqueta de VoiceOver: "Captura, HH:mm, W por H" o "Captura no encontrada, HH:mm".
     public static func accessibilityLabel(for item: StripItem, missing: Bool, locale: Locale = .current) -> String {
         let time = timeText(item.createdAt, locale: locale)
-        if missing { return "Captura no encontrada, \(time)" }
-        return "Captura, \(time), \(Int(item.pixelSize.width)) por \(Int(item.pixelSize.height))"
+        if missing {
+            return String(localized: "Capture not found, \(time)", bundle: L10n.bundle, locale: locale, comment: "VoiceOver label of a card whose file is missing; the argument is the capture time")
+        }
+        let (w, h) = pixelSizeStrings(item)
+        return String(localized: "Capture, \(time), \(w) by \(h)", bundle: L10n.bundle, locale: locale, comment: "VoiceOver label of a card: capture time, then pixel width by height")
     }
 
     public static func positionText(index: Int, count: Int) -> String {
-        "\(index + 1) de \(count)"
+        String(localized: "\(index + 1) of \(count)", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver value of a card: its position out of the total")
     }
 }
 

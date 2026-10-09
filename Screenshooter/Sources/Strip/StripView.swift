@@ -447,7 +447,7 @@ public final class StripView: NSView, StripCardViewDelegate {
     private var displayLink: CADisplayLink?
     private var lastLinkTimestamp: CFTimeInterval = 0
     private var isRevealed = false
-    private var pendingNote: String?
+    private var pendingStartNote = false
     private var restWork: DispatchWorkItem?
     /// El tirón de la cuerda solo ocurre la primera vez por sesión que la tira es desplazable.
     private static var hasTuggedThisSession = false
@@ -498,9 +498,9 @@ public final class StripView: NSView, StripCardViewDelegate {
 
         cardStack.setAccessibilityElement(true)
         cardStack.setAccessibilityRole(.list)
-        cardStack.setAccessibilityLabel("Capturas recientes")
+        cardStack.setAccessibilityLabel(String(localized: "Recent captures", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver label of the list of captures in the shelf"))
 
-        emptyCapsule.set(text: "Haz una captura con ⌥⌘S y aparecerá aquí")
+        emptyCapsule.set(text: String(localized: "Take a capture with ⌥⌘S and it will show up here", bundle: L10n.bundle, locale: L10n.locale, comment: "Empty state of the shelf"))
         slideHost.addSubview(emptyCapsule)
 
         NSWorkspace.shared.notificationCenter.addObserver(
@@ -647,14 +647,14 @@ public final class StripView: NSView, StripCardViewDelegate {
                 insertedWhileInteracting()
             } else {
                 animateScroll(to: 0, duration: 0.35)
-                pendingNote = StripScroll.newCaptureAtStartNote
+                pendingStartNote = true
             }
         } else {
             if offset != 0 {
                 scroller.jump(to: 0)
                 fillHistories(0)
             }
-            if metrics.isScrollable { pendingNote = StripScroll.newCaptureAtStartNote; scroller.moved = true }
+            if metrics.isScrollable { pendingStartNote = true; scroller.moved = true }
         }
     }
 
@@ -846,9 +846,9 @@ public final class StripView: NSView, StripCardViewDelegate {
             if let card = cardViews[id] { NSAccessibility.post(element: card, notification: .focusedUIElementChanged) }
         }
         guard isRevealed, n > 0 else { return }
-        if let note = pendingNote {
-            pendingNote = nil
-            onAnnounce?(note.replacingOccurrences(of: "{n}", with: "\(n)"))
+        if pendingStartNote {
+            pendingStartNote = false
+            onAnnounce?(StripScroll.newCaptureAtStartNote(total: n))
             return
         }
         guard metrics.isScrollable else { return }
@@ -1118,7 +1118,7 @@ public final class StripView: NSView, StripCardViewDelegate {
             proxy.setAccessibilityRole(.button)
             proxy.setAccessibilityParent(cardStack)
             proxy.setAccessibilityLabel(StripMotion.accessibilityLabel(for: item, missing: false))
-            proxy.setAccessibilityHelp("Clic para copiar. Mantener para Marcación")
+            proxy.setAccessibilityHelp(String(localized: "Click to copy. Hold for Markup", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver hint of a capture card: click copies, press and hold opens Markup"))
             proxy.setAccessibilityIndex(index)
             proxy.setAccessibilityValueDescription(StripMotion.positionText(index: index, count: count))
             let x = metrics.slotX(index) - scroller.offset

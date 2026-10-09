@@ -450,30 +450,43 @@ public enum StripCapacity {
         limit > 0 ? max(0, count - limit) : 0
     }
 
-    public static func title(for value: Int) -> String { value == 0 ? "Sin límite" : "\(value)" }
+    public static func title(for value: Int) -> String {
+        value == 0 ? String(localized: "Unlimited", bundle: L10n.bundle, locale: L10n.locale, comment: "Capacity menu option: no limit on the number of captures") : "\(value)"
+    }
 
     public static func removalAnnouncement(_ n: Int) -> String {
-        "Se quitaron \(n) \(n == 1 ? "captura más antigua" : "capturas más antiguas")"
+        String(localized: "Removed \(n) oldest captures", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver announcement when lowering the capacity trashes the oldest captures; plural by count")
     }
 }
 
 // MARK: - Textos de accesibilidad de la tira
 
 extension StripScroll {
-    public static func countsDescription(_ n: Int) -> String { "\(n) \(n == 1 ? "captura" : "capturas")" }
+    public static func countsDescription(_ n: Int) -> String {
+        String(localized: "\(n) captures", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver value of the list: number of captures; plural by count")
+    }
 
     public static func counterLabel(count n: Int, side: Side) -> String {
-        "Mostrar \(n) \(n == 1 ? "captura más" : "capturas más") a la \(side == .left ? "izquierda" : "derecha")"
+        switch side {
+        case .left:
+            return String(localized: "Show \(n) more captures to the left", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver label and tooltip of the +N counter on the left edge; plural by count")
+        case .right:
+            return String(localized: "Show \(n) more captures to the right", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver label and tooltip of the +N counter on the right edge; plural by count")
+        }
     }
 
     public static func restAnnouncement(hiddenLeft: Int, hiddenRight: Int, total: Int) -> String {
-        "Mostrando de la \(hiddenLeft + 1) a la \(total - hiddenRight) de \(total)"
+        String(localized: "Showing \(hiddenLeft + 1) to \(total - hiddenRight) of \(total)", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver announcement when the scrolling strip comes to rest: first and last visible capture out of the total")
     }
 
     public enum Side { case left, right }
 
-    /// Nota al reposar tras colgar una captura con la tira en su inicio (`{n}` = total).
-    public static let newCaptureAtStartNote = "Nueva captura. Tira al inicio, {n} capturas"
+    /// Nota al reposar tras colgar una captura con la tira en su inicio.
+    public static func newCaptureAtStartNote(total n: Int) -> String {
+        String(localized: "New capture. Shelf at start, \(n) captures", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver announcement after a capture is added while the shelf is at its start; plural by total count")
+    }
     /// Anuncio inmediato cuando entra una captura mientras el usuario interactúa (la vista no se mueve).
-    public static let newCaptureLeftNote = "Nueva captura añadida a la izquierda"
+    public static var newCaptureLeftNote: String {
+        String(localized: "New capture added on the left", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver announcement when a capture arrives while the user is interacting with the strip")
+    }
 }

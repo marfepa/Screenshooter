@@ -10,11 +10,11 @@ public enum ScreenCaptureError: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .permissionDenied:
-            return "Permiso de grabación de pantalla no concedido."
+            return String(localized: "Screen recording permission has not been granted.", bundle: L10n.bundle, locale: L10n.locale, comment: "Error: missing screen recording permission")
         case .displayNotFound:
-            return "No se encontró el monitor asociado a la selección."
+            return String(localized: "The display for the selection could not be found.", bundle: L10n.bundle, locale: L10n.locale, comment: "Error: display of the selection not found")
         case .captureFailed(let message):
-            return "Error al capturar la pantalla: \(message)"
+            return String(localized: "Failed to capture the screen: \(message)", bundle: L10n.bundle, locale: L10n.locale, comment: "Error: capture failed; the argument is the underlying reason")
         }
     }
 }
@@ -84,7 +84,7 @@ public final class ScreenCaptureEngine {
         let cropRect = CGRect(x: clampedX, y: clampedY, width: max(1, clampedW), height: max(1, clampedH))
         
         guard let croppedImage = fullImage.cropping(to: cropRect) else {
-            throw ScreenCaptureError.captureFailed("No se pudo recortar el área seleccionada de la imagen.")
+            throw ScreenCaptureError.captureFailed(String(localized: "Could not crop the selected area from the image.", bundle: L10n.bundle, locale: L10n.locale, comment: "Error reason: cropping the captured image failed"))
         }
         
         return (image: croppedImage, scale: scale)

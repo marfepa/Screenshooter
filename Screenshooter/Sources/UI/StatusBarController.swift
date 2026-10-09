@@ -25,7 +25,7 @@ public final class StatusBarController {
             button.image = fallback
         }
         
-        button.toolTip = "Screenshooter (⌥⌘S para capturar área)"
+        button.toolTip = String(localized: "Screenshooter (⌥⌘S to capture an area)", bundle: L10n.bundle, locale: L10n.locale, comment: "Status bar icon tooltip")
     }
     
     public func setupMenu() {
@@ -33,7 +33,7 @@ public final class StatusBarController {
         
         // 1. Acción principal de captura
         let captureItem = NSMenuItem(
-            title: "Capturar área seleccionada...",
+            title: String(localized: "Capture Selected Area...", bundle: L10n.bundle, locale: L10n.locale, comment: "Menu item: start an area capture"),
             action: #selector(handleCaptureClicked),
             keyEquivalent: "s"
         )
@@ -43,7 +43,7 @@ public final class StatusBarController {
         
         // 2. Control del Strip
         let stripItem = NSMenuItem(
-            title: "Mostrar / Ocultar Tira",
+            title: String(localized: "Show / Hide Shelf", bundle: L10n.bundle, locale: L10n.locale, comment: "Menu item: toggle the capture shelf (strip)"),
             action: #selector(handleToggleStripClicked),
             keyEquivalent: "t"
         )
@@ -52,7 +52,7 @@ public final class StatusBarController {
         menu.addItem(stripItem)
         
         let clearStripItem = NSMenuItem(
-            title: "Vaciar Tira",
+            title: String(localized: "Clear Shelf", bundle: L10n.bundle, locale: L10n.locale, comment: "Menu item: move all captures of the shelf to the Trash"),
             action: #selector(handleClearStripClicked),
             keyEquivalent: ""
         )
@@ -64,7 +64,7 @@ public final class StatusBarController {
         // 3. Modo Inbox (Interceptar capturas nativas de macOS)
         let isInboxOn = InboxManager.shared.isEnabled
         let inboxItem = NSMenuItem(
-            title: "Modo Inbox (Capturas nativas directas a la Tira)",
+            title: String(localized: "Inbox Mode (native screenshots go straight to the Shelf)", bundle: L10n.bundle, locale: L10n.locale, comment: "Menu item: inbox mode toggle"),
             action: #selector(handleToggleInboxClicked),
             keyEquivalent: ""
         )
@@ -73,8 +73,8 @@ public final class StatusBarController {
         menu.addItem(inboxItem)
         
         // Capacidad de la tira (8 · 16 · 32 · Sin límite)
-        let capacityItem = NSMenuItem(title: "Capturas en la tira", action: nil, keyEquivalent: "")
-        let capacityMenu = NSMenu(title: "Capturas en la tira")
+        let capacityItem = NSMenuItem(title: String(localized: "Shelf capacity", bundle: L10n.bundle, locale: L10n.locale, comment: "Menu item: submenu to choose how many captures the shelf keeps"), action: nil, keyEquivalent: "")
+        let capacityMenu = NSMenu(title: String(localized: "Shelf capacity", bundle: L10n.bundle, locale: L10n.locale, comment: "Menu item: submenu to choose how many captures the shelf keeps"))
         let currentCapacity = StripManager.shared.capacity
         for value in StripCapacity.options {
             let entry = NSMenuItem(
@@ -94,7 +94,9 @@ public final class StatusBarController {
         
         // 2. Estado de permisos
         let hasPermission = PermissionsHelper.shared.isScreenCaptureGranted
-        let permissionTitle = hasPermission ? "✓ Permiso de pantalla: Concedido" : "⚠️ Permiso de pantalla requerido..."
+        let permissionTitle = hasPermission
+            ? String(localized: "✓ Screen permission: Granted", bundle: L10n.bundle, locale: L10n.locale, comment: "Menu item: screen recording permission is granted")
+            : String(localized: "⚠️ Screen permission required...", bundle: L10n.bundle, locale: L10n.locale, comment: "Menu item: screen recording permission is missing")
         let permissionItem = NSMenuItem(
             title: permissionTitle,
             action: #selector(handlePermissionClicked),
@@ -105,7 +107,7 @@ public final class StatusBarController {
         
         if !hasPermission {
             let restartItem = NSMenuItem(
-                title: "🔄 Reiniciar para aplicar permiso",
+                title: String(localized: "🔄 Restart to apply permission", bundle: L10n.bundle, locale: L10n.locale, comment: "Menu item: relaunch the app so macOS applies the new permission"),
                 action: #selector(handleRestartClicked),
                 keyEquivalent: "r"
             )
@@ -119,7 +121,7 @@ public final class StatusBarController {
         // 3. Ajustes / Preferencias
         let isLaunchAtLogin = LaunchAtLoginManager.shared.isEnabled
         let launchItem = NSMenuItem(
-            title: "Abrir al iniciar el Mac",
+            title: String(localized: "Open at Login", bundle: L10n.bundle, locale: L10n.locale, comment: "Menu item: launch at login toggle"),
             action: #selector(handleToggleLaunchAtLoginClicked),
             keyEquivalent: ""
         )
@@ -128,7 +130,7 @@ public final class StatusBarController {
         menu.addItem(launchItem)
         
         let prefsItem = NSMenuItem(
-            title: "Preferencias y Atajos...",
+            title: String(localized: "Preferences & Shortcuts...", bundle: L10n.bundle, locale: L10n.locale, comment: "Menu item: show the shortcuts and gestures help"),
             action: #selector(handlePreferencesClicked),
             keyEquivalent: ","
         )
@@ -140,7 +142,7 @@ public final class StatusBarController {
         
         // 4. Salir
         let quitItem = NSMenuItem(
-            title: "Salir de Screenshooter",
+            title: String(localized: "Quit Screenshooter", bundle: L10n.bundle, locale: L10n.locale, comment: "Menu item: quit the app"),
             action: #selector(handleQuitClicked),
             keyEquivalent: "q"
         )
@@ -181,10 +183,10 @@ public final class StatusBarController {
     @objc private func handlePermissionClicked() {
         if PermissionsHelper.shared.isScreenCaptureGranted {
             let alert = NSAlert()
-            alert.messageText = "Permiso Concedido"
-            alert.informativeText = "Screenshooter ya cuenta con autorización para capturar áreas de la pantalla."
+            alert.messageText = String(localized: "Permission Granted", bundle: L10n.bundle, locale: L10n.locale, comment: "Alert title: screen recording permission already granted")
+            alert.informativeText = String(localized: "Screenshooter is already authorized to capture areas of the screen.", bundle: L10n.bundle, locale: L10n.locale, comment: "Alert body: screen recording permission already granted")
             alert.alertStyle = .informational
-            alert.addButton(withTitle: "Aceptar")
+            alert.addButton(withTitle: String(localized: "OK", bundle: L10n.bundle, locale: L10n.locale, comment: "Alert button: acknowledge"))
             alert.runModal()
         } else {
             PermissionsHelper.shared.promptPermissionDialogIfNeeded()
@@ -196,24 +198,26 @@ public final class StatusBarController {
     }
     
     @objc private func handlePreferencesClicked() {
-        let launchStatus = LaunchAtLoginManager.shared.isEnabled ? "Activado" : "Desactivado"
+        let launchStatus = LaunchAtLoginManager.shared.isEnabled
+            ? String(localized: "On", bundle: L10n.bundle, locale: L10n.locale, comment: "Setting state: enabled")
+            : String(localized: "Off", bundle: L10n.bundle, locale: L10n.locale, comment: "Setting state: disabled")
         let alert = NSAlert()
-        alert.messageText = "Screenshooter — Ajustes y Gestos"
-        alert.informativeText = """
-        • ⌥⌘S: Capturar área seleccionada.
-        • ⌃⌥T: Mostrar / Ocultar la Tira.
-        • Abrir al iniciar el Mac: \(launchStatus) (puedes alternarlo desde el menú).
-        • Barra de menús: Posar el cursor arriba desliza la Tira automáticamente.
-        
-        Gestos en cada captura colgada:
-        • Clic simple: Copiar al portapapeles.
-        • Doble clic: Abrir en Vista Previa.
-        • Mantener pulsado (o botón lápiz): Anotar con Marcación nativa de macOS (Markup).
-        • Arrastrar (Drag & Drop): Soltar en Slack, Figma o Finder.
-        • Botón ✕: Descartar con caída libre.
-        """
+        alert.messageText = String(localized: "Screenshooter — Settings & Gestures", bundle: L10n.bundle, locale: L10n.locale, comment: "Alert title: shortcuts and gestures help")
+        alert.informativeText = String(localized: """
+        • ⌥⌘S: Capture the selected area.
+        • ⌃⌥T: Show / Hide the Shelf.
+        • Open at Login: \(launchStatus) (you can toggle it from the menu).
+        • Menu bar: moving the pointer to the top slides the Shelf down automatically.
+
+        Gestures on each hanging capture:
+        • Single click: Copy to the clipboard.
+        • Double click: Open in Preview.
+        • Press and hold (or pencil button): Annotate with the native macOS Markup.
+        • Drag and drop: Drop into Slack, Figma or Finder.
+        • ✕ button: Discard with a free fall.
+        """, bundle: L10n.bundle, locale: L10n.locale, comment: "Help alert body listing shortcuts and gestures; the argument is the launch-at-login state (On/Off)")
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "Entendido")
+        alert.addButton(withTitle: String(localized: "Got it", bundle: L10n.bundle, locale: L10n.locale, comment: "Alert button: dismiss the help"))
         alert.runModal()
     }
     

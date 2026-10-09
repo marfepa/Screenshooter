@@ -1,0 +1,23 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSScreenCaptureUsageDescription" : {
+      "comment" : "Shown by macOS in the screen recording permission prompt",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screenshooter needs access to the screen to capture the selected area and copy it to the clipboard."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screenshooter necesita acceso a la pantalla para capturar el área seleccionada y copiarla al portapapeles."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

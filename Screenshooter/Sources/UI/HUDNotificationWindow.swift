@@ -69,14 +69,15 @@ public final class HUDNotificationWindow: NSWindow {
         visualEffectView.addSubview(thumbView)
         
         // Título "✓ Copiado al portapapeles"
-        let titleLabel = NSTextField(labelWithString: "✓ Copiado al portapapeles")
+        let titleLabel = NSTextField(labelWithString: String(localized: "✓ Copied to clipboard", bundle: L10n.bundle, locale: L10n.locale, comment: "HUD title after a capture is copied"))
         titleLabel.frame = CGRect(x: 74, y: 36, width: 160, height: 18)
         titleLabel.font = NSFont.systemFont(ofSize: 11.5, weight: .bold)
         titleLabel.textColor = NSColor.systemGreen
         visualEffectView.addSubview(titleLabel)
         
         // Subtítulo con dimensiones
-        let dimText = "\(Int(pixelSize.width)) × \(Int(pixelSize.height)) px · Arrastra o anota"
+        let widthText = String(Int(pixelSize.width)), heightText = String(Int(pixelSize.height))  // sin separador de millares
+        let dimText = String(localized: "\(widthText) × \(heightText) px · Drag or annotate", bundle: L10n.bundle, locale: L10n.locale, comment: "HUD subtitle: capture size in pixels and a hint about drag and annotate")
         let subtitleLabel = NSTextField(labelWithString: dimText)
         subtitleLabel.frame = CGRect(x: 74, y: 16, width: 160, height: 16)
         subtitleLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .regular)
@@ -94,12 +95,12 @@ public final class HUDNotificationWindow: NSWindow {
             markupBtn.wantsLayer = true
             markupBtn.layer?.cornerRadius = 14
             markupBtn.layer?.backgroundColor = NSColor(white: 0.25, alpha: 0.8).cgColor
-            if let icon = NSImage(systemSymbolName: "pencil.tip.crop.circle", accessibilityDescription: "Anotar con Marcación") {
+            if let icon = NSImage(systemSymbolName: "pencil.tip.crop.circle", accessibilityDescription: String(localized: "Annotate with Markup", bundle: L10n.bundle, locale: L10n.locale, comment: "Accessibility description and tooltip of the HUD annotate button; Markup is the macOS annotation tool")) {
                 icon.isTemplate = true
                 markupBtn.image = icon
                 markupBtn.contentTintColor = .white
             }
-            markupBtn.toolTip = "Anotar con Marcación"
+            markupBtn.toolTip = String(localized: "Annotate with Markup", bundle: L10n.bundle, locale: L10n.locale, comment: "Accessibility description and tooltip of the HUD annotate button; Markup is the macOS annotation tool")
             visualEffectView.addSubview(markupBtn)
         }
         

@@ -185,7 +185,8 @@ public final class StripManager: StripViewDelegate {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd-HHmmss"
         let timestamp = formatter.string(from: Date())
-        let filename = "Captura-\(timestamp).png"
+        let prefix = String(localized: "Capture", bundle: L10n.bundle, locale: L10n.locale, comment: "Prefix of the file name of saved captures, followed by a timestamp")
+        let filename = "\(prefix)-\(timestamp).png"
         let destination = Self.screenshotsDirectory.appendingPathComponent(filename)
         
         let bitmap = NSBitmapImageRep(cgImage: cgImage)
@@ -231,7 +232,7 @@ public final class StripManager: StripViewDelegate {
         items.removeAll { $0.id == itemID }
         panel?.stripView.markForFall(itemID: itemID)
         reloadPanel()
-        announce("Movida a la Papelera")
+        announce(String(localized: "Moved to Trash", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver announcement: a capture was moved to the Trash"))
         
         if playsTrashSound {
             let soundPath = "/System/Library/Components/CoreAudio.component/Contents/SharedSupport/SystemSounds/dock/drag to trash.aif"
@@ -256,7 +257,7 @@ public final class StripManager: StripViewDelegate {
         items.removeAll { $0.id == itemID }
         stopMarkupWatch(itemID: itemID)
         reloadPanel()
-        announce("Archivo no encontrado, quitada de la tira")
+        announce(String(localized: "File not found, removed from the Shelf", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver announcement: the capture file is gone and it was removed from the shelf"))
         if items.isEmpty { panel?.slideUp() }
     }
     
@@ -314,12 +315,14 @@ public final class StripManager: StripViewDelegate {
             logicalSize: item.logicalSize,
             playSound: true
         )
-        announce(ok ? "Copiado" : "No se pudo copiar")
+        announce(ok
+                 ? String(localized: "Copied", bundle: L10n.bundle, locale: L10n.locale, comment: "Badge and VoiceOver announcement: capture copied to the clipboard")
+                 : String(localized: "Couldn't copy", bundle: L10n.bundle, locale: L10n.locale, comment: "Badge and VoiceOver announcement: copying failed"))
         return ok
     }
 
     public func stripViewDidRequestShowInFinder(item: StripItem) {
-        announce("Mostrando en Finder")
+        announce(String(localized: "Showing in Finder", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver announcement: revealing the capture file in Finder"))
         NSWorkspace.shared.activateFileViewerSelecting([item.url])
     }
 
@@ -328,7 +331,7 @@ public final class StripManager: StripViewDelegate {
     }
     
     public func stripViewDidRequestMarkup(item: StripItem) {
-        announce("Abriendo en Marcación")
+        announce(String(localized: "Opening in Markup", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver announcement: opening the capture in the macOS Markup tool"))
         let itemID = item.id
         startMarkupWatch(itemID: itemID, url: item.url)
         MarkupService.shared.edit(url: item.url, onSaved: { [weak self] _ in
@@ -380,7 +383,7 @@ public final class StripManager: StripViewDelegate {
     }
     
     public func stripViewDidRequestPreview(item: StripItem) {
-        announce("Abriendo en Vista Previa")
+        announce(String(localized: "Opening in Preview", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver announcement: opening the capture in Preview"))
         NSWorkspace.shared.open(item.url)
     }
     

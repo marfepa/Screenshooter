@@ -174,7 +174,7 @@ public final class SelectionView: NSView {
     }
     
     private func drawInstructionBar() {
-        let text = "Arrastra para seleccionar  ·  ESC para cancelar"
+        let text = String(localized: "Drag to select  ·  ESC to cancel", bundle: L10n.bundle, locale: L10n.locale, comment: "Instruction bar shown over the dimmed screen during area selection")
         let font = NSFont.systemFont(ofSize: 13, weight: .medium)
         let attrs: [NSAttributedString.Key: Any] = [
             .font: font,

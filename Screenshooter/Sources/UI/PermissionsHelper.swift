@@ -41,12 +41,18 @@ public final class PermissionsHelper {
         }
         
         let alert = NSAlert()
-        alert.messageText = "Permiso de Grabación de Pantalla Requerido"
-        alert.informativeText = "Screenshooter necesita autorización para leer los píxeles de la pantalla.\n\n1. Ve a Ajustes del Sistema > Privacidad y Seguridad > Grabación de Pantalla y activa Screenshooter.\n\n2. Si ya lo has activado, pulsa 'Reiniciar Screenshooter' para que macOS aplique los permisos."
+        alert.messageText = String(localized: "Screen Recording Permission Required", bundle: L10n.bundle, locale: L10n.locale, comment: "Alert title: the app needs screen recording permission")
+        alert.informativeText = String(localized: """
+        Screenshooter needs authorization to read the pixels of the screen.
+
+        1. Go to System Settings > Privacy & Security > Screen Recording and turn on Screenshooter.
+
+        2. If you have already turned it on, click 'Restart Screenshooter' so macOS applies the permission.
+        """, bundle: L10n.bundle, locale: L10n.locale, comment: "Alert body explaining how to grant screen recording permission")
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "Abrir Ajustes del Sistema")
-        alert.addButton(withTitle: "Reiniciar Screenshooter")
-        alert.addButton(withTitle: "Cancelar")
+        alert.addButton(withTitle: String(localized: "Open System Settings", bundle: L10n.bundle, locale: L10n.locale, comment: "Alert button: open System Settings"))
+        alert.addButton(withTitle: String(localized: "Restart Screenshooter", bundle: L10n.bundle, locale: L10n.locale, comment: "Alert button: relaunch the app"))
+        alert.addButton(withTitle: String(localized: "Cancel", bundle: L10n.bundle, locale: L10n.locale, comment: "Alert button: cancel"))
         
         let response = alert.runModal()
         if response == .alertFirstButtonReturn {

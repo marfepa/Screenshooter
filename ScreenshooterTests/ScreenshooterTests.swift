@@ -4,6 +4,18 @@ import UniformTypeIdentifiers
 @testable import Screenshooter
 
 final class ScreenshooterTests: XCTestCase {
+
+    // Las aserciones de texto de esta clase están en español: se fija el idioma con independencia del sistema.
+    // (Los tests en ambos idiomas están en `LocalizationTests`.)
+    override func setUp() {
+        super.setUp()
+        LocalizedTestSupport.use("es")
+    }
+
+    override func tearDown() {
+        LocalizedTestSupport.reset()
+        super.tearDown()
+    }
     
     func testCoordinateConversionFromAppKitToDisplay() {
         // Pantalla simulada de 1440x900
@@ -1040,7 +1052,7 @@ final class ScreenshooterTests: XCTestCase {
         XCTAssertEqual(StripCapacity.options, [8, 16, 32, 0])
         XCTAssertEqual(StripCapacity.title(for: 0), "Sin límite")
         XCTAssertEqual(StripCapacity.removalAnnouncement(3), "Se quitaron 3 capturas más antiguas")
-        XCTAssertEqual(StripCapacity.removalAnnouncement(1), "Se quitaron 1 captura más antigua")
+        XCTAssertEqual(StripCapacity.removalAnnouncement(1), "Se quitó 1 captura más antigua")
     }
 
     func testCapacityPersistsInUserDefaultsWithDefault32() throws {

@@ -137,10 +137,10 @@ public final class CaptureCoordinator {
     /// visibilidad en apps LSUIElement.
     private func showErrorAlert(message: String) {
         let alert = NSAlert()
-        alert.messageText = "Error al Capturar Pantalla"
+        alert.messageText = String(localized: "Screen Capture Error", bundle: L10n.bundle, locale: L10n.locale, comment: "Alert title: capturing the screen failed")
         alert.informativeText = message
         alert.alertStyle = .critical
-        alert.addButton(withTitle: "Aceptar")
+        alert.addButton(withTitle: String(localized: "OK", bundle: L10n.bundle, locale: L10n.locale, comment: "Alert button: acknowledge"))
         
         // Activar la app para que reciba foco de teclado siendo LSUIElement
         NSApp.activate(ignoringOtherApps: true)
