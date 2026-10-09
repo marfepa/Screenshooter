@@ -8,14 +8,14 @@ public final class HotKeyManager {
     public static let shared = HotKeyManager()
     
     private var hotKeyRef: EventHotKeyRef?
-    private var tendederoHotKeyRef: EventHotKeyRef?
+    private var stripHotKeyRef: EventHotKeyRef?
     private var eventHandlerRef: EventHandlerRef?
     public var onHotKeyTriggered: (() -> Void)?
-    public var onTendederoHotKeyTriggered: (() -> Void)?
+    public var onStripHotKeyTriggered: (() -> Void)?
     
     private let signature = OSType(0x5343524E) // 'SCRN'
     private let captureHotKeyIDNumber: UInt32 = 1
-    private let tendederoHotKeyIDNumber: UInt32 = 2
+    private let stripHotKeyIDNumber: UInt32 = 2
     
     private init() {}
     
@@ -24,22 +24,22 @@ public final class HotKeyManager {
         registerCapture(keyCode: UInt32(kVK_ANSI_S), modifiers: UInt32(cmdKey | optionKey))
     }
     
-    /// Registra el atajo por defecto para el Tendedero: Control + Option + T (⌃⌥T)
-    public func registerTendederoHotKey() {
-        unregisterTendedero()
+    /// Registra el atajo por defecto para el Strip: Control + Option + T (⌃⌥T)
+    public func registerStripHotKey() {
+        unregisterStrip()
         installEventHandlerIfNeeded()
         
-        let hotKeyID = EventHotKeyID(signature: signature, id: tendederoHotKeyIDNumber)
+        let hotKeyID = EventHotKeyID(signature: signature, id: stripHotKeyIDNumber)
         let status = RegisterEventHotKey(
             UInt32(kVK_ANSI_T),
             UInt32(controlKey | optionKey),
             hotKeyID,
             GetApplicationEventTarget(),
             0,
-            &tendederoHotKeyRef
+            &stripHotKeyRef
         )
         if status != noErr {
-            NSLog("[HotKeyManager] Error al registrar atajo de Tendedero (⌃⌥T): %d", status)
+            NSLog("[HotKeyManager] Error al registrar atajo de Strip (⌃⌥T): %d", status)
         }
     }
     
@@ -68,7 +68,7 @@ public final class HotKeyManager {
     /// Da de baja los atajos actualmente registrados
     public func unregister() {
         unregisterCapture()
-        unregisterTendedero()
+        unregisterStrip()
     }
     
     public func unregisterCapture() {
@@ -78,10 +78,10 @@ public final class HotKeyManager {
         }
     }
     
-    public func unregisterTendedero() {
-        if let ref = tendederoHotKeyRef {
+    public func unregisterStrip() {
+        if let ref = stripHotKeyRef {
             UnregisterEventHotKey(ref)
-            tendederoHotKeyRef = nil
+            stripHotKeyRef = nil
         }
     }
     
@@ -111,7 +111,7 @@ public final class HotKeyManager {
                     if hotKeyID.id == 1 {
                         HotKeyManager.shared.onHotKeyTriggered?()
                     } else if hotKeyID.id == 2 {
-                        HotKeyManager.shared.onTendederoHotKeyTriggered?()
+                        HotKeyManager.shared.onStripHotKeyTriggered?()
                     }
                 }
             }

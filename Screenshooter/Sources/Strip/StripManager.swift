@@ -1,11 +1,11 @@
 import AppKit
 import UniformTypeIdentifiers
 
-/// Administrador central del Tendedero en Screenshooter.
+/// Administrador central del Strip en Screenshooter.
 /// Gestiona la persistencia de capturas, el panel deslizante superior,
 /// las animaciones espaciales (vuelo y caída libre) y las acciones rápidas del usuario.
 @MainActor
-public final class TendederoManager: TendederoViewDelegate {
+public final class StripManager: StripViewDelegate {
     /// Resultado de evaluar el fin de un arrastre.
     public enum DragEndDecision: Equatable {
         case trash   // Soltado en la Papelera del Dock
@@ -20,9 +20,9 @@ public final class TendederoManager: TendederoViewDelegate {
         return .keep
     }
 
-    public static let shared = TendederoManager()
+    public static let shared = StripManager()
     
-    public private(set) var items: [TendederoItem] = []
+    public private(set) var items: [StripItem] = []
     /// Capacidad de la tira: `0` = sin límite. Se guarda en `UserDefaults` (`stripCapacity`).
     public private(set) var capacity: Int
     /// Almacén de la capacidad. Inyectable para que los tests no toquen los ajustes reales;
@@ -31,7 +31,7 @@ public final class TendederoManager: TendederoViewDelegate {
         didSet { capacity = StripCapacity.load(from: defaults) }
     }
     
-    private var panel: TendederoPanel?
+    private var panel: StripPanel?
     
     /// Acción que envía un archivo a la Papelera. Inyectable para no ensuciar la Papelera real en tests.
     public var trasher: (URL) throws -> Void = { url in
@@ -69,17 +69,17 @@ public final class TendederoManager: TendederoViewDelegate {
             existing.place(on: screen)
             return
         }
-        let newPanel = TendederoPanel(screen: screen)
-        newPanel.tendederoView.delegate = self
-        newPanel.tendederoView.onAnnounce = { [weak self] text in self?.announce(text) }
-        newPanel.tendederoView.reload(items: items)
+        let newPanel = StripPanel(screen: screen)
+        newPanel.stripView.delegate = self
+        newPanel.stripView.onAnnounce = { [weak self] text in self?.announce(text) }
+        newPanel.stripView.reload(items: items)
         newPanel.hasItems = !items.isEmpty
         self.panel = newPanel
     }
     
     /// Recarga las tarjetas y avisa al panel de si hay capturas (controla su timer).
     private func reloadPanel() {
-        panel?.tendederoView.reload(items: items)
+        panel?.stripView.reload(items: items)
         panel?.hasItems = !items.isEmpty
     }
     
@@ -99,7 +99,7 @@ public final class TendederoManager: TendederoViewDelegate {
         panel?.slideUp()
     }
     
-    /// Cuelga una nueva captura en el Tendedero.
+    /// Cuelga una nueva captura en el Strip.
     /// - Parameters:
     ///   - url: Ubicación del archivo de la captura.
     ///   - cgImage: Imagen CoreGraphics.
@@ -116,7 +116,7 @@ public final class TendederoManager: TendederoViewDelegate {
         
         // Con Reducir movimiento no hay vuelo: la captura aparece con un fundido en su sitio.
         let flies = fromRect != nil && !MotionStyle.current().reduceMotion
-        var newItem = TendederoItem(url: url, cgImage: cgImage)
+        var newItem = StripItem(url: url, cgImage: cgImage)
         if flies {
             newItem.isFlying = true
         }
@@ -136,7 +136,7 @@ public final class TendederoManager: TendederoViewDelegate {
         
         // Ejecutar animación de vuelo de despegue
         if flies, let originRect = fromRect,
-           let targetRect = panel?.tendederoView.screenFrame(for: newItem.id) {
+           let targetRect = panel?.stripView.screenFrame(for: newItem.id) {
             CaptureFlight.fly(
                 image: cgImage,
                 from: originRect,
@@ -170,14 +170,14 @@ public final class TendederoManager: TendederoViewDelegate {
         for _ in 0..<excess {
             let oldest = items.removeLast()
             stopMarkupWatch(itemID: oldest.id)
-            panel?.tendederoView.markForFall(itemID: oldest.id)
+            panel?.stripView.markForFall(itemID: oldest.id)
             moveToTrashQuietly(oldest.url)
         }
         reloadPanel()
         announce(StripCapacity.removalAnnouncement(excess))
     }
 
-    /// Guarda una CGImage en formato PNG dentro del directorio de capturas del Tendedero.
+    /// Guarda una CGImage en formato PNG dentro del directorio de capturas del Strip.
     public func saveToCache(cgImage: CGImage) -> URL? {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd-HHmmss"
@@ -194,7 +194,7 @@ public final class TendederoManager: TendederoViewDelegate {
             try pngData.write(to: destination, options: .atomic)
             return destination
         } catch {
-            NSLog("[TendederoManager] Error al guardar imagen en caché: %@", error.localizedDescription)
+            NSLog("[StripManager] Error al guardar imagen en caché: %@", error.localizedDescription)
             return nil
         }
     }
@@ -207,7 +207,7 @@ public final class TendederoManager: TendederoViewDelegate {
             try trasher(url)
             return true
         } catch {
-            NSLog("[TendederoManager] No se pudo mover a la Papelera %@: %@", url.lastPathComponent, error.localizedDescription)
+            NSLog("[StripManager] No se pudo mover a la Papelera %@: %@", url.lastPathComponent, error.localizedDescription)
             return false
         }
     }
@@ -220,13 +220,13 @@ public final class TendederoManager: TendederoViewDelegate {
         do {
             try trasher(item.url)
         } catch {
-            NSLog("[TendederoManager] Error al mover a la Papelera: %@", error.localizedDescription)
+            NSLog("[StripManager] Error al mover a la Papelera: %@", error.localizedDescription)
             NSSound.beep()
             return
         }
         
         items.removeAll { $0.id == itemID }
-        panel?.tendederoView.markForFall(itemID: itemID)
+        panel?.stripView.markForFall(itemID: itemID)
         reloadPanel()
         announce("Movida a la Papelera")
         
@@ -292,7 +292,7 @@ public final class TendederoManager: TendederoViewDelegate {
         }
     }
     
-    /// Elimina todas las capturas del tendedero (las envía a la Papelera)
+    /// Elimina todas las capturas del strip (las envía a la Papelera)
     public func clear() {
         for item in items {
             moveToTrashQuietly(item.url)
@@ -303,9 +303,9 @@ public final class TendederoManager: TendederoViewDelegate {
         panel?.slideUp()
     }
     
-    // MARK: - TendederoViewDelegate
+    // MARK: - StripViewDelegate
     
-    public func tendederoViewDidRequestCopy(item: TendederoItem) -> Bool {
+    public func stripViewDidRequestCopy(item: StripItem) -> Bool {
         let ok = ClipboardService.shared.copy(
             cgImage: item.cgImage,
             logicalSize: item.logicalSize,
@@ -315,16 +315,16 @@ public final class TendederoManager: TendederoViewDelegate {
         return ok
     }
 
-    public func tendederoViewDidRequestShowInFinder(item: TendederoItem) {
+    public func stripViewDidRequestShowInFinder(item: StripItem) {
         announce("Mostrando en Finder")
         NSWorkspace.shared.activateFileViewerSelecting([item.url])
     }
 
-    public func tendederoViewDidRequestRemoveMissing(item: TendederoItem) {
+    public func stripViewDidRequestRemoveMissing(item: StripItem) {
         removeFromStrip(itemID: item.id)
     }
     
-    public func tendederoViewDidRequestMarkup(item: TendederoItem) {
+    public func stripViewDidRequestMarkup(item: StripItem) {
         announce("Abriendo en Marcación")
         let itemID = item.id
         startMarkupWatch(itemID: itemID, url: item.url)
@@ -376,16 +376,16 @@ public final class TendederoManager: TendederoViewDelegate {
         )
     }
     
-    public func tendederoViewDidRequestPreview(item: TendederoItem) {
+    public func stripViewDidRequestPreview(item: StripItem) {
         announce("Abriendo en Vista Previa")
         NSWorkspace.shared.open(item.url)
     }
     
-    public func tendederoViewDidEndDrag(item: TendederoItem, operation: NSDragOperation) {
+    public func stripViewDidEndDrag(item: StripItem, operation: NSDragOperation) {
         handleDragEnded(itemID: item.id, operation: operation)
     }
     
-    public func tendederoViewDidRequestDismiss(item: TendederoItem, cardView: TendederoCardView) {
+    public func stripViewDidRequestDismiss(item: StripItem, cardView: StripCardView) {
         trash(itemID: item.id)
     }
 }

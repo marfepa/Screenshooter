@@ -71,7 +71,7 @@ final class ScreenshooterTests: XCTestCase {
     }
     
     @MainActor
-    func testTendederoItemAndCaching() {
+    func testStripItemAndCaching() {
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         guard let context = CGContext(
             data: nil,
@@ -92,14 +92,14 @@ final class ScreenshooterTests: XCTestCase {
             return
         }
         
-        guard let savedURL = TendederoManager.shared.saveToCache(cgImage: cgImg) else {
-            XCTFail("No se pudo guardar la imagen en caché del Tendedero")
+        guard let savedURL = StripManager.shared.saveToCache(cgImage: cgImg) else {
+            XCTFail("No se pudo guardar la imagen en caché del Strip")
             return
         }
         
         XCTAssertTrue(FileManager.default.fileExists(atPath: savedURL.path))
         
-        let item = TendederoItem(url: savedURL, cgImage: cgImg)
+        let item = StripItem(url: savedURL, cgImage: cgImg)
         XCTAssertEqual(item.pixelSize.width, 20)
         XCTAssertEqual(item.pixelSize.height, 20)
         XCTAssertFalse(item.isFlying)
@@ -116,7 +116,7 @@ final class ScreenshooterTests: XCTestCase {
         XCTAssertNotNil(manager)
     }
     
-    // MARK: - Tendedero: Papelera y arrastre
+    // MARK: - Strip: Papelera y arrastre
     
     @MainActor
     private func makeTestImage() -> CGImage? {
@@ -132,7 +132,7 @@ final class ScreenshooterTests: XCTestCase {
     
     @MainActor
     func testEvictionSendsOldestToTrashInsteadOfDeleting() throws {
-        let manager = TendederoManager.shared
+        let manager = StripManager.shared
         let originalTrasher = manager.trasher
         let originalSound = manager.playsTrashSound
         let originalDefaults = manager.defaults
@@ -140,7 +140,7 @@ final class ScreenshooterTests: XCTestCase {
         var trashed: [URL] = []
         manager.trasher = { trashed.append($0) }
         manager.playsTrashSound = false
-        let suite = "tendedero-evict-\(UUID().uuidString)"
+        let suite = "strip-evict-\(UUID().uuidString)"
         manager.defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer {
             manager.clear()
@@ -155,7 +155,7 @@ final class ScreenshooterTests: XCTestCase {
         trashed.removeAll()
         
         let image = try XCTUnwrap(makeTestImage())
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("tendedero-evict-\(UUID().uuidString)", isDirectory: true)
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("strip-evict-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         
@@ -174,13 +174,13 @@ final class ScreenshooterTests: XCTestCase {
     
     @MainActor
     func testLoweringCapacityTrashesOldestAndPersists() throws {
-        let manager = TendederoManager.shared
+        let manager = StripManager.shared
         let originalTrasher = manager.trasher
         let originalDefaults = manager.defaults
         let originalCapacity = manager.capacity
         var trashed: [URL] = []
         manager.trasher = { trashed.append($0) }
-        let suite = "tendedero-lower-\(UUID().uuidString)"
+        let suite = "strip-lower-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         manager.defaults = defaults
         defer {
@@ -195,7 +195,7 @@ final class ScreenshooterTests: XCTestCase {
         trashed.removeAll()
 
         let image = try XCTUnwrap(makeTestImage())
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("tendedero-lower-\(UUID().uuidString)", isDirectory: true)
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("strip-lower-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         var urls: [URL] = []
@@ -218,13 +218,13 @@ final class ScreenshooterTests: XCTestCase {
 
     @MainActor
     func testUnlimitedCapacityNeverEvicts() throws {
-        let manager = TendederoManager.shared
+        let manager = StripManager.shared
         let originalTrasher = manager.trasher
         let originalDefaults = manager.defaults
         let originalCapacity = manager.capacity
         var trashed: [URL] = []
         manager.trasher = { trashed.append($0) }
-        let suite = "tendedero-unlimited-\(UUID().uuidString)"
+        let suite = "strip-unlimited-\(UUID().uuidString)"
         manager.defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer {
             manager.clear()
@@ -237,7 +237,7 @@ final class ScreenshooterTests: XCTestCase {
         manager.setCapacity(0)
         trashed.removeAll()
         let image = try XCTUnwrap(makeTestImage())
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("tendedero-unl-\(UUID().uuidString)", isDirectory: true)
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("strip-unl-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         for i in 0..<40 {
@@ -252,7 +252,7 @@ final class ScreenshooterTests: XCTestCase {
 
     @MainActor
     func testTrashItemRemovesItFromStrip() throws {
-        let manager = TendederoManager.shared
+        let manager = StripManager.shared
         let originalTrasher = manager.trasher
         let originalSound = manager.playsTrashSound
         var trashed: [URL] = []
@@ -266,7 +266,7 @@ final class ScreenshooterTests: XCTestCase {
         manager.clear()
         
         let image = try XCTUnwrap(makeTestImage())
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("tendedero-trash-\(UUID().uuidString).png")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("strip-trash-\(UUID().uuidString).png")
         try Data([0]).write(to: url)
         defer { try? FileManager.default.removeItem(at: url) }
         manager.hang(url: url, cgImage: image)
@@ -280,7 +280,7 @@ final class ScreenshooterTests: XCTestCase {
     
     @MainActor
     func testRemoveFromStripDoesNotTouchTrash() throws {
-        let manager = TendederoManager.shared
+        let manager = StripManager.shared
         let originalTrasher = manager.trasher
         var trashed: [URL] = []
         manager.trasher = { trashed.append($0) }
@@ -292,7 +292,7 @@ final class ScreenshooterTests: XCTestCase {
         trashed.removeAll()
 
         let image = try XCTUnwrap(makeTestImage())
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("tendedero-missing-\(UUID().uuidString).png")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("strip-missing-\(UUID().uuidString).png")
         try Data([0]).write(to: url)
         manager.hang(url: url, cgImage: image)
         let id = try XCTUnwrap(manager.items.first?.id)
@@ -307,9 +307,9 @@ final class ScreenshooterTests: XCTestCase {
     @MainActor
     func testCardDetectsMissingFile() throws {
         let image = try XCTUnwrap(makeTestImage())
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("tendedero-card-\(UUID().uuidString).png")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("strip-card-\(UUID().uuidString).png")
         try Data([0]).write(to: url)
-        let card = TendederoCardView(item: TendederoItem(url: url, cgImage: image))
+        let card = StripCardView(item: StripItem(url: url, cgImage: image))
         XCTAssertFalse(card.isMissing)
         try FileManager.default.removeItem(at: url)
         XCTAssertTrue(card.refreshMissingState())
@@ -318,7 +318,7 @@ final class ScreenshooterTests: XCTestCase {
 
     @MainActor
     func testTrashFailureKeepsItem() throws {
-        let manager = TendederoManager.shared
+        let manager = StripManager.shared
         let originalTrasher = manager.trasher
         manager.trasher = { _ in throw CocoaError(.fileWriteNoPermission) }
         defer {
@@ -329,7 +329,7 @@ final class ScreenshooterTests: XCTestCase {
         manager.clear()
         
         let image = try XCTUnwrap(makeTestImage())
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("tendedero-fail-\(UUID().uuidString).png")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("strip-fail-\(UUID().uuidString).png")
         try Data([0]).write(to: url)
         defer { try? FileManager.default.removeItem(at: url) }
         manager.hang(url: url, cgImage: image)
@@ -348,15 +348,15 @@ final class ScreenshooterTests: XCTestCase {
     }
     
     func testInboxDirectoryIsSubfolderOfScreenshotsDirectory() {
-        let inbox = TendederoManager.inboxDirectory.standardizedFileURL
-        let cache = TendederoManager.screenshotsDirectory.standardizedFileURL
+        let inbox = StripManager.inboxDirectory.standardizedFileURL
+        let cache = StripManager.screenshotsDirectory.standardizedFileURL
         XCTAssertNotEqual(inbox, cache)
         XCTAssertEqual(inbox.deletingLastPathComponent(), cache)
     }
     
     @MainActor
     func testHangSameURLTwiceKeepsSingleItem() throws {
-        let manager = TendederoManager.shared
+        let manager = StripManager.shared
         let originalTrasher = manager.trasher
         let originalSound = manager.playsTrashSound
         manager.trasher = { _ in }
@@ -369,7 +369,7 @@ final class ScreenshooterTests: XCTestCase {
         manager.clear()
         
         let image = try XCTUnwrap(makeTestImage())
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("tendedero-dup-\(UUID().uuidString).png")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("strip-dup-\(UUID().uuidString).png")
         try Data([0]).write(to: url)
         defer { try? FileManager.default.removeItem(at: url) }
         
@@ -380,7 +380,7 @@ final class ScreenshooterTests: XCTestCase {
     }
     
     func testDragEndDecision() {
-        typealias M = TendederoManager
+        typealias M = StripManager
         XCTAssertEqual(M.dragEndDecision(operation: .delete, fileExists: true), .trash)
         XCTAssertEqual(M.dragEndDecision(operation: .move, fileExists: false), .remove)
         XCTAssertEqual(M.dragEndDecision(operation: .move, fileExists: true), .keep)
@@ -602,7 +602,7 @@ final class ScreenshooterTests: XCTestCase {
     func testAccessibilityLabelForPresentAndMissingCapture() throws {
         let cg = try XCTUnwrap(makeTestImage())
         let date = try XCTUnwrap(Calendar.current.date(from: DateComponents(year: 2026, month: 10, day: 9, hour: 14, minute: 32)))
-        let item = TendederoItem(url: URL(fileURLWithPath: "/tmp/x.png"), cgImage: cg,
+        let item = StripItem(url: URL(fileURLWithPath: "/tmp/x.png"), cgImage: cg,
                                  pixelSize: CGSize(width: 1440, height: 900), createdAt: date)
         let es = Locale(identifier: "es_ES")
         XCTAssertEqual(StripMotion.accessibilityLabel(for: item, missing: false, locale: es), "Captura, 14:32, 1440 por 900")
@@ -621,7 +621,7 @@ final class ScreenshooterTests: XCTestCase {
     func testCardHoverAndTiltKeepTopCenterFixedInParent() throws {
         let image = try XCTUnwrap(makeTestImage())
         let url = URL(fileURLWithPath: "/tmp/anchor-test.png")
-        let card = TendederoCardView(item: TendederoItem(url: url, cgImage: image, tilt: 2.5))
+        let card = StripCardView(item: StripItem(url: url, cgImage: image, tilt: 2.5))
         card.layoutSubtreeIfNeeded()
         let layer = try XCTUnwrap(card.cardBodyLayerForTesting)
         // Punto de la capa en coordenadas del padre con el anchorPoint REAL: pos + T·(p − anchor·size).
@@ -680,7 +680,7 @@ final class ScreenshooterTests: XCTestCase {
         let url = dir.appendingPathComponent("a.png")
         try makePNG(width: 4, height: 4, r: 255, g: 0, b: 0, at: url)
         let src = CGImageSourceCreateWithURL(url as CFURL, nil)!
-        var item = TendederoItem(url: url, cgImage: CGImageSourceCreateImageAtIndex(src, 0, nil)!)
+        var item = StripItem(url: url, cgImage: CGImageSourceCreateImageAtIndex(src, 0, nil)!)
         XCTAssertEqual(item.pixelSize, CGSize(width: 4, height: 4))
 
         try makePNG(width: 6, height: 3, r: 0, g: 0, b: 255, at: url)
@@ -1044,7 +1044,7 @@ final class ScreenshooterTests: XCTestCase {
     }
 
     func testCapacityPersistsInUserDefaultsWithDefault32() throws {
-        let suite = "tendedero-capacity-\(UUID().uuidString)"
+        let suite = "strip-capacity-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         XCTAssertEqual(StripCapacity.defaultsKey, "stripCapacity")
@@ -1068,11 +1068,11 @@ final class ScreenshooterTests: XCTestCase {
     // MARK: - Vista de la tira (virtualización y cuerda)
 
     @MainActor
-    private func makeStripView(count: Int, width: CGFloat = 800) throws -> (TendederoView, [TendederoItem]) {
+    private func makeStripView(count: Int, width: CGFloat = 800) throws -> (StripView, [StripItem]) {
         let image = try XCTUnwrap(makeTestImage())
-        let view = TendederoView(frame: NSRect(x: 0, y: 0, width: width, height: StripMotion.stripHeight))
+        let view = StripView(frame: NSRect(x: 0, y: 0, width: width, height: StripMotion.stripHeight))
         let items = (0..<count).map { i in
-            TendederoItem(url: URL(fileURLWithPath: "/tmp/strip-test-\(i).png"), cgImage: image, tilt: 0)
+            StripItem(url: URL(fileURLWithPath: "/tmp/strip-test-\(i).png"), cgImage: image, tilt: 0)
         }
         view.reload(items: items)
         return (view, items)
@@ -1212,7 +1212,7 @@ final class ScreenshooterTests: XCTestCase {
         let (view, _) = try makeStripView(count: 32)
         XCTAssertEqual(view.accessibilityChildCountForTesting, 32, "VoiceOver ve todas las capturas aunque solo haya unas pocas vistas")
         XCTAssertLessThanOrEqual(view.mountedCardCount, 6)
-        XCTAssertTrue(view.accessibilityChildForTesting(at: 0) is TendederoCardView)
+        XCTAssertTrue(view.accessibilityChildForTesting(at: 0) is StripCardView)
         let far = try XCTUnwrap(view.accessibilityChildForTesting(at: 30) as? NSAccessibilityElement)
         XCTAssertEqual(far.accessibilityRole(), .button)
         XCTAssertEqual(far.accessibilityValueDescription(), "31 de 32")
@@ -1231,7 +1231,7 @@ final class ScreenshooterTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(screenX, StripScroll.viewMargin - 1, "Con margen de 64 pt")
         XCTAssertLessThanOrEqual(screenX + 150, 800 - StripScroll.viewMargin + 1)
         view.rebuildAccessibilityForTesting()
-        XCTAssertTrue(view.accessibilityChildForTesting(at: 25) is TendederoCardView, "El proxy se sustituye por la tarjeta real")
+        XCTAssertTrue(view.accessibilityChildForTesting(at: 25) is StripCardView, "El proxy se sustituye por la tarjeta real")
     }
 
     @MainActor
@@ -1326,9 +1326,9 @@ final class ScreenshooterTests: XCTestCase {
 
     @MainActor
     func testInjectedDefaultsDeterminesCapacity() throws {
-        let manager = TendederoManager.shared
+        let manager = StripManager.shared
         let original = manager.defaults
-        let suite = "tendedero-inject-\(UUID().uuidString)"
+        let suite = "strip-inject-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defaults.set(16, forKey: "stripCapacity")
         defer { defaults.removePersistentDomain(forName: suite); manager.defaults = original }

@@ -4,7 +4,7 @@ import QuartzCore
 /// Vuelo de despegue (Capture Flight): la captura seleccionada se eleva, se encoge suavemente
 /// en una parábola y se cuelga de la cuerda. El marco en vuelo usa el mismo borde de vidrio que las tarjetas.
 /// Con Reducir movimiento no hay vuelo (`fly` termina al instante y la tarjeta aparece con un fundido).
-/// La caída al descartar vive ahora en `TendederoCardView.playFall`.
+/// La caída al descartar vive ahora en `StripCardView.playFall`.
 @MainActor
 public final class CaptureFlight {
     private static var activeFlights: [CaptureFlight] = []
@@ -78,7 +78,7 @@ public final class CaptureFlight {
         window.orderFrontRegardless()
     }
     
-    /// Anima una captura despegando desde la pantalla hasta la cuerda del Tendedero.
+    /// Anima una captura despegando desde la pantalla hasta la cuerda del Strip.
     public static func fly(
         image: CGImage,
         from fromRect: CGRect,

@@ -1,14 +1,14 @@
 import AppKit
 
 @MainActor
-public protocol TendederoViewDelegate: AnyObject {
-    func tendederoViewDidRequestCopy(item: TendederoItem) -> Bool
-    func tendederoViewDidRequestMarkup(item: TendederoItem)
-    func tendederoViewDidRequestPreview(item: TendederoItem)
-    func tendederoViewDidRequestShowInFinder(item: TendederoItem)
-    func tendederoViewDidRequestDismiss(item: TendederoItem, cardView: TendederoCardView)
-    func tendederoViewDidRequestRemoveMissing(item: TendederoItem)
-    func tendederoViewDidEndDrag(item: TendederoItem, operation: NSDragOperation)
+public protocol StripViewDelegate: AnyObject {
+    func stripViewDidRequestCopy(item: StripItem) -> Bool
+    func stripViewDidRequestMarkup(item: StripItem)
+    func stripViewDidRequestPreview(item: StripItem)
+    func stripViewDidRequestShowInFinder(item: StripItem)
+    func stripViewDidRequestDismiss(item: StripItem, cardView: StripCardView)
+    func stripViewDidRequestRemoveMissing(item: StripItem)
+    func stripViewDidEndDrag(item: StripItem, operation: NSDragOperation)
 }
 
 // MARK: - Cuerda
@@ -238,7 +238,7 @@ final class EdgeCountButton: NSView {
             layer.add(fade, forKey: "bump")
             return
         }
-        let pivot = TendederoCardView.pivotOffset(of: self, at: CGPoint(x: bounds.midX, y: bounds.midY))
+        let pivot = StripCardView.pivotOffset(of: self, at: CGPoint(x: bounds.midX, y: bounds.midY))
         let big = StripMotion.cardTransform(tilt: 0, scale: 1.22, pivotOffset: pivot)
         let anim = CAKeyframeAnimation(keyPath: "transform")
         anim.values = [CATransform3DIdentity, big, CATransform3DIdentity].map { NSValue(caTransform3D: $0) }
@@ -396,13 +396,13 @@ final class PassthroughView: NSView {
     }
 }
 
-/// Vista contenedora del Tendedero. Dibuja la cuerda y distribuye las tarjetas colgadas de ella.
+/// Vista contenedora del Strip. Dibuja la cuerda y distribuye las tarjetas colgadas de ella.
 ///
 /// Con más capturas de las que caben, la tira se desplaza: la cuerda no se mueve y las tarjetas se deslizan
 /// por su curva. Solo se montan las vistas de las tarjetas visibles ±1 (reciclaje); el resto del contenido es
 /// geometría (`StripScroll.Metrics`).
-public final class TendederoView: NSView, TendederoCardViewDelegate {
-    public weak var delegate: TendederoViewDelegate?
+public final class StripView: NSView, StripCardViewDelegate {
+    public weak var delegate: StripViewDelegate?
     /// Esc con el foco en la tira: la tira se recoge y devuelve el foco.
     public var onEscape: (() -> Void)?
     /// Anuncios para VoiceOver (los publica el gestor).
@@ -429,10 +429,10 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
     private var pendingAccessibilityFocusID: UUID?
 
     /// Tarjetas montadas (visibles ±1 y la que tiene el foco de teclado).
-    private var cardViews: [UUID: TendederoCardView] = [:]
-    private var pool: [TendederoCardView] = []
+    private var cardViews: [UUID: StripCardView] = [:]
+    private var pool: [StripCardView] = []
     private static let poolLimit = 8
-    private var currentItems: [TendederoItem] = []
+    private var currentItems: [StripItem] = []
     private var indexByID: [UUID: Int] = [:]
     private var laidOutWidth: CGFloat = 0
     private var fallingIDs: Set<UUID> = []
@@ -568,7 +568,7 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
     /// Actualiza la lista de capturas representadas en la cuerda.
     /// Con la tira visible, las tarjetas nuevas caen y se balancean, las demás se recolocan con muelle
     /// y las que salen se desvanecen (o caen si se marcaron con `markForFall`).
-    public func reload(items: [TendederoItem]) {
+    public func reload(items: [StripItem]) {
         let canAnimate = window?.isVisible == true
         let previousRovingIndex = rovingID.flatMap { indexByID[$0] }
         let oldIDs = Set(currentItems.map { $0.id })
@@ -610,7 +610,7 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
         let inserted = items.prefix { freshIDs.contains($0.id) }.count
         adjustViewportForInsertion(inserted: inserted, hadItems: hadItems)
 
-        var arrivals: [(TendederoCardView, Bool)] = []
+        var arrivals: [(StripCardView, Bool)] = []
         for item in items {
             guard let existing = cardViews[item.id] else { continue }
             let wasHidden = existing.isHidden
@@ -665,7 +665,7 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
 
     /// Interacción en curso: puntero sobre la tira, arrastre/rueda o foco de teclado en una tarjeta.
     var isUserInteracting: Bool {
-        pointerInside || scroller.mode == .drag || scroller.mode == .wheel || window?.firstResponder is TendederoCardView
+        pointerInside || scroller.mode == .drag || scroller.mode == .wheel || window?.firstResponder is StripCardView
     }
 
     // MARK: Virtualización
@@ -696,13 +696,13 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
         return added
     }
 
-    private func mount(item: TendederoItem) {
-        let card: TendederoCardView
+    private func mount(item: StripItem) {
+        let card: StripCardView
         if let recycled = pool.popLast() {
             recycled.reconfigure(with: item)
             card = recycled
         } else {
-            card = TendederoCardView(item: item)
+            card = StripCardView(item: item)
         }
         card.delegate = self
         card.isHidden = item.isFlying
@@ -711,7 +711,7 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
         if let index = indexByID[item.id] { placeCard(card, id: item.id, index: index, dt: 0, initial: true) }
     }
 
-    private func unmount(id: UUID, card: TendederoCardView) {
+    private func unmount(id: UUID, card: StripCardView) {
         cardViews.removeValue(forKey: id)
         tilts.removeValue(forKey: id)
         card.removeFromSuperview()
@@ -723,7 +723,7 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
     var mountedCardCount: Int { cardViews.count }
     var scrollOffset: CGFloat { scroller.offset }
     var stripMetrics: StripScroll.Metrics { metrics }
-    func mountedCardForTesting(at index: Int) -> TendederoCardView? {
+    func mountedCardForTesting(at index: Int) -> StripCardView? {
         currentItems.indices.contains(index) ? cardViews[currentItems[index].id] : nil
     }
 
@@ -743,7 +743,7 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
 
     /// Posición en la cuerda (la `y` sigue la curva en la `x` de pantalla) e inclinación de una tarjeta.
     @discardableResult
-    private func placeCard(_ card: TendederoCardView, id: UUID, index: Int, dt: CGFloat, initial: Bool) -> Bool {
+    private func placeCard(_ card: StripCardView, id: UUID, index: Int, dt: CGFloat, initial: Bool) -> Bool {
         let w = max(bounds.width, 1)
         let reduce = scroller.reduceMotion
         let slot = StripScroll.cardWidth
@@ -993,7 +993,7 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
         suppressRestAnnouncement = false
     }
 
-    public func cardDidBeginPress(_ card: TendederoCardView) {
+    public func cardDidBeginPress(_ card: StripCardView) {
         userDidScroll()
         scroller.stopMomentum()
     }
@@ -1167,10 +1167,10 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
 
     /// Suelta el foco de teclado (la tira deja de ser key).
     public func clearKeyboardFocus() {
-        if window?.firstResponder is TendederoCardView { window?.makeFirstResponder(nil) }
+        if window?.firstResponder is StripCardView { window?.makeFirstResponder(nil) }
     }
 
-    public func cardDidRequestFocusMove(_ card: TendederoCardView, to target: TendederoCardView.FocusTarget) {
+    public func cardDidRequestFocusMove(_ card: StripCardView, to target: StripCardView.FocusTarget) {
         guard let index = indexByID[card.item.id], !currentItems.isEmpty else { return }
         let last = currentItems.count - 1
         let destination: Int
@@ -1196,9 +1196,9 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
         if let card = cardViews[currentItems[index].id] { window?.makeFirstResponder(card) }
     }
 
-    public func cardDidRequestEscape(_ card: TendederoCardView) { onEscape?() }
+    public func cardDidRequestEscape(_ card: StripCardView) { onEscape?() }
 
-    public func cardDidGainAccessibilityFocus(_ card: TendederoCardView) {
+    public func cardDidGainAccessibilityFocus(_ card: StripCardView) {
         if let index = indexByID[card.item.id] { ensureVisible(index: index) }
     }
 
@@ -1294,40 +1294,40 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
             layoutCounters()
             return window.convertToScreen(convert(leftCount.frame, to: nil))
         }
-        let card = cardViews[itemID] ?? TendederoCardView(item: currentItems[index])
+        let card = cardViews[itemID] ?? StripCardView(item: currentItems[index])
         let y = StripMotion.slotTopBase + StripMotion.ropeY(x: sx + StripScroll.cardWidth / 2, width: max(bounds.width, 1))
         let origin = NSPoint(x: sx, y: bounds.height - y - StripMotion.slotSize.height)
         let rect = card.thumbnailRect.offsetBy(dx: origin.x, dy: origin.y)
         return window.convertToScreen(convert(rect, to: nil))
     }
 
-    // MARK: - TendederoCardViewDelegate
+    // MARK: - StripCardViewDelegate
 
-    public func cardDidRequestCopy(_ card: TendederoCardView, item: TendederoItem) -> Bool {
-        delegate?.tendederoViewDidRequestCopy(item: item) ?? false
+    public func cardDidRequestCopy(_ card: StripCardView, item: StripItem) -> Bool {
+        delegate?.stripViewDidRequestCopy(item: item) ?? false
     }
 
-    public func cardDidRequestMarkup(_ card: TendederoCardView, item: TendederoItem) {
-        delegate?.tendederoViewDidRequestMarkup(item: item)
+    public func cardDidRequestMarkup(_ card: StripCardView, item: StripItem) {
+        delegate?.stripViewDidRequestMarkup(item: item)
     }
 
-    public func cardDidRequestPreview(_ card: TendederoCardView, item: TendederoItem) {
-        delegate?.tendederoViewDidRequestPreview(item: item)
+    public func cardDidRequestPreview(_ card: StripCardView, item: StripItem) {
+        delegate?.stripViewDidRequestPreview(item: item)
     }
 
-    public func cardDidRequestShowInFinder(_ card: TendederoCardView, item: TendederoItem) {
-        delegate?.tendederoViewDidRequestShowInFinder(item: item)
+    public func cardDidRequestShowInFinder(_ card: StripCardView, item: StripItem) {
+        delegate?.stripViewDidRequestShowInFinder(item: item)
     }
 
-    public func cardDidRequestRemoveMissing(_ card: TendederoCardView, item: TendederoItem) {
-        delegate?.tendederoViewDidRequestRemoveMissing(item: item)
+    public func cardDidRequestRemoveMissing(_ card: StripCardView, item: StripItem) {
+        delegate?.stripViewDidRequestRemoveMissing(item: item)
     }
 
-    public func cardDidRequestDismiss(_ card: TendederoCardView, item: TendederoItem) {
-        delegate?.tendederoViewDidRequestDismiss(item: item, cardView: card)
+    public func cardDidRequestDismiss(_ card: StripCardView, item: StripItem) {
+        delegate?.stripViewDidRequestDismiss(item: item, cardView: card)
     }
 
-    public func cardDidEndDrag(_ card: TendederoCardView, item: TendederoItem, operation: NSDragOperation) {
-        delegate?.tendederoViewDidEndDrag(item: item, operation: operation)
+    public func cardDidEndDrag(_ card: StripCardView, item: StripItem, operation: NSDragOperation) {
+        delegate?.stripViewDidEndDrag(item: item, operation: operation)
     }
 }

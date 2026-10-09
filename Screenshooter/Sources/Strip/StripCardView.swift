@@ -2,22 +2,22 @@ import AppKit
 import UniformTypeIdentifiers
 
 @MainActor
-public protocol TendederoCardViewDelegate: AnyObject {
+public protocol StripCardViewDelegate: AnyObject {
     /// Devuelve `false` si no se pudo copiar al portapapeles.
-    func cardDidRequestCopy(_ card: TendederoCardView, item: TendederoItem) -> Bool
-    func cardDidRequestMarkup(_ card: TendederoCardView, item: TendederoItem)
-    func cardDidRequestPreview(_ card: TendederoCardView, item: TendederoItem)
-    func cardDidRequestShowInFinder(_ card: TendederoCardView, item: TendederoItem)
-    func cardDidRequestDismiss(_ card: TendederoCardView, item: TendederoItem)
+    func cardDidRequestCopy(_ card: StripCardView, item: StripItem) -> Bool
+    func cardDidRequestMarkup(_ card: StripCardView, item: StripItem)
+    func cardDidRequestPreview(_ card: StripCardView, item: StripItem)
+    func cardDidRequestShowInFinder(_ card: StripCardView, item: StripItem)
+    func cardDidRequestDismiss(_ card: StripCardView, item: StripItem)
     /// El archivo ya no existe: quitar de la tira sin tocar la Papelera.
-    func cardDidRequestRemoveMissing(_ card: TendederoCardView, item: TendederoItem)
-    func cardDidEndDrag(_ card: TendederoCardView, item: TendederoItem, operation: NSDragOperation)
-    func cardDidRequestFocusMove(_ card: TendederoCardView, to target: TendederoCardView.FocusTarget)
-    func cardDidRequestEscape(_ card: TendederoCardView)
+    func cardDidRequestRemoveMissing(_ card: StripCardView, item: StripItem)
+    func cardDidEndDrag(_ card: StripCardView, item: StripItem, operation: NSDragOperation)
+    func cardDidRequestFocusMove(_ card: StripCardView, to target: StripCardView.FocusTarget)
+    func cardDidRequestEscape(_ card: StripCardView)
     /// VoiceOver enfocó la tarjeta: la tira la lleva a la vista.
-    func cardDidGainAccessibilityFocus(_ card: TendederoCardView)
+    func cardDidGainAccessibilityFocus(_ card: StripCardView)
     /// Se pulsó la tarjeta: la tira detiene la inercia o la animación en curso.
-    func cardDidBeginPress(_ card: TendederoCardView)
+    func cardDidBeginPress(_ card: StripCardView)
 }
 
 // MARK: - Vidrio
@@ -269,9 +269,9 @@ final class GlassCapsuleLabel: NSView {
 /// Tarjeta de vidrio de una captura colgada de la cuerda.
 /// Soporta arrastre (Drag & Drop), clic (copiar), doble clic (Vista Previa), mantener (Marcación),
 /// botones ✕ y lápiz al pasar el puntero y cápsula con hora y tamaño.
-public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
-    public weak var delegate: TendederoCardViewDelegate?
-    public private(set) var item: TendederoItem
+public final class StripCardView: NSView, NSDraggingSource, NSMenuDelegate {
+    public weak var delegate: StripCardViewDelegate?
+    public private(set) var item: StripItem
 
     // Jerarquía: swingView (balanceo) > cardBody (inclinación/escala) > glass + miniatura + avisos.
     private let swingView = NSView()
@@ -402,7 +402,7 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
 
     func setPressingForTesting(_ on: Bool) { setPressing(on) }
 
-    public init(item: TendederoItem) {
+    public init(item: StripItem) {
         self.item = item
         super.init(frame: NSRect(origin: .zero, size: StripMotion.slotSize))
         wantsLayer = true
@@ -560,7 +560,7 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
 
     // MARK: Datos
 
-    public func updateItem(_ newItem: TendederoItem) {
+    public func updateItem(_ newItem: StripItem) {
         item = newItem
         imageView.image = newItem.image
         layoutThumbnail()
@@ -571,7 +571,7 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
     }
 
     /// Reutiliza la tarjeta para otra captura sin animar el cambio de inclinación (reciclaje de la tira virtualizada).
-    func reconfigure(with newItem: TendederoItem) {
+    func reconfigure(with newItem: StripItem) {
         item = newItem
         imageView.image = newItem.image
         layoutThumbnail()

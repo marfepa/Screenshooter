@@ -162,12 +162,12 @@ public enum StripMotion {
     }
 
     /// "HH:mm · W×H" (píxeles reales del archivo; la hora sigue 12/24 h del sistema).
-    public static func metaText(for item: TendederoItem, locale: Locale = .current) -> String {
+    public static func metaText(for item: StripItem, locale: Locale = .current) -> String {
         "\(timeText(item.createdAt, locale: locale)) · \(Int(item.pixelSize.width))×\(Int(item.pixelSize.height))"
     }
 
     /// Etiqueta de VoiceOver: "Captura, HH:mm, W por H" o "Captura no encontrada, HH:mm".
-    public static func accessibilityLabel(for item: TendederoItem, missing: Bool, locale: Locale = .current) -> String {
+    public static func accessibilityLabel(for item: StripItem, missing: Bool, locale: Locale = .current) -> String {
         let time = timeText(item.createdAt, locale: locale)
         if missing { return "Captura no encontrada, \(time)" }
         return "Captura, \(time), \(Int(item.pixelSize.width)) por \(Int(item.pixelSize.height))"

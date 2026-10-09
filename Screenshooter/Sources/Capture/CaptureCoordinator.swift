@@ -91,10 +91,10 @@ public final class CaptureCoordinator {
                     playSound: true
                 )
                 
-                // Guardar en la caché del Tendedero y colgar la captura con animación de vuelo
-                let savedURL = TendederoManager.shared.saveToCache(cgImage: result.image)
+                // Guardar en la caché del Strip y colgar la captura con animación de vuelo
+                let savedURL = StripManager.shared.saveToCache(cgImage: result.image)
                 if let url = savedURL {
-                    TendederoManager.shared.hang(
+                    StripManager.shared.hang(
                         url: url,
                         cgImage: result.image,
                         fromRect: rect,

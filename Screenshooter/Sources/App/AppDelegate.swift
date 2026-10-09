@@ -8,8 +8,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         // Inicializar controlador de la barra de menús
         statusBarController = StatusBarController()
         
-        // Inicializar subsistemas del Tendedero y Modo Inbox
-        _ = TendederoManager.shared
+        // Inicializar subsistemas del Strip y Modo Inbox
+        _ = StripManager.shared
         _ = InboxManager.shared
         
         // Configurar y registrar los atajos globales de teclado (⌥⌘S y ⌃⌥T)
@@ -23,7 +23,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil
         )
         
-        NSLog("[AppDelegate] Screenshooter iniciado con Tendedero y Modo Inbox.")
+        NSLog("[AppDelegate] Screenshooter iniciado con Strip y Modo Inbox.")
     }
     
     private func setupGlobalHotKey() {
@@ -32,18 +32,18 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 CaptureCoordinator.shared.startCapture()
             }
         }
-        HotKeyManager.shared.onTendederoHotKeyTriggered = {
+        HotKeyManager.shared.onStripHotKeyTriggered = {
             Task { @MainActor in
-                TendederoManager.shared.toggle()
+                StripManager.shared.toggle()
             }
         }
         HotKeyManager.shared.registerDefaultHotKey()
-        HotKeyManager.shared.registerTendederoHotKey()
+        HotKeyManager.shared.registerStripHotKey()
     }
     
     @objc private func handleScreenParametersChanged() {
         statusBarController?.setupMenu()
-        TendederoManager.shared.setupPanel()
+        StripManager.shared.setupPanel()
     }
     
     public func applicationWillTerminate(_ notification: Notification) {

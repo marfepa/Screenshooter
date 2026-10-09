@@ -1,8 +1,8 @@
 import AppKit
 import ImageIO
 
-/// Modelo que representa una captura colgada en el Tendedero.
-public struct TendederoItem: Identifiable, Equatable {
+/// Modelo que representa una captura colgada en el Strip.
+public struct StripItem: Identifiable, Equatable {
     public let id: UUID
     public let url: URL
     public var image: NSImage
@@ -60,7 +60,7 @@ public struct TendederoItem: Identifiable, Equatable {
         return true
     }
     
-    public static func == (lhs: TendederoItem, rhs: TendederoItem) -> Bool {
+    public static func == (lhs: StripItem, rhs: StripItem) -> Bool {
         return lhs.id == rhs.id && lhs.isFlying == rhs.isFlying
     }
 }

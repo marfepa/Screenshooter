@@ -1,12 +1,12 @@
 import AppKit
 
-/// Panel flotante superior para el Tendedero.
+/// Panel flotante superior para el Strip.
 /// Se revela al reposar el cursor en la barra de menús (0,25 s), con el atajo o al colgar una captura,
 /// y se retrae cuando el ratón se aleja. La decisión vive en `RevealState`; aquí solo se muestrea el ratón
 /// con un timer (un monitor local no recibe eventos de otras apps en una app LSUIElement).
 @MainActor
-public final class TendederoPanel: NSPanel {
-    public let tendederoView: TendederoView
+public final class StripPanel: NSPanel {
+    public let stripView: StripView
     public var isRevealed: Bool { state.isRevealed }
     
     private let panelHeight: CGFloat = StripMotion.stripHeight
@@ -25,7 +25,7 @@ public final class TendederoPanel: NSPanel {
         let visible = screen.visibleFrame
         let rect = NSRect(x: visible.minX, y: visible.maxY - panelHeight, width: visible.width, height: panelHeight)
         
-        self.tendederoView = TendederoView(frame: NSRect(origin: .zero, size: rect.size))
+        self.stripView = StripView(frame: NSRect(origin: .zero, size: rect.size))
         
         super.init(
             contentRect: rect,
@@ -43,12 +43,12 @@ public final class TendederoPanel: NSPanel {
         self.isMovable = false
         self.becomesKeyOnlyIfNeeded = true
         self.isReleasedWhenClosed = false
-        self.contentView = tendederoView
+        self.contentView = stripView
         self.ignoresMouseEvents = true
         
         self.alphaValue = 1.0
         
-        tendederoView.onEscape = { [weak self] in self?.slideUp() }
+        stripView.onEscape = { [weak self] in self?.slideUp() }
         watchMenuBarClicks()
     }
     
@@ -63,7 +63,7 @@ public final class TendederoPanel: NSPanel {
     public func toggle() {
         if isRevealed {
             // Revelada por el ratón: ⌃⌥T le da foco de teclado; si ya lo tenía, se recoge.
-            if !keyboardRequested && tendederoView.hasCards {
+            if !keyboardRequested && stripView.hasCards {
                 state.pin()
                 beginKeyboardSession()
             } else {
@@ -78,14 +78,14 @@ public final class TendederoPanel: NSPanel {
     private func beginKeyboardSession() {
         keyboardRequested = true
         makeKey()
-        tendederoView.focusFirstCard()
+        stripView.focusFirstCard()
     }
 
     /// Esc o fin de la sesión de teclado: el panel deja de poder ser key (no se activa la app; el foco sigue en la app de debajo).
     private func endKeyboardSession() {
         guard keyboardRequested else { return }
         keyboardRequested = false
-        tendederoView.clearKeyboardFocus()
+        stripView.clearKeyboardFocus()
     }
 
     public override func resignKey() {
@@ -114,14 +114,14 @@ public final class TendederoPanel: NSPanel {
         if isKeyWindow && !keyboardRequested { orderOut(nil) }
         state.didReveal()
         alphaValue = 1.0
-        tendederoView.refreshMissingStates()
+        stripView.refreshMissingStates()
         orderFront(nil)
         // La tira se desliza desde arriba (la ventana recorta el contenido bajo la barra de menús).
-        let sway = !Self.hasSwayedThisSession && tendederoView.hasCards
+        let sway = !Self.hasSwayedThisSession && stripView.hasCards
         if sway { Self.hasSwayedThisSession = true }
-        tendederoView.playReveal(motion: .current(), sway: sway)
+        stripView.playReveal(motion: .current(), sway: sway)
         updateTimer()
-        if keyboard && tendederoView.hasCards { beginKeyboardSession() }
+        if keyboard && stripView.hasCards { beginKeyboardSession() }
     }
     
     public func slideUp() {
@@ -129,8 +129,8 @@ public final class TendederoPanel: NSPanel {
         state.didRetract()
         endKeyboardSession()
         ignoresMouseEvents = true
-        tendederoView.updateHover(pointer: nil)
-        tendederoView.playRetract(motion: .current()) { [weak self] in
+        stripView.updateHover(pointer: nil)
+        stripView.playRetract(motion: .current()) { [weak self] in
             guard let self, !self.isRevealed else { return }
             self.orderOut(nil)
         }
@@ -180,16 +180,16 @@ public final class TendederoPanel: NSPanel {
         let inMenuBar = screenUnder.map { NSMouseInRect(mouse, Self.menuBarBand(of: $0), false) } ?? false
         
         var inZone = false
-        if !isRevealed { tendederoView.pointerInside = false }
+        if !isRevealed { stripView.pointerInside = false }
         if isRevealed {
             var zone = frame
             if let s = screen { zone.size.height = s.frame.maxY - zone.minY }
             inZone = NSMouseInRect(mouse, zone, false)
-            tendederoView.pointerInside = inZone
+            stripView.pointerInside = inZone
             updateMousePassThrough(mouse)
-            if !TendederoCardView.isBusy {
-                let hoverable = !ignoresMouseEvents && !tendederoView.isSliding
-                tendederoView.updateHover(pointer: hoverable ? convertPoint(fromScreen: mouse) : nil)
+            if !StripCardView.isBusy {
+                let hoverable = !ignoresMouseEvents && !stripView.isSliding
+                stripView.updateHover(pointer: hoverable ? convertPoint(fromScreen: mouse) : nil)
             }
         }
         
@@ -197,7 +197,7 @@ public final class TendederoPanel: NSPanel {
         let fullScreen = (inMenuBar && !isRevealed) ? (screenUnder.map { FullScreen.isActive(on: $0) } ?? false) : false
         // Una pulsación, un arrastre, un menú contextual, el foco de teclado o un desplazamiento (scroll,
         // inercia, arrastre de la cuerda) impiden recogerla.
-        let busy = TendederoCardView.isBusy || tendederoView.isScrollBusy || (keyboardRequested && isKeyWindow)
+        let busy = StripCardView.isBusy || stripView.isScrollBusy || (keyboardRequested && isKeyWindow)
         
         switch state.tick(now: Date(), inMenuBar: inMenuBar, inZone: inZone, fullScreen: fullScreen, busy: busy) {
         case .reveal:
@@ -213,10 +213,10 @@ public final class TendederoPanel: NSPanel {
     /// La tira ocupa todo el ancho: solo captura el ratón sobre una tarjeta, un contador o la cuerda; el resto de clics pasa a las apps de debajo.
     private func updateMousePassThrough(_ mouse: NSPoint) {
         // Solo un arrastre de la cuerda congela el paso de clics; durante la inercia se reevalúa.
-        guard !TendederoCardView.isBusy, !tendederoView.isRopeDragging else { return }
+        guard !StripCardView.isBusy, !stripView.isRopeDragging else { return }
         let local = convertPoint(fromScreen: mouse)
         // Tarjetas, contadores +N y franja de la cuerda (si la tira se desplaza): la rueda solo se captura ahí.
-        let overInteractive = tendederoView.containsInteractivePoint(local)
+        let overInteractive = stripView.containsInteractivePoint(local)
         if ignoresMouseEvents == overInteractive { ignoresMouseEvents = !overInteractive }
     }
     

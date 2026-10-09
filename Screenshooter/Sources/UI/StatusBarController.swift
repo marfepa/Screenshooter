@@ -41,30 +41,30 @@ public final class StatusBarController {
         captureItem.target = self
         menu.addItem(captureItem)
         
-        // 2. Control del Tendedero
-        let tendederoItem = NSMenuItem(
-            title: "Mostrar / Ocultar Tendedero",
-            action: #selector(handleToggleTendederoClicked),
+        // 2. Control del Strip
+        let stripItem = NSMenuItem(
+            title: "Mostrar / Ocultar Tira",
+            action: #selector(handleToggleStripClicked),
             keyEquivalent: "t"
         )
-        tendederoItem.keyEquivalentModifierMask = [.control, .option]
-        tendederoItem.target = self
-        menu.addItem(tendederoItem)
+        stripItem.keyEquivalentModifierMask = [.control, .option]
+        stripItem.target = self
+        menu.addItem(stripItem)
         
-        let clearTendederoItem = NSMenuItem(
-            title: "Vaciar Tendedero",
-            action: #selector(handleClearTendederoClicked),
+        let clearStripItem = NSMenuItem(
+            title: "Vaciar Tira",
+            action: #selector(handleClearStripClicked),
             keyEquivalent: ""
         )
-        clearTendederoItem.target = self
-        menu.addItem(clearTendederoItem)
+        clearStripItem.target = self
+        menu.addItem(clearStripItem)
         
         menu.addItem(NSMenuItem.separator())
         
         // 3. Modo Inbox (Interceptar capturas nativas de macOS)
         let isInboxOn = InboxManager.shared.isEnabled
         let inboxItem = NSMenuItem(
-            title: "Modo Inbox (Capturas nativas directas al Tendedero)",
+            title: "Modo Inbox (Capturas nativas directas a la Tira)",
             action: #selector(handleToggleInboxClicked),
             keyEquivalent: ""
         )
@@ -75,7 +75,7 @@ public final class StatusBarController {
         // Capacidad de la tira (8 · 16 · 32 · Sin límite)
         let capacityItem = NSMenuItem(title: "Capturas en la tira", action: nil, keyEquivalent: "")
         let capacityMenu = NSMenu(title: "Capturas en la tira")
-        let currentCapacity = TendederoManager.shared.capacity
+        let currentCapacity = StripManager.shared.capacity
         for value in StripCapacity.options {
             let entry = NSMenuItem(
                 title: StripCapacity.title(for: value),
@@ -155,12 +155,12 @@ public final class StatusBarController {
         CaptureCoordinator.shared.startCapture()
     }
     
-    @objc private func handleToggleTendederoClicked() {
-        TendederoManager.shared.toggle()
+    @objc private func handleToggleStripClicked() {
+        StripManager.shared.toggle()
     }
     
-    @objc private func handleClearTendederoClicked() {
-        TendederoManager.shared.clear()
+    @objc private func handleClearStripClicked() {
+        StripManager.shared.clear()
     }
     
     @objc private func handleToggleInboxClicked() {
@@ -169,7 +169,7 @@ public final class StatusBarController {
     }
     
     @objc private func handleCapacityClicked(_ sender: NSMenuItem) {
-        TendederoManager.shared.setCapacity(sender.tag)
+        StripManager.shared.setCapacity(sender.tag)
         setupMenu()
     }
     
@@ -201,9 +201,9 @@ public final class StatusBarController {
         alert.messageText = "Screenshooter — Ajustes y Gestos"
         alert.informativeText = """
         • ⌥⌘S: Capturar área seleccionada.
-        • ⌃⌥T: Mostrar / Ocultar el Tendedero.
+        • ⌃⌥T: Mostrar / Ocultar la Tira.
         • Abrir al iniciar el Mac: \(launchStatus) (puedes alternarlo desde el menú).
-        • Barra de menús: Posar el cursor arriba desliza el Tendedero automáticamente.
+        • Barra de menús: Posar el cursor arriba desliza la Tira automáticamente.
         
         Gestos en cada captura colgada:
         • Clic simple: Copiar al portapapeles.

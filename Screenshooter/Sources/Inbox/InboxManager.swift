@@ -4,8 +4,8 @@ import AppKit
 /// Gestor del Modo Inbox:
 /// Intercepta las capturas nativas de macOS (⌘⇧3, ⌘⇧4, ⌘⇧5, CleanShot, etc.)
 /// 1. Elimina el retraso de 5 segundos de la miniatura flotante de Apple (`show-thumbnail = false`).
-/// 2. Redirige el destino de guardado a la carpeta del Tendedero para no ensuciar el Escritorio.
-/// 3. Detecta la captura en tiempo real, lee sus coordenadas originales y la cuelga en el Tendedero.
+/// 2. Redirige el destino de guardado a la carpeta del Strip para no ensuciar el Escritorio.
+/// 3. Detecta la captura en tiempo real, lee sus coordenadas originales y la cuelga en el Strip.
 /// 4. Restaura las preferencias originales del usuario de forma segura al desactivarse o al salir la app.
 @MainActor
 public final class InboxManager {
@@ -38,11 +38,11 @@ public final class InboxManager {
     }
     
     /// Carpeta en la que macOS guarda las capturas nativas y que vigilamos.
-    private static var watchedFolder: URL { TendederoManager.inboxDirectory }
+    private static var watchedFolder: URL { StripManager.inboxDirectory }
     
     /// ¿Es una ruta nuestra (caché o Inbox) y por tanto nunca una location "original" del usuario?
     nonisolated static func isOwnFolder(path: String) -> Bool {
-        let own = [TendederoManager.screenshotsDirectory, TendederoManager.inboxDirectory]
+        let own = [StripManager.screenshotsDirectory, StripManager.inboxDirectory]
             .map { $0.standardizedFileURL.path }
         return own.contains(URL(fileURLWithPath: path).standardizedFileURL.path)
     }
@@ -86,7 +86,7 @@ public final class InboxManager {
         // 3. Comenzar a observar la carpeta
         startWatchingScreenshotsFolder()
         
-        NSLog("[InboxManager] Modo Inbox activado. Capturas de macOS redirigidas al Tendedero.")
+        NSLog("[InboxManager] Modo Inbox activado. Capturas de macOS redirigidas al Strip.")
     }
     
     public func disableInboxMode() {
@@ -249,9 +249,9 @@ public final class InboxManager {
         let captureOriginRect = readCaptureRect(from: url)
         let screen = NSScreen.main ?? NSScreen.screens.first!
         
-        // Copiar al portapapeles y colgar en el Tendedero con animación
+        // Copiar al portapapeles y colgar en el Strip con animación
         ClipboardService.shared.copy(cgImage: cgImage, playSound: true)
-        TendederoManager.shared.hang(url: url, cgImage: cgImage, fromRect: captureOriginRect, screen: screen)
+        StripManager.shared.hang(url: url, cgImage: cgImage, fromRect: captureOriginRect, screen: screen)
     }
     
     /// Lee el atributo extendido com.apple.metadata:kMDItemScreenCaptureGlobalRect
