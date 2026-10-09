@@ -1031,8 +1031,9 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
     private func startDraggingSession(with event: NSEvent) {
         // El writer debe ser la URL del archivo (NSURL) para que Finder acepte el archivo.
         let draggingItem = NSDraggingItem(pasteboardWriter: item.url as NSURL)
-        let frameInWindow = convert(thumbnailRect, to: nil)
-        draggingItem.setDraggingFrame(frameInWindow, contents: item.image)
+        // `setDraggingFrame` espera coordenadas de esta vista (la fuente), no de ventana:
+        // así la imagen arrastrada arranca exactamente sobre la miniatura.
+        draggingItem.setDraggingFrame(thumbnailRect, contents: item.image)
         beginDraggingSession(with: [draggingItem], event: event, source: self)
     }
 
