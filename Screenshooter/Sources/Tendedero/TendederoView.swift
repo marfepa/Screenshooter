@@ -6,6 +6,7 @@ public protocol TendederoViewDelegate: AnyObject {
     func tendederoViewDidRequestMarkup(item: TendederoItem)
     func tendederoViewDidRequestPreview(item: TendederoItem)
     func tendederoViewDidRequestDismiss(item: TendederoItem, cardView: TendederoCardView)
+    func tendederoViewDidEndDrag(item: TendederoItem, operation: NSDragOperation)
 }
 
 /// Vista contenedora del Tendedero. Dibuja la cuerda horizontal en la parte superior
@@ -139,5 +140,9 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
     
     public func cardDidRequestDismiss(_ card: TendederoCardView, item: TendederoItem) {
         delegate?.tendederoViewDidRequestDismiss(item: item, cardView: card)
+    }
+    
+    public func cardDidEndDrag(_ card: TendederoCardView, item: TendederoItem, operation: NSDragOperation) {
+        delegate?.tendederoViewDidEndDrag(item: item, operation: operation)
     }
 }

@@ -6,6 +6,20 @@ import UniformTypeIdentifiers
 /// las animaciones espaciales (vuelo y caída libre) y las acciones rápidas del usuario.
 @MainActor
 public final class TendederoManager: TendederoViewDelegate {
+    /// Resultado de evaluar el fin de un arrastre.
+    public enum DragEndDecision: Equatable {
+        case trash   // Soltado en la Papelera del Dock
+        case remove  // Movido a otra ubicación: sacar de la tira sin borrar nada
+        case keep    // Copiado o cancelado: se mantiene
+    }
+    
+    /// Lógica pura: decide qué hacer según la operación de arrastre y si el archivo sigue en origen.
+    public nonisolated static func dragEndDecision(operation: NSDragOperation, fileExists: Bool) -> DragEndDecision {
+        if operation.contains(.delete) { return .trash }
+        if operation.contains(.move) && !fileExists { return .remove }
+        return .keep
+    }
+
     public static let shared = TendederoManager()
     
     public private(set) var items: [TendederoItem] = []
@@ -170,6 +184,28 @@ public final class TendederoManager: TendederoViewDelegate {
         }
     }
     
+    /// Gestiona el final de un arrastre iniciado desde una tarjeta.
+    /// La Papelera del Dock solo informa `.delete`; Finder completa el `.move` de forma asíncrona,
+    /// por lo que se comprueba la existencia del archivo tras una breve espera.
+    public func handleDragEnded(itemID: UUID, operation: NSDragOperation) {
+        if operation.contains(.delete) {
+            trash(itemID: itemID)
+        } else if operation.contains(.move) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                guard let self = self,
+                      let item = self.items.first(where: { $0.id == itemID }) else { return }
+                let exists = FileManager.default.fileExists(atPath: item.url.path)
+                if Self.dragEndDecision(operation: .move, fileExists: exists) == .remove {
+                    self.items.removeAll { $0.id == itemID }
+                    self.panel?.tendederoView.reload(items: self.items)
+                    if self.items.isEmpty {
+                        self.panel?.slideUp()
+                    }
+                }
+            }
+        }
+    }
+    
     /// Elimina todas las capturas del tendedero (las envía a la Papelera)
     public func clear() {
         for item in items {
@@ -209,6 +245,10 @@ public final class TendederoManager: TendederoViewDelegate {
     
     public func tendederoViewDidRequestPreview(item: TendederoItem) {
         NSWorkspace.shared.open(item.url)
+    }
+    
+    public func tendederoViewDidEndDrag(item: TendederoItem, operation: NSDragOperation) {
+        handleDragEnded(itemID: item.id, operation: operation)
     }
     
     public func tendederoViewDidRequestDismiss(item: TendederoItem, cardView: TendederoCardView) {

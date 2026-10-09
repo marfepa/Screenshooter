@@ -7,6 +7,7 @@ public protocol TendederoCardViewDelegate: AnyObject {
     func cardDidRequestMarkup(_ card: TendederoCardView, item: TendederoItem)
     func cardDidRequestPreview(_ card: TendederoCardView, item: TendederoItem)
     func cardDidRequestDismiss(_ card: TendederoCardView, item: TendederoItem)
+    func cardDidEndDrag(_ card: TendederoCardView, item: TendederoItem, operation: NSDragOperation)
 }
 
 /// Vista individual que representa una tarjeta de captura colgada en el Tendedero con su pinza.
@@ -303,16 +304,8 @@ public final class TendederoCardView: NSView, NSDraggingSource {
     }
     
     private func startDraggingSession(with event: NSEvent) {
-        let pasteboardItem = NSPasteboardItem()
-        pasteboardItem.setString(item.url.path, forType: .fileURL)
-        
-        if let tiff = item.image.tiffRepresentation,
-           let rep = NSBitmapImageRep(data: tiff),
-           let png = rep.representation(using: .png, properties: [:]) {
-            pasteboardItem.setData(png, forType: .png)
-        }
-        
-        let draggingItem = NSDraggingItem(pasteboardWriter: pasteboardItem)
+        // El writer debe ser la URL del archivo (NSURL) para que Finder acepte el archivo.
+        let draggingItem = NSDraggingItem(pasteboardWriter: item.url as NSURL)
         let dragBounds = cardContainer.bounds
         let dragImage = item.image
         draggingItem.setDraggingFrame(NSRect(origin: convert(cardContainer.frame.origin, to: nil), size: dragBounds.size), contents: dragImage)
@@ -323,11 +316,12 @@ public final class TendederoCardView: NSView, NSDraggingSource {
     // MARK: - NSDraggingSource
     
     public func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
-        return context == .outsideApplication ? [.copy, .generic] : [.copy]
+        return context == .outsideApplication ? [.copy, .move, .delete] : []
     }
     
     public func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
         isDraggingSession = false
+        delegate?.cardDidEndDrag(self, item: item, operation: operation)
     }
 }
 
