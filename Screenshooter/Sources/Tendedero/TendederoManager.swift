@@ -47,11 +47,24 @@ public final class TendederoManager: TendederoViewDelegate {
         setupPanel()
     }
     
+    /// Crea el panel único (o lo reutiliza recolocándolo si ya existe, p. ej. al cambiar la configuración de pantallas).
     public func setupPanel() {
         let screen = NSScreen.main ?? NSScreen.screens.first!
+        if let existing = panel {
+            existing.place(on: screen)
+            return
+        }
         let newPanel = TendederoPanel(screen: screen)
         newPanel.tendederoView.delegate = self
+        newPanel.tendederoView.reload(items: items)
+        newPanel.hasItems = !items.isEmpty
         self.panel = newPanel
+    }
+    
+    /// Recarga las tarjetas y avisa al panel de si hay capturas (controla su timer).
+    private func reloadPanel() {
+        panel?.tendederoView.reload(items: items)
+        panel?.hasItems = !items.isEmpty
     }
     
     public func toggle() {
@@ -59,7 +72,11 @@ public final class TendederoManager: TendederoViewDelegate {
     }
     
     public func show(autoHide: Bool = false) {
-        panel?.slideDown(autoHideDelay: autoHide ? 3.5 : nil)
+        if autoHide {
+            panel?.peek(seconds: 3.5)
+        } else {
+            panel?.reveal(pinned: true)
+        }
     }
     
     public func hide() {
@@ -73,12 +90,9 @@ public final class TendederoManager: TendederoViewDelegate {
     ///   - fromRect: Rectángulo de origen en la pantalla para ejecutar la animación de vuelo (opcional).
     ///   - screen: Pantalla donde se originó la captura.
     public func hang(url: URL, cgImage: CGImage, fromRect: CGRect? = nil, screen: NSScreen = NSScreen.main ?? NSScreen.screens.first!) {
-        // Asegurar que el panel esté asociado a la pantalla de captura
-        if panel?.screen != screen {
-            panel?.orderOut(nil)
-            panel = TendederoPanel(screen: screen)
-            panel?.tendederoView.delegate = self
-        }
+        // Un único panel: se recoloca en la pantalla de la captura.
+        if panel == nil { setupPanel() }
+        panel?.place(on: screen)
         
         var newItem = TendederoItem(url: url, cgImage: cgImage)
         if fromRect != nil {
@@ -93,8 +107,8 @@ public final class TendederoManager: TendederoViewDelegate {
             moveToTrashQuietly(oldest.url)
         }
         
-        panel?.tendederoView.reload(items: items)
-        panel?.slideDown(autoHideDelay: 4.0)
+        reloadPanel()
+        panel?.peek(seconds: 4)
         
         // Ejecutar animación de vuelo de despegue
         if let originRect = fromRect,
@@ -109,14 +123,14 @@ public final class TendederoManager: TendederoViewDelegate {
                 guard let self = self else { return }
                 if let idx = self.items.firstIndex(where: { $0.id == newItem.id }) {
                     self.items[idx].isFlying = false
-                    self.panel?.tendederoView.reload(items: self.items)
+                    self.reloadPanel()
                 }
             }
         } else {
             // Si no hay coordenadas de origen, mostrar de inmediato
             if let idx = items.firstIndex(where: { $0.id == newItem.id }) {
                 items[idx].isFlying = false
-                panel?.tendederoView.reload(items: items)
+                reloadPanel()
             }
         }
     }
@@ -170,7 +184,7 @@ public final class TendederoManager: TendederoViewDelegate {
         }
         
         items.removeAll { $0.id == itemID }
-        panel?.tendederoView.reload(items: items)
+        reloadPanel()
         
         if playsTrashSound {
             let soundPath = "/System/Library/Components/CoreAudio.component/Contents/SharedSupport/SystemSounds/dock/drag to trash.aif"
@@ -197,7 +211,7 @@ public final class TendederoManager: TendederoViewDelegate {
                 let exists = FileManager.default.fileExists(atPath: item.url.path)
                 if Self.dragEndDecision(operation: .move, fileExists: exists) == .remove {
                     self.items.removeAll { $0.id == itemID }
-                    self.panel?.tendederoView.reload(items: self.items)
+                    self.reloadPanel()
                     if self.items.isEmpty {
                         self.panel?.slideUp()
                     }
@@ -212,7 +226,7 @@ public final class TendederoManager: TendederoViewDelegate {
             moveToTrashQuietly(item.url)
         }
         items.removeAll()
-        panel?.tendederoView.reload(items: items)
+        reloadPanel()
         panel?.slideUp()
     }
     
@@ -231,7 +245,7 @@ public final class TendederoManager: TendederoViewDelegate {
             guard let self = self else { return }
             if let idx = self.items.firstIndex(where: { $0.id == item.id }) {
                 self.items[idx].reloadFromDisk()
-                self.panel?.tendederoView.reload(items: self.items)
+                self.reloadPanel()
                 
                 // Actualizar portapapeles con la versión anotada
                 ClipboardService.shared.copy(
@@ -255,7 +269,7 @@ public final class TendederoManager: TendederoViewDelegate {
         guard let window = cardView.window,
               let screen = window.screen else {
             items.removeAll { $0.id == item.id }
-            panel?.tendederoView.reload(items: items)
+            reloadPanel()
             moveToTrashQuietly(item.url)
             return
         }
@@ -274,7 +288,7 @@ public final class TendederoManager: TendederoViewDelegate {
         ) { [weak self] in
             guard let self = self else { return }
             self.items.removeAll { $0.id == item.id }
-            self.panel?.tendederoView.reload(items: self.items)
+            self.reloadPanel()
             self.moveToTrashQuietly(item.url)
             
             if self.items.isEmpty {
