@@ -93,6 +93,24 @@ final class RopeView: NSView {
     }
 }
 
+// MARK: - Elemento de accesibilidad de una tarjeta no montada
+
+/// Proxy ligero de una captura sin vista (fuera del rango visible ±1): VoiceOver la ve en la lista y, al enfocarla,
+/// la tira la desplaza a la vista y la sustituye por la tarjeta real.
+final class StripProxyElement: NSAccessibilityElement {
+    var onReveal: (() -> Void)?
+
+    override func setAccessibilityFocused(_ accessibilityFocused: Bool) {
+        super.setAccessibilityFocused(accessibilityFocused)
+        if accessibilityFocused { onReveal?() }
+    }
+
+    override func accessibilityPerformPress() -> Bool {
+        onReveal?()
+        return true
+    }
+}
+
 // MARK: - Contador de tarjetas fuera de vista
 
 /// Botón de cápsula «‹ +N» / «+N ›» con las capturas ocultas a un lado. Alto 36 pt, relleno de vidrio casi opaco (0,9)
@@ -404,6 +422,9 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
     private let rightCount = EdgeCountButton(side: .right)
     private var axisLock = AxisLock()
     private var pendingLeftBump = false
+    private var proxies: [UUID: StripProxyElement] = [:]
+    private var accessibilityDirty = false
+    private var pendingAccessibilityFocusID: UUID?
 
     /// Tarjetas montadas (visibles ±1 y la que tiene el foco de teclado).
     private var cardViews: [UUID: TendederoCardView] = [:]
@@ -791,6 +812,7 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
             scroller.moved = false
             scheduleRestAnnouncement()
         }
+        if !active && accessibilityDirty { rebuildAccessibilityChildren() }
         return active
     }
 
@@ -810,6 +832,11 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
 
     private func announceRest() {
         let n = currentItems.count
+        if let id = pendingAccessibilityFocusID {
+            // VoiceOver enfocó un proxy: ahora que la tarjeta real está montada, el foco de VoiceOver pasa a ella.
+            pendingAccessibilityFocusID = nil
+            if let card = cardViews[id] { NSAccessibility.post(element: card, notification: .focusedUIElementChanged) }
+        }
         guard isRevealed, n > 0 else { return }
         if let note = pendingNote {
             pendingNote = nil
@@ -1031,8 +1058,57 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
             card.isRovingStop = id == rovingID
             card.setPosition(index: indexByID[id] ?? 0, count: count)
         }
-        cardStack.setAccessibilityChildren(currentItems.compactMap { cardViews[$0.id] })
+        if scroller.isBusy { accessibilityDirty = true } else { rebuildAccessibilityChildren() }
     }
+
+    /// Todas las capturas, también las no montadas: la vista real si existe y un proxy ligero si no.
+    private func rebuildAccessibilityChildren() {
+        accessibilityDirty = false
+        let count = currentItems.count
+        var children: [Any] = []
+        children.reserveCapacity(count)
+        var live = Set<UUID>()
+        for (index, item) in currentItems.enumerated() {
+            if let card = cardViews[item.id] {
+                children.append(card)
+                continue
+            }
+            live.insert(item.id)
+            let proxy = proxies[item.id] ?? StripProxyElement()
+            proxies[item.id] = proxy
+            proxy.setAccessibilityRole(.button)
+            proxy.setAccessibilityParent(cardStack)
+            proxy.setAccessibilityLabel(StripMotion.accessibilityLabel(for: item, missing: false))
+            proxy.setAccessibilityHelp("Clic para copiar. Mantener para Marcación")
+            proxy.setAccessibilityIndex(index)
+            proxy.setAccessibilityValueDescription(StripMotion.positionText(index: index, count: count))
+            let x = metrics.slotX(index) - scroller.offset
+            let y = StripMotion.slotTopBase + StripMotion.ropeY(x: x + StripScroll.cardWidth / 2, width: max(bounds.width, 1))
+            proxy.setAccessibilityFrameInParentSpace(NSRect(
+                x: x, y: bounds.height - y - StripMotion.slotSize.height,
+                width: StripMotion.slotSize.width, height: StripMotion.slotSize.height
+            ))
+            let id = item.id
+            proxy.onReveal = { [weak self] in
+                guard let self, let index = self.indexByID[id] else { return }
+                self.pendingAccessibilityFocusID = id
+                self.ensureVisible(index: index)
+                self.kick()
+                if self.window == nil { _ = self.step(dt: 0) }
+            }
+            children.append(proxy)
+        }
+        for id in proxies.keys where indexByID[id] == nil || cardViews[id] != nil { proxies.removeValue(forKey: id) }
+        cardStack.setAccessibilityChildren(children)
+    }
+
+    /// Elementos hijos de la lista, en orden (para pruebas).
+    var accessibilityChildCountForTesting: Int { (cardStack.accessibilityChildren() ?? []).count }
+    func accessibilityChildForTesting(at index: Int) -> Any? {
+        let children = cardStack.accessibilityChildren() ?? []
+        return children.indices.contains(index) ? children[index] : nil
+    }
+    func rebuildAccessibilityForTesting() { rebuildAccessibilityChildren() }
 
     /// Da el foco de teclado a la primera tarjeta (la tira debe ser key). Devuelve `false` si no hay tarjetas.
     @discardableResult

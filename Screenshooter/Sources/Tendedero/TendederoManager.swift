@@ -70,6 +70,7 @@ public final class TendederoManager: TendederoViewDelegate {
         }
         let newPanel = TendederoPanel(screen: screen)
         newPanel.tendederoView.delegate = self
+        newPanel.tendederoView.onAnnounce = { [weak self] text in self?.announce(text) }
         newPanel.tendederoView.reload(items: items)
         newPanel.hasItems = !items.isEmpty
         self.panel = newPanel

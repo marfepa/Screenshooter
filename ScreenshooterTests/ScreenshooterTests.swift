@@ -1204,4 +1204,41 @@ final class ScreenshooterTests: XCTestCase {
         view.advanceForTesting(dt: 1.0 / 60, frames: 600)
         XCTAssertFalse(view.isScrollBusy, "En reposo el bucle se para")
     }
+
+    // MARK: - Accesibilidad de la tira
+
+    @MainActor
+    func testAccessibilityChildrenIncludeUnmountedCardsAsProxies() throws {
+        let (view, _) = try makeStripView(count: 32)
+        XCTAssertEqual(view.accessibilityChildCountForTesting, 32, "VoiceOver ve todas las capturas aunque solo haya unas pocas vistas")
+        XCTAssertLessThanOrEqual(view.mountedCardCount, 6)
+        XCTAssertTrue(view.accessibilityChildForTesting(at: 0) is TendederoCardView)
+        let far = try XCTUnwrap(view.accessibilityChildForTesting(at: 30) as? NSAccessibilityElement)
+        XCTAssertEqual(far.accessibilityRole(), .button)
+        XCTAssertEqual(far.accessibilityValueDescription(), "31 de 32")
+        XCTAssertTrue(far.accessibilityLabel()?.hasPrefix("Captura, ") == true)
+    }
+
+    @MainActor
+    func testFocusingAProxyScrollsItIntoViewAndMountsTheRealCard() throws {
+        let (view, items) = try makeStripView(count: 32)
+        let proxy = try XCTUnwrap(view.accessibilityChildForTesting(at: 25) as? StripProxyElement)
+        proxy.setAccessibilityFocused(true)
+        view.advanceForTesting(dt: 1.0 / 60, frames: 90)
+        let card = try XCTUnwrap(view.mountedCardForTesting(at: 25))
+        XCTAssertEqual(card.item.id, items[25].id)
+        let screenX = view.stripMetrics.slotX(25) - view.scrollOffset
+        XCTAssertGreaterThanOrEqual(screenX, StripScroll.viewMargin - 1, "Con margen de 64 pt")
+        XCTAssertLessThanOrEqual(screenX + 150, 800 - StripScroll.viewMargin + 1)
+        view.rebuildAccessibilityForTesting()
+        XCTAssertTrue(view.accessibilityChildForTesting(at: 25) is TendederoCardView, "El proxy se sustituye por la tarjeta real")
+    }
+
+    @MainActor
+    func testStripContainerDescribesItemCount() throws {
+        let (view, _) = try makeStripView(count: 32)
+        let list = try XCTUnwrap(view.subviews.first?.subviews.first { $0.accessibilityRole() == .list })
+        XCTAssertEqual(list.accessibilityValueDescription(), "32 capturas")
+        XCTAssertEqual(list.accessibilityLabel(), "Capturas recientes")
+    }
 }
