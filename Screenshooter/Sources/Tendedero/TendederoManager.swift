@@ -23,7 +23,12 @@ public final class TendederoManager: TendederoViewDelegate {
     public static let shared = TendederoManager()
     
     public private(set) var items: [TendederoItem] = []
-    public let maxItems: Int = 8
+    /// Capacidad de la tira: `0` = sin límite. Se guarda en `UserDefaults` (`stripCapacity`).
+    public private(set) var capacity: Int
+    /// Compatibilidad: igual que `capacity` (`0` = sin límite).
+    public var maxItems: Int { capacity }
+    /// Almacén de la capacidad. Inyectable para que los tests no toquen los ajustes reales.
+    public var defaults: UserDefaults = .standard
     
     private var panel: TendederoPanel?
     
@@ -52,6 +57,7 @@ public final class TendederoManager: TendederoViewDelegate {
     }()
 
     private init() {
+        capacity = StripCapacity.load(from: .standard)
         setupPanel()
     }
     
@@ -115,9 +121,10 @@ public final class TendederoManager: TendederoViewDelegate {
         
         items.insert(newItem, at: 0)
         
-        // Mantener como máximo `maxItems` capturas
-        while items.count > maxItems {
+        // Respetar la capacidad: la más antigua va a la Papelera (nunca se borra de forma definitiva).
+        for _ in 0..<StripCapacity.overflow(count: items.count, limit: capacity) {
             let oldest = items.removeLast()
+            stopMarkupWatch(itemID: oldest.id)
             moveToTrashQuietly(oldest.url)
         }
         
@@ -150,6 +157,25 @@ public final class TendederoManager: TendederoViewDelegate {
         }
     }
     
+    /// Cambia la capacidad de la tira (`0` = sin límite), la guarda y, si hay capturas de más,
+    /// retira las más antiguas a la Papelera (cayendo) y lo anuncia.
+    public func setCapacity(_ value: Int) {
+        let value = StripCapacity.options.contains(value) ? value : StripCapacity.defaultValue
+        capacity = value
+        StripCapacity.save(value, to: defaults)
+        let excess = StripCapacity.overflow(count: items.count, limit: value)
+        guard excess > 0 else { return }
+        for _ in 0..<excess {
+            let oldest = items.removeLast()
+            stopMarkupWatch(itemID: oldest.id)
+            panel?.tendederoView.markForFall(itemID: oldest.id)
+            moveToTrashQuietly(oldest.url)
+        }
+        reloadPanel()
+        announce(StripCapacity.removalAnnouncement(excess))
+        if items.isEmpty { panel?.slideUp() }
+    }
+
     /// Guarda una CGImage en formato PNG dentro del directorio de capturas del Tendedero.
     public func saveToCache(cgImage: CGImage) -> URL? {
         let formatter = DateFormatter()

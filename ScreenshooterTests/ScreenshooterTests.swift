@@ -135,15 +135,23 @@ final class ScreenshooterTests: XCTestCase {
         let manager = TendederoManager.shared
         let originalTrasher = manager.trasher
         let originalSound = manager.playsTrashSound
+        let originalDefaults = manager.defaults
+        let originalCapacity = manager.capacity
         var trashed: [URL] = []
         manager.trasher = { trashed.append($0) }
         manager.playsTrashSound = false
+        let suite = "tendedero-evict-\(UUID().uuidString)"
+        manager.defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer {
             manager.clear()
             manager.trasher = originalTrasher
             manager.playsTrashSound = originalSound
+            manager.setCapacity(originalCapacity) // aún en la suite de pruebas: no toca los ajustes reales
+            manager.defaults.removePersistentDomain(forName: suite)
+            manager.defaults = originalDefaults
         }
         manager.clear()
+        manager.setCapacity(8)
         trashed.removeAll()
         
         let image = try XCTUnwrap(makeTestImage())
@@ -164,6 +172,84 @@ final class ScreenshooterTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: urls[0].path), "No debe borrarse de forma definitiva (removeItem)")
     }
     
+    @MainActor
+    func testLoweringCapacityTrashesOldestAndPersists() throws {
+        let manager = TendederoManager.shared
+        let originalTrasher = manager.trasher
+        let originalDefaults = manager.defaults
+        let originalCapacity = manager.capacity
+        var trashed: [URL] = []
+        manager.trasher = { trashed.append($0) }
+        let suite = "tendedero-lower-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        manager.defaults = defaults
+        defer {
+            manager.clear()
+            manager.trasher = originalTrasher
+            manager.setCapacity(originalCapacity)
+            defaults.removePersistentDomain(forName: suite)
+            manager.defaults = originalDefaults
+        }
+        manager.clear()
+        manager.setCapacity(16)
+        trashed.removeAll()
+
+        let image = try XCTUnwrap(makeTestImage())
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("tendedero-lower-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        var urls: [URL] = []
+        for i in 0..<12 {
+            let url = dir.appendingPathComponent("c\(i).png")
+            try Data([0]).write(to: url)
+            urls.append(url)
+            manager.hang(url: url, cgImage: image)
+        }
+        XCTAssertEqual(manager.items.count, 12)
+        XCTAssertTrue(trashed.isEmpty)
+
+        manager.setCapacity(8)
+
+        XCTAssertEqual(manager.items.count, 8)
+        XCTAssertEqual(trashed, Array(urls[0..<4]), "Las 4 más antiguas van a la Papelera, de más antigua a menos")
+        XCTAssertEqual(manager.items.map { $0.url }, Array(urls[4...].reversed()), "Quedan las más recientes, la última primero")
+        XCTAssertEqual(defaults.object(forKey: "stripCapacity") as? Int, 8)
+    }
+
+    @MainActor
+    func testUnlimitedCapacityNeverEvicts() throws {
+        let manager = TendederoManager.shared
+        let originalTrasher = manager.trasher
+        let originalDefaults = manager.defaults
+        let originalCapacity = manager.capacity
+        var trashed: [URL] = []
+        manager.trasher = { trashed.append($0) }
+        let suite = "tendedero-unlimited-\(UUID().uuidString)"
+        manager.defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer {
+            manager.clear()
+            manager.trasher = originalTrasher
+            manager.setCapacity(originalCapacity)
+            manager.defaults.removePersistentDomain(forName: suite)
+            manager.defaults = originalDefaults
+        }
+        manager.clear()
+        manager.setCapacity(0)
+        trashed.removeAll()
+        let image = try XCTUnwrap(makeTestImage())
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("tendedero-unl-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        for i in 0..<40 {
+            let url = dir.appendingPathComponent("c\(i).png")
+            try Data([0]).write(to: url)
+            manager.hang(url: url, cgImage: image)
+        }
+        XCTAssertEqual(manager.items.count, 40)
+        XCTAssertTrue(trashed.isEmpty)
+        XCTAssertEqual(manager.capacity, 0)
+    }
+
     @MainActor
     func testTrashItemRemovesItFromStrip() throws {
         let manager = TendederoManager.shared

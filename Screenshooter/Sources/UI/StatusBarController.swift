@@ -72,6 +72,24 @@ public final class StatusBarController {
         inboxItem.target = self
         menu.addItem(inboxItem)
         
+        // Capacidad de la tira (8 · 16 · 32 · Sin límite)
+        let capacityItem = NSMenuItem(title: "Capturas en la tira", action: nil, keyEquivalent: "")
+        let capacityMenu = NSMenu(title: "Capturas en la tira")
+        let currentCapacity = TendederoManager.shared.capacity
+        for value in StripCapacity.options {
+            let entry = NSMenuItem(
+                title: StripCapacity.title(for: value),
+                action: #selector(handleCapacityClicked(_:)),
+                keyEquivalent: ""
+            )
+            entry.target = self
+            entry.tag = value
+            entry.state = value == currentCapacity ? .on : .off
+            capacityMenu.addItem(entry)
+        }
+        capacityItem.submenu = capacityMenu
+        menu.addItem(capacityItem)
+        
         menu.addItem(NSMenuItem.separator())
         
         // 2. Estado de permisos
@@ -147,6 +165,11 @@ public final class StatusBarController {
     
     @objc private func handleToggleInboxClicked() {
         InboxManager.shared.isEnabled.toggle()
+        setupMenu()
+    }
+    
+    @objc private func handleCapacityClicked(_ sender: NSMenuItem) {
+        TendederoManager.shared.setCapacity(sender.tag)
         setupMenu()
     }
     
