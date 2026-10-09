@@ -1,5 +1,6 @@
 import XCTest
 import AppKit
+import UniformTypeIdentifiers
 @testable import Screenshooter
 
 final class ScreenshooterTests: XCTestCase {
@@ -617,6 +618,27 @@ final class ScreenshooterTests: XCTestCase {
         if case .image = MarkupService.resolveEdited(items: [NSImage(size: NSSize(width: 1, height: 1))], original: original) {} else { XCTFail("image") }
         if case .none = MarkupService.resolveEdited(items: [], original: original) {} else { XCTFail("none") }
         if case .none = MarkupService.resolveEdited(items: ["texto"], original: original) {} else { XCTFail("none texto") }
+        if case .provider = MarkupService.resolveEdited(items: [NSItemProvider()], original: original) {} else { XCTFail("provider") }
+    }
+
+    /// Marcación (macOS 14+) devuelve un NSItemProvider: su PNG debe acabar sobre el original.
+    func testWriteProviderWritesEditedPNGOverOriginal() throws {
+        let dir = try tempDir(); defer { try? FileManager.default.removeItem(at: dir) }
+        let original = dir.appendingPathComponent("orig.png")
+        try makePNG(width: 4, height: 4, r: 255, g: 0, b: 0, at: original)
+        let editedURL = dir.appendingPathComponent("edited.png")
+        try makePNG(width: 6, height: 3, r: 0, g: 0, b: 255, at: editedURL)
+        let edited = try Data(contentsOf: editedURL)
+        let provider = NSItemProvider()
+        provider.registerDataRepresentation(forTypeIdentifier: UTType.png.identifier, visibility: .all) { completion in
+            completion(edited, nil); return nil
+        }
+        let written = expectation(description: "escrito")
+        MarkupService.writeProvider(provider, to: original) { ok in
+            XCTAssertTrue(ok); written.fulfill()
+        }
+        wait(for: [written], timeout: 5)
+        XCTAssertEqual(try Data(contentsOf: original), edited)
     }
 
     func testReplaceAtomicallyKeepsOriginalPathWithNewContent() throws {

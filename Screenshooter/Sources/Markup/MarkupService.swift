@@ -10,6 +10,8 @@ public enum MarkupResult {
     case replace(from: URL)
     /// Marcación devolvió la imagen en memoria.
     case image(NSImage)
+    /// Marcación devolvió un `NSItemProvider` con la imagen editada (macOS 14+: el caso real).
+    case provider(NSItemProvider)
     /// No se recibió nada utilizable.
     case none
 }
@@ -62,6 +64,7 @@ public final class MarkupService: NSObject, NSSharingServiceDelegate {
         let originalPath = original.standardizedFileURL.resolvingSymlinksInPath().path
         for item in items {
             if let image = item as? NSImage { return .image(image) }
+            if let provider = item as? NSItemProvider { return .provider(provider) }
             if let url = (item as? URL) ?? (item as? NSURL) as URL?, url.isFileURL {
                 let path = url.standardizedFileURL.resolvingSymlinksInPath().path
                 return path == originalPath ? .sameFile : .replace(from: url)
@@ -87,6 +90,43 @@ public final class MarkupService: NSObject, NSSharingServiceDelegate {
         }
     }
     
+    /// Extrae la imagen de un `NSItemProvider` y la escribe sobre `original` (PNG, atómico).
+    /// Prefiere la representación de archivo; si no, datos; si no, `NSImage`.
+    nonisolated static func writeProvider(_ provider: NSItemProvider, to original: URL,
+                                          completion: @escaping @MainActor (Bool) -> Void) {
+        let types = provider.registeredTypeIdentifiers
+        log.info("NSItemProvider tipos: \(types.joined(separator: ", "), privacy: .public)")
+        let imageType = types.first { UTType($0)?.conforms(to: .image) == true }
+        let done: @Sendable (Bool) -> Void = { ok in Task { @MainActor in completion(ok) } }
+
+        guard let imageType else {
+            if provider.canLoadObject(ofClass: NSImage.self) {
+                _ = provider.loadObject(ofClass: NSImage.self) { object, _ in
+                    done((object as? NSImage).map { writePNG($0, to: original) } ?? false)
+                }
+            } else { done(false) }
+            return
+        }
+        _ = provider.loadDataRepresentation(forTypeIdentifier: imageType) { data, error in
+            guard let data, let image = NSImage(data: data) else {
+                log.error("No se pudo leer la imagen: \(error?.localizedDescription ?? "sin datos", privacy: .public)")
+                done(false); return
+            }
+            // Si ya es PNG se escribe tal cual (conserva resolución/metadatos); si no, se convierte.
+            if UTType(imageType)?.conforms(to: .png) == true {
+                done((try? data.write(to: original, options: .atomic)) != nil)
+            } else {
+                done(writePNG(image, to: original))
+            }
+        }
+    }
+
+    nonisolated static func writePNG(_ image: NSImage, to url: URL) -> Bool {
+        guard let tiff = image.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff),
+              let png = rep.representation(using: .png, properties: [:]) else { return false }
+        return (try? png.write(to: url, options: .atomic)) != nil
+    }
+
     private func finish() {
         let finished = onFinishedHandler
         activeURL = nil
@@ -123,6 +163,14 @@ public final class MarkupService: NSObject, NSSharingServiceDelegate {
                     try? pngData.write(to: url, options: .atomic)
                     Self.log.info("Imagen en memoria escrita sobre el original")
                 }
+            case .provider(let provider):
+                // La carga es asíncrona: onSaved/finish se llaman al terminar de escribir.
+                Self.writeProvider(provider, to: url) { ok in
+                    Self.log.info("Imagen del NSItemProvider escrita sobre el original ok=\(ok, privacy: .public)")
+                    self.onSavedHandler?(url)
+                    self.finish()
+                }
+                return
             case .none:
                 Self.log.info("Resultado sin items utilizables")
             }
