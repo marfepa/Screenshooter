@@ -102,8 +102,8 @@ public final class CaptureCoordinator {
                     )
                 }
                 
-                if copied {
-                    // Mostrar notificación HUD flotante breve durante 1.5s
+                if copied && savedURL == nil {
+                    // Solo HUD si no hay tira: con savedURL, la tira + vuelo + sonido ya confirman la captura
                     self.activeHUD?.dismiss()
                     let hud = HUDNotificationWindow(
                         cgImage: result.image,
