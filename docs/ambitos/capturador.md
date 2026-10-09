@@ -19,6 +19,8 @@
   - [x] Feedback al usuario (sonido nativo de obturador `AudioServicesPlaySystemSound(1108)` y HUD de confirmación flotante).
   - [x] Verificación y solicitud de permisos de grabación de pantalla con deep link a Ajustes del Sistema (`PermissionsHelper`).
   - [x] Pruebas unitarias de conversión de coordenadas y escritura en portapapeles (`ScreenshooterTests`).
+  - [x] Icono de aplicación nativo estilo macOS Golden Gate mate (squircle oficial, retícula de visor de captura y marcas de encuadre, sin brillos ni reflejos, catálogo `Assets.xcassets/AppIcon.appiconset` y `AppIcon.icns`).
+  - [x] Compilación Release y despliegue local en `/Applications/Screenshooter.app`.
 - **Pendiente / Roadmap inmediato:**
   - [ ] Añadir panel gráfico interactivo para remapear teclas en Ajustes.
   - [ ] Registro en `SMAppService` para inicio automático al encender el Mac.
@@ -48,6 +50,8 @@
 - `Screenshooter/Sources/UI/HUDNotificationWindow.swift`
 - `Screenshooter/Sources/UI/PermissionsHelper.swift`
 - `Screenshooter/Resources/Info.plist`
+- `Screenshooter/Resources/Assets.xcassets`
+- `Screenshooter/Resources/AppIcon.icns`
 - `ScreenshooterTests/ScreenshooterTests.swift`
 - `docs/ambitos/capturador.md`
 - `mockup/index.html`
@@ -100,3 +104,4 @@
 - ⚠️ **super.keyDown() produce NSBeep:** Propagar `super.keyDown(with:)` en vistas overlay provoca el sonido de error del sistema en cada tecla no gestionada. Consumir el evento silenciosamente para evitar molestias acústicas.
 - ⚠️ **`isReleasedWhenClosed` + ARC = double-free (EXC_BAD_ACCESS):** Por defecto, `NSWindow.isReleasedWhenClosed` es `true`. Cuando se llama a `close()`, AppKit envía un `release` extra a nivel Objective-C. Si ARC también libera la misma referencia (al salir de ámbito, `removeAll()`, etc.), se produce un **double-free** → `EXC_BAD_ACCESS` en `objc_release`. **Toda subclase de NSWindow gestionada por ARC debe declarar `self.isReleasedWhenClosed = false`** en su inicializador.
 - ⚠️ **`beginSheetModal(for:)` requiere ventana que soporte key:** `NSAlert.beginSheetModal(for:)` necesita que la ventana anfitrión pueda convertirse en key window (`canBecomeKey == true`). Las ventanas con `styleMask: [.borderless]` devuelven `false` por defecto, lo que provoca que la alerta cree una `_NSGlassEffectWindow` interna que tampoco puede ser key → crash. Usar ventanas con `.titled` o sobreescribir `canBecomeKey`.
+- ⚠️ **Catálogo de iconos con XcodeGen y caché de LaunchServices en macOS:** Para que un bundle macOS compile el icono sin depender de bundles de activos externos, es imprescindible declarar `ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon` en `project.yml` e incluir `CFBundleIconFile` y `CFBundleIconName` en `Info.plist`. Asimismo, al instalar manualmente en `/Applications`, macOS mantiene en caché los iconos de `LaunchServices`; forzar el registro con `/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f /Applications/<App>.app` asegura el refresco instantáneo del icono en Finder y Dock.
