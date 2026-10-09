@@ -117,6 +117,11 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
         }
     }
     
+    /// Marcos de las tarjetas visibles en coordenadas del panel (origen abajo-izquierda, como la ventana).
+    public var cardHitRects: [CGRect] {
+        cardViews.values.filter { !$0.isHidden }.map { convert($0.frame, from: cardStack) }
+    }
+    
     /// Devuelve el marco en coordenadas de pantalla de una tarjeta para la animación de vuelo.
     public func screenFrame(for itemID: UUID) -> CGRect? {
         guard let card = cardViews[itemID], let window = window else { return nil }

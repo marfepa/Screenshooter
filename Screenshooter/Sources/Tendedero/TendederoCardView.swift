@@ -33,6 +33,9 @@ public final class TendederoCardView: NSView, NSDraggingSource {
     private var longPressTimer: Timer?
     private var isHovered = false
     
+    /// `true` mientras hay una pulsacion o arrastre en curso sobre alguna tarjeta (el panel no debe retraerse).
+    public private(set) static var isBusy = false
+    
     public init(item: TendederoItem) {
         self.item = item
         super.init(frame: NSRect(x: 0, y: 0, width: Self.defaultWidth, height: Self.defaultHeight + 20))
@@ -257,6 +260,7 @@ public final class TendederoCardView: NSView, NSDraggingSource {
     // MARK: - Eventos de Ratón y Gestos
     
     public override func mouseDown(with event: NSEvent) {
+        Self.isBusy = true
         mouseDownLocation = event.locationInWindow
         isDraggingSession = false
         didTriggerLongPress = false
@@ -273,6 +277,7 @@ public final class TendederoCardView: NSView, NSDraggingSource {
     public override func mouseUp(with event: NSEvent) {
         longPressTimer?.invalidate()
         longPressTimer = nil
+        Self.isBusy = false
         
         guard !isDraggingSession, !didTriggerLongPress else { return }
         
@@ -321,6 +326,7 @@ public final class TendederoCardView: NSView, NSDraggingSource {
     
     public func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
         isDraggingSession = false
+        Self.isBusy = false
         delegate?.cardDidEndDrag(self, item: item, operation: operation)
     }
 }
