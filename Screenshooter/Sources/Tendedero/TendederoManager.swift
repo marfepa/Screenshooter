@@ -106,8 +106,10 @@ public final class TendederoManager: TendederoViewDelegate {
         if panel == nil { setupPanel() }
         panel?.place(on: screen)
         
+        // Con Reducir movimiento no hay vuelo: la captura aparece con un fundido en su sitio.
+        let flies = fromRect != nil && !MotionStyle.current().reduceMotion
         var newItem = TendederoItem(url: url, cgImage: cgImage)
-        if fromRect != nil {
+        if flies {
             newItem.isFlying = true
         }
         
@@ -119,11 +121,12 @@ public final class TendederoManager: TendederoViewDelegate {
             moveToTrashQuietly(oldest.url)
         }
         
-        reloadPanel()
+        // Primero se despliega la tira: las animaciones de llegada solo corren con la ventana visible.
         panel?.peek(seconds: 4)
+        reloadPanel()
         
         // Ejecutar animación de vuelo de despegue
-        if let originRect = fromRect,
+        if flies, let originRect = fromRect,
            let targetRect = panel?.tendederoView.screenFrame(for: newItem.id) {
             CaptureFlight.fly(
                 image: cgImage,
@@ -196,6 +199,7 @@ public final class TendederoManager: TendederoViewDelegate {
         }
         
         items.removeAll { $0.id == itemID }
+        panel?.tendederoView.markForFall(itemID: itemID)
         reloadPanel()
         
         if playsTrashSound {
@@ -206,7 +210,12 @@ public final class TendederoManager: TendederoViewDelegate {
         }
         
         if items.isEmpty {
-            panel?.slideUp()
+            // Deja terminar la caída de la última tarjeta antes de recoger la tira.
+            let delay = MotionStyle.current().fallDuration
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                guard let self, self.items.isEmpty else { return }
+                self.panel?.slideUp()
+            }
         }
     }
     
@@ -278,34 +287,6 @@ public final class TendederoManager: TendederoViewDelegate {
     }
     
     public func tendederoViewDidRequestDismiss(item: TendederoItem, cardView: TendederoCardView) {
-        guard let window = cardView.window,
-              let screen = window.screen else {
-            items.removeAll { $0.id == item.id }
-            reloadPanel()
-            moveToTrashQuietly(item.url)
-            return
-        }
-        
-        let cardScreenRect = window.convertToScreen(cardView.convert(cardView.bounds, to: nil))
-        
-        // Ocultar tarjeta inmediatamente en la vista
-        cardView.isHidden = true
-        
-        // Ejecutar animación de caída libre por gravedad
-        CaptureFlight.fall(
-            image: item.cgImage,
-            cardRect: cardScreenRect,
-            tilt: item.tilt,
-            screen: screen
-        ) { [weak self] in
-            guard let self = self else { return }
-            self.items.removeAll { $0.id == item.id }
-            self.reloadPanel()
-            self.moveToTrashQuietly(item.url)
-            
-            if self.items.isEmpty {
-                self.panel?.slideUp()
-            }
-        }
+        trash(itemID: item.id)
     }
 }

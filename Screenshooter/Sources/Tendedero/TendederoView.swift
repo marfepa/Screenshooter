@@ -100,6 +100,8 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
     private var cardViews: [UUID: TendederoCardView] = [:]
     private var currentItems: [TendederoItem] = []
     private var laidOutWidth: CGFloat = 0
+    private var fallingIDs: Set<UUID> = []
+    private var newCards: Set<UUID> = []
 
     public override init(frame: NSRect) {
         super.init(frame: frame)
@@ -141,39 +143,111 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
 
     // MARK: Carga y disposición
 
+    /// Marca una captura para que, al salir de la lista, caiga girando en vez de desvanecerse.
+    public func markForFall(itemID: UUID) { fallingIDs.insert(itemID) }
+
     /// Actualiza la lista de capturas representadas en la cuerda.
+    /// Con la tira visible, las tarjetas nuevas caen y se balancean, las demás se recolocan con muelle
+    /// y las que salen se desvanecen (o caen si se marcaron con `markForFall`).
     public func reload(items: [TendederoItem]) {
+        let canAnimate = window?.isVisible == true
         currentItems = items
         emptyCapsule.isHidden = !items.isEmpty
 
         let currentIDs = Set(items.map { $0.id })
         for (id, card) in cardViews where !currentIDs.contains(id) {
-            card.removeFromSuperview()
             cardViews.removeValue(forKey: id)
+            if canAnimate {
+                if fallingIDs.contains(id) {
+                    card.playFall { [weak card] in card?.removeFromSuperview() }
+                } else {
+                    card.playDisappear { [weak card] in card?.removeFromSuperview() }
+                }
+            } else {
+                card.removeFromSuperview()
+            }
         }
+        fallingIDs.removeAll()
 
+        var arrivals: [(TendederoCardView, Bool)] = []
         for item in items {
             if let existing = cardViews[item.id] {
+                let wasHidden = existing.isHidden
                 existing.updateItem(item)
+                existing.isHidden = item.isFlying
+                if wasHidden && !item.isFlying { arrivals.append((existing, false)) } // aterrizó tras el vuelo
             } else {
                 let card = TendederoCardView(item: item)
                 card.delegate = self
+                card.isHidden = item.isFlying // Si está volando, espera oculta hasta aterrizar
                 cardViews[item.id] = card
                 cardStack.addSubview(card)
+                if !item.isFlying { arrivals.append((card, true)) }
+                newCards.insert(item.id)
             }
-            cardViews[item.id]?.isHidden = item.isFlying // Si está volando, espera oculta hasta aterrizar
         }
-        applyFrames()
+        applyFrames(animated: canAnimate)
+        newCards.removeAll()
+        if canAnimate { for (card, drop) in arrivals { card.playArrival(drop: drop) } }
     }
 
-    private func applyFrames() {
+    private func applyFrames(animated: Bool = false) {
         laidOutWidth = bounds.width
         let frames = StripMotion.cardFrames(count: currentItems.count, width: bounds.width)
         for (item, frame) in zip(currentItems, frames) {
-            // Las marcos vienen "de arriba abajo"; AppKit mide desde abajo.
+            // Los marcos vienen "de arriba abajo"; AppKit mide desde abajo.
             let y = bounds.height - frame.minY - frame.height
-            cardViews[item.id]?.frame = NSRect(x: frame.minX, y: y, width: frame.width, height: frame.height)
+            let target = NSRect(x: frame.minX, y: y, width: frame.width, height: frame.height)
+            cardViews[item.id]?.move(to: target, animated: animated && !newCards.contains(item.id))
         }
+    }
+
+    // MARK: Despliegue
+
+    /// Desliza la tira desde arriba con muelle; con Reducir movimiento, solo un fundido.
+    public func playReveal(motion: MotionStyle, sway: Bool) {
+        guard let layer = slideHost.layer else { return }
+        let inFlight = layer.animation(forKey: "slide") != nil
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        if motion.reduceMotion {
+            layer.transform = CATransform3DIdentity
+        } else {
+            layer.opacity = 1
+        }
+        CATransaction.commit()
+
+        if motion.reduceMotion {
+            layer.removeAnimation(forKey: "slide")
+            layer.animateValue("opacity", to: 1.0, from: inFlight ? nil : 0.0, duration: motion.fadeDuration, key: "slide")
+        } else {
+            let from: Any = inFlight ? (layer.presentation()?.value(forKeyPath: "transform.translation.y") ?? StripMotion.stripHeight)
+                                     : StripMotion.stripHeight
+            layer.animateValue("transform.translation.y", to: 0.0, from: from, spring: motion.revealSpring,
+                               duration: motion.revealDuration, key: "slide")
+        }
+        if sway && !motion.reduceMotion {
+            for card in cardViews.values {
+                card.playSway(amplitude: Double.random(in: -motion.swayDegrees...motion.swayDegrees),
+                              delay: Double.random(in: 0...motion.swayMaxDelay))
+            }
+        }
+    }
+
+    /// Recoge la tira (ease-in 0,22 s hacia arriba; con Reducir movimiento, fundido de 0,2 s).
+    public func playRetract(motion: MotionStyle, completion: @escaping () -> Void) {
+        guard let layer = slideHost.layer else { completion(); return }
+        let inFlight = layer.animation(forKey: "slide") != nil
+        CATransaction.begin()
+        CATransaction.setCompletionBlock { MainActor.assumeIsolated { completion() } }
+        if motion.reduceMotion {
+            layer.animateValue("opacity", to: 0.0, from: inFlight ? nil : 1.0, duration: motion.fadeDuration, key: "slide")
+        } else {
+            let from: Any = inFlight ? (layer.presentation()?.value(forKeyPath: "transform.translation.y") ?? 0.0) : 0.0
+            layer.animateValue("transform.translation.y", to: StripMotion.stripHeight, from: from,
+                               duration: motion.retractDuration, timing: CAMediaTimingFunction(name: .easeIn), key: "slide")
+        }
+        CATransaction.commit()
     }
 
     /// Cada tarjeta recibe el hover según la posición del puntero (en coordenadas del panel).

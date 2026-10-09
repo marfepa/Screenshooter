@@ -1,10 +1,10 @@
 import AppKit
 import QuartzCore
 
-/// Controlador de animaciones espaciales para el Tendedero:
-/// 1. Vuelo de despegue (Capture Flight): la captura seleccionada se eleva,
-///    se encoge suavemente en una parábola y se cuelga en la línea superior.
-/// 2. Caída libre (Fall): al descartar una captura, cae de la cuerda por gravedad.
+/// Vuelo de despegue (Capture Flight): la captura seleccionada se eleva, se encoge suavemente
+/// en una parábola y se cuelga de la cuerda. El marco en vuelo usa el mismo borde de vidrio que las tarjetas.
+/// Con Reducir movimiento no hay vuelo (`fly` termina al instante y la tarjeta aparece con un fundido).
+/// La caída al descartar vive ahora en `TendederoCardView.playFall`.
 @MainActor
 public final class CaptureFlight {
     private static var activeFlights: [CaptureFlight] = []
@@ -53,17 +53,27 @@ public final class CaptureFlight {
         imageLayer.frame = containerLayer.bounds
         imageLayer.contents = image
         imageLayer.contentsGravity = .resizeAspectFill
-        imageLayer.cornerRadius = 8
+        imageLayer.cornerRadius = 6
         imageLayer.masksToBounds = true
         containerLayer.addSublayer(imageLayer)
         
-        // Borde de cristal sutil
+        // Borde de vidrio como en las tarjetas: 0,5 pt claro (1 pt `labelColor` con Aumentar contraste).
+        let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        let contrast = DisplayAccessibility.increaseContrast
         glassLayer.frame = containerLayer.bounds
-        glassLayer.cornerRadius = 8
-        glassLayer.borderWidth = 1.0
-        glassLayer.borderColor = NSColor(white: 1.0, alpha: 0.4).cgColor
+        glassLayer.cornerRadius = 6
+        glassLayer.borderWidth = contrast ? 1 : 0.5
+        NSApp.effectiveAppearance.performAsCurrentDrawingAppearance {
+            glassLayer.borderColor = contrast
+                ? NSColor.labelColor.cgColor
+                : NSColor.white.withAlphaComponent(isDark ? 0.22 : 0.75).cgColor
+        }
         glassLayer.masksToBounds = true
         containerLayer.addSublayer(glassLayer)
+        containerLayer.shadowColor = NSColor.black.cgColor
+        containerLayer.shadowOpacity = 0.18
+        containerLayer.shadowRadius = 8
+        containerLayer.shadowOffset = CGSize(width: 0, height: -4)
         
         window.orderFrontRegardless()
     }
@@ -77,6 +87,10 @@ public final class CaptureFlight {
         screen: NSScreen,
         completion: @escaping () -> Void
     ) {
+        guard !MotionStyle.current().reduceMotion else {
+            completion()
+            return
+        }
         let flight = CaptureFlight(image: image, from: fromRect, to: toRect, tilt: tilt, screen: screen)
         activeFlights.append(flight)
         flight.completion = { [weak flight] in
@@ -84,89 +98,6 @@ public final class CaptureFlight {
             activeFlights.removeAll { $0 === flight }
         }
         flight.animateFly(from: fromRect, to: toRect, tilt: tilt, screen: screen)
-    }
-    
-    /// Anima la caída de una tarjeta descartada de la cuerda.
-    public static func fall(
-        image: CGImage,
-        cardRect: CGRect,
-        tilt: Double,
-        screen: NSScreen,
-        completion: @escaping () -> Void
-    ) {
-        let window = NSWindow(
-            contentRect: screen.frame,
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: false
-        )
-        window.level = .floating
-        window.isOpaque = false
-        window.backgroundColor = .clear
-        window.hasShadow = false
-        window.ignoresMouseEvents = true
-        window.collectionBehavior = [.canJoinAllSpaces, .stationary]
-        window.isReleasedWhenClosed = false
-        
-        let root = NSView(frame: NSRect(origin: .zero, size: screen.frame.size))
-        root.wantsLayer = true
-        window.contentView = root
-        
-        guard let rootLayer = root.layer else {
-            completion()
-            return
-        }
-        
-        let screenOrigin = screen.frame.origin
-        let localRect = CGRect(
-            x: cardRect.origin.x - screenOrigin.x,
-            y: cardRect.origin.y - screenOrigin.y,
-            width: cardRect.width,
-            height: cardRect.height
-        )
-        
-        let layer = CALayer()
-        layer.frame = localRect
-        layer.contents = image
-        layer.contentsGravity = .resizeAspectFill
-        layer.cornerRadius = 8
-        layer.masksToBounds = true
-        rootLayer.addSublayer(layer)
-        
-        window.orderFrontRegardless()
-        
-        CATransaction.begin()
-        CATransaction.setAnimationDuration(0.55)
-        CATransaction.setAnimationTimingFunction(CAMediaTimingFunction(name: .easeIn))
-        CATransaction.setCompletionBlock {
-            window.orderOut(nil)
-            window.close()
-            completion()
-        }
-        
-        // Movimiento hacia abajo
-        let animY = CABasicAnimation(keyPath: "position.y")
-        animY.fromValue = layer.position.y
-        animY.toValue = layer.position.y - 450
-        
-        // Rotación mayor al caer
-        let animRot = CABasicAnimation(keyPath: "transform.rotation.z")
-        animRot.fromValue = tilt * .pi / 180.0
-        animRot.toValue = (tilt + 18.0) * .pi / 180.0
-        
-        // Desvanecimiento
-        let animFade = CABasicAnimation(keyPath: "opacity")
-        animFade.fromValue = 1.0
-        animFade.toValue = 0.0
-        
-        layer.add(animY, forKey: "fallY")
-        layer.add(animRot, forKey: "fallRot")
-        layer.add(animFade, forKey: "fallFade")
-        
-        layer.position.y -= 450
-        layer.opacity = 0.0
-        
-        CATransaction.commit()
     }
     
     private func animateFly(from fromRect: CGRect, to toRect: CGRect, tilt: Double, screen: NSScreen) {

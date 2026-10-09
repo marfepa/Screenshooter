@@ -290,6 +290,8 @@ public final class TendederoCardView: NSView, NSDraggingSource {
     public private(set) var isHovered = false
     public private(set) var isMissing = false
     private var isPressed = false
+    /// La tarjeta está cayendo/desapareciendo: ya no recibe eventos.
+    private(set) var isLeaving = false
 
     /// `true` mientras hay una pulsación o arrastre en curso sobre alguna tarjeta (el panel no debe retraerse).
     public private(set) static var isBusy = false
@@ -399,7 +401,7 @@ public final class TendederoCardView: NSView, NSDraggingSource {
 
         imageView.image = item.image
         updateShadowGeometry()
-        applyState()
+        applyState(animated: false)
         refreshColors()
     }
 
@@ -466,27 +468,181 @@ public final class TendederoCardView: NSView, NSDraggingSource {
         applyState()
     }
 
-    private var showsControls: Bool { isHovered && !isDraggingSession }
+    private var showsControls: Bool { isHovered && !isDraggingSession && !isLeaving }
 
-    private func applyState() {
+    private func applyState(animated: Bool = true) {
         let motion = MotionStyle.current()
+        let animate = animated && window?.isVisible == true
         let scale: CGFloat = isPressed ? motion.pressScale : (showsControls ? motion.hoverScale : 1)
-        cardBody.layer?.transform = StripMotion.cardTransform(tilt: item.tilt, scale: scale, pivotOffset: cardPivot)
+        let target = StripMotion.cardTransform(tilt: item.tilt, scale: scale, pivotOffset: cardPivot)
 
+        // Una sola transformación (inclinación + escala): sin saltos al entrar/salir el puntero.
+        if let layer = cardBody.layer, !CATransform3DEqualToTransform(layer.transform, target) {
+            if animate {
+                if isPressed {
+                    layer.animateValue("transform", to: NSValue(caTransform3D: target), duration: motion.pressDuration, key: "state")
+                } else {
+                    layer.animateValue("transform", to: NSValue(caTransform3D: target), spring: motion.hoverSpring,
+                                       duration: 0.3, key: "state")
+                }
+            } else {
+                layer.removeAnimation(forKey: "state")
+                layer.transform = target
+            }
+        }
+
+        CATransaction.begin()
+        CATransaction.setAnimationDuration(animate ? motion.fadeDuration : 0)
+        CATransaction.setDisableActions(!animate)
         shadowLayer.shadowRadius = showsControls ? 14 : 8
         shadowLayer.shadowOpacity = showsControls ? 0.26 : 0.18
         shadowLayer.shadowOffset = CGSize(width: 0, height: showsControls ? -7 : -4)
+        CATransaction.commit()
 
-        setControl(closeButton, visible: showsControls)
-        setControl(actionButton, visible: showsControls && !isMissing)
-        setControl(meta, visible: showsControls)
-        pressRing.alphaValue = isPressed ? 0.9 : 0
-        cardBody.alphaValue = isDraggingSession ? 0.35 : 1
+        setControl(closeButton, visible: showsControls, animate: animate, scaled: true)
+        setControl(actionButton, visible: showsControls && !isMissing, animate: animate, scaled: true)
+        setControl(meta, visible: showsControls, animate: animate, scaled: false)
+        setAlpha(pressRing, to: isPressed ? 0.9 : 0, animate: animate)
+        setAlpha(cardBody, to: isDraggingSession ? 0.35 : 1, animate: animate)
     }
 
-    private func setControl(_ view: NSView, visible: Bool) {
-        view.isHidden = !visible
-        view.alphaValue = visible ? 1 : 0
+    private func setAlpha(_ view: NSView, to alpha: CGFloat, animate: Bool, completion: (() -> Void)? = nil) {
+        guard animate else {
+            view.alphaValue = alpha
+            completion?()
+            return
+        }
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0.18
+            view.animator().alphaValue = alpha
+        }, completionHandler: {
+            MainActor.assumeIsolated { completion?() }
+        })
+    }
+
+    private func setControl(_ view: NSView, visible: Bool, animate: Bool, scaled: Bool) {
+        let motion = MotionStyle.current()
+        if visible { view.isHidden = false }
+        setAlpha(view, to: visible ? 1 : 0, animate: animate) {
+            if !visible && view.alphaValue == 0 { view.isHidden = true }
+        }
+        if scaled, !motion.reduceMotion, let layer = view.layer {
+            let target = visible ? CATransform3DIdentity : CATransform3DMakeScale(0.6, 0.6, 1)
+            if animate {
+                layer.animateValue("transform", to: NSValue(caTransform3D: target), duration: 0.18, key: "scale")
+            } else {
+                layer.transform = target
+            }
+        }
+    }
+
+    // MARK: Movimiento
+
+    /// Cuando una captura en vuelo aterriza o una nueva llega: cae con muelle y se balancea hasta parar.
+    public func playArrival(drop: Bool) {
+        let motion = MotionStyle.current()
+        guard let layer else { return }
+        if motion.reduceMotion {
+            layer.animateValue("opacity", to: 1.0, from: 0.0, duration: motion.fadeDuration, key: "arrival")
+            return
+        }
+        if drop, let spring = motion.arrivalSpring {
+            let a = CASpringAnimation(keyPath: "transform.translation.y")
+            a.mass = 1
+            a.stiffness = CGFloat(spring.stiffness)
+            a.damping = CGFloat(spring.damping)
+            a.fromValue = 60
+            a.toValue = 0
+            a.isAdditive = true
+            a.duration = max(a.settlingDuration, motion.revealDuration)
+            layer.add(a, forKey: "drop")
+            layer.animateValue("opacity", to: 1.0, from: 0.0, duration: 0.15, key: "arrival")
+        }
+        let amplitude = motion.arrivalSwingDegrees
+        playSwing(angles: [amplitude, -amplitude / 2, amplitude / 5, -amplitude * 0.06, 0],
+                  keyTimes: [0, 0.3, 0.6, 0.82, 1], duration: 0.9, delay: 0)
+    }
+
+    /// Vaivén leve del primer despliegue de la sesión.
+    public func playSway(amplitude: Double, delay: TimeInterval) {
+        guard !MotionStyle.current().reduceMotion else { return }
+        playSwing(angles: [0, amplitude, -amplitude / 2, amplitude / 5, 0],
+                  keyTimes: [0, 0.25, 0.55, 0.8, 1], duration: 1.1, delay: delay)
+    }
+
+    private func playSwing(angles: [Double], keyTimes: [NSNumber], duration: TimeInterval, delay: TimeInterval) {
+        let anim = CAKeyframeAnimation(keyPath: "transform")
+        anim.values = angles.map {
+            NSValue(caTransform3D: StripMotion.cardTransform(tilt: $0, scale: 1, pivotOffset: swingPivot))
+        }
+        anim.keyTimes = keyTimes
+        anim.calculationMode = .cubic
+        anim.duration = duration
+        anim.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        if delay > 0 {
+            anim.beginTime = CACurrentMediaTime() + delay
+            anim.fillMode = .backwards
+        }
+        swingView.layer?.add(anim, forKey: "swing")
+    }
+
+    /// Recoloca la ranura con un muelle suave (o un deslizamiento corto con Reducir movimiento).
+    func move(to newFrame: NSRect, animated: Bool) {
+        let old = frame.origin
+        frame = newFrame
+        guard animated, let layer, old != newFrame.origin else { return }
+        let motion = MotionStyle.current()
+        let delta = CGPoint(x: old.x - newFrame.origin.x, y: old.y - newFrame.origin.y)
+        let anim: CABasicAnimation
+        if let spring = motion.repositionSpring {
+            let s = CASpringAnimation(keyPath: "position")
+            s.mass = 1
+            s.stiffness = CGFloat(spring.stiffness)
+            s.damping = CGFloat(spring.damping)
+            s.duration = max(s.settlingDuration, motion.repositionDuration)
+            anim = s
+        } else {
+            anim = CABasicAnimation(keyPath: "position")
+            anim.duration = motion.repositionDuration
+            anim.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        }
+        anim.fromValue = NSValue(point: delta)
+        anim.toValue = NSValue(point: .zero)
+        anim.isAdditive = true
+        layer.add(anim, forKey: "reposition")
+    }
+
+    /// Salida sin caída (desalojo, arrastre a otra carpeta): fundido corto.
+    func playDisappear(completion: @escaping () -> Void) {
+        isLeaving = true
+        applyState(animated: false)
+        guard let layer else { completion(); return }
+        CATransaction.begin()
+        CATransaction.setCompletionBlock { MainActor.assumeIsolated { completion() } }
+        layer.animateValue("opacity", to: 0.0, from: 1.0, duration: MotionStyle.current().fadeDuration, key: "fall")
+        CATransaction.commit()
+    }
+
+    /// Descartar: cae girando (< 22°) y se desvanece. Con Reducir movimiento, solo se desvanece.
+    func playFall(completion: @escaping () -> Void) {
+        let motion = MotionStyle.current()
+        isLeaving = true
+        applyState(animated: false)
+        guard let layer else { completion(); return }
+        CATransaction.begin()
+        CATransaction.setCompletionBlock { MainActor.assumeIsolated { completion() } }
+        if motion.reduceMotion {
+            layer.animateValue("opacity", to: 0.0, from: 1.0, duration: motion.fadeDuration, key: "fall")
+        } else {
+            let angle = Double.random(in: 12...motion.fallMaxRotation) * (Bool.random() ? 1 : -1)
+            let rotate = StripMotion.cardTransform(tilt: angle, scale: 1, pivotOffset: CGPoint(x: 0, y: bounds.height / 2))
+            let end = CATransform3DConcat(rotate, CATransform3DMakeTranslation(0, -520, 0))
+            let timing = CAMediaTimingFunction(controlPoints: 0.55, 0, 1, 0.45)
+            layer.animateValue("transform", to: NSValue(caTransform3D: end), from: NSValue(caTransform3D: CATransform3DIdentity),
+                               duration: motion.fallDuration, timing: timing, key: "fall")
+            layer.animateValue("opacity", to: 0.0, from: 1.0, duration: motion.fallDuration, timing: timing, key: "fallFade")
+        }
+        CATransaction.commit()
     }
 
     // MARK: Efecto Copiado
@@ -496,16 +652,29 @@ public final class TendederoCardView: NSView, NSDraggingSource {
         showCopyFeedback()
     }
 
-    public func showCopyFeedback() {
-        badge.set(text: "Copiado", symbol: "checkmark")
+    public func showCopyFeedback() { showBadge(text: "Copiado", symbol: "checkmark") }
+
+    /// Cápsula de vidrio centrada sobre la tarjeta durante 1 s.
+    func showBadge(text: String, symbol: String?) {
+        let motion = MotionStyle.current()
+        let animate = window?.isVisible == true
+        badge.set(text: text, symbol: symbol)
         badge.setFrameOrigin(NSPoint(x: (cardBody.bounds.width - badge.frame.width) / 2,
                                      y: (cardBody.bounds.height - badge.frame.height) / 2))
         badge.isHidden = false
-        badge.alphaValue = 1
+        setAlpha(badge, to: 1, animate: animate)
+        if animate, !motion.reduceMotion, let layer = badge.layer {
+            layer.animateValue("transform", to: NSValue(caTransform3D: CATransform3DIdentity),
+                               from: NSValue(caTransform3D: CATransform3DMakeScale(0.85, 0.85, 1)),
+                               spring: motion.hoverSpring, duration: 0.25, key: "pop")
+        }
         badgeWorkItem?.cancel()
         let work = DispatchWorkItem { [weak self] in
-            self?.badge.alphaValue = 0
-            self?.badge.isHidden = true
+            guard let self else { return }
+            self.setAlpha(self.badge, to: 0, animate: animate) { [weak self] in
+                guard let self, self.badge.alphaValue == 0 else { return }
+                self.badge.isHidden = true
+            }
         }
         badgeWorkItem = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: work)
@@ -514,7 +683,7 @@ public final class TendederoCardView: NSView, NSDraggingSource {
     // MARK: Hit testing
 
     public override func hitTest(_ point: NSPoint) -> NSView? {
-        guard !isHidden, alphaValue > 0.01 else { return nil }
+        guard !isHidden, !isLeaving, alphaValue > 0.01 else { return nil }
         let p = convert(point, from: superview)
         guard hitRect.contains(p) else { return nil }
         for button in [closeButton, actionButton] where !button.isHidden && button.alphaValue > 0.05 && button.frame.contains(p) {

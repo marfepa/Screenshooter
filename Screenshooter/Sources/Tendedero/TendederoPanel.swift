@@ -13,6 +13,8 @@ public final class TendederoPanel: NSPanel {
     private var state = RevealState()
     private var tickTimer: Timer?
     private var clickMonitors: [Any] = []
+    /// El vaivén de ±1,5° solo ocurre en el primer despliegue de la sesión.
+    private static var hasSwayedThisSession = false
     
     /// Hay capturas en la tira: mantiene vivo el muestreo del ratón aunque esté retraída.
     public var hasItems = false {
@@ -44,7 +46,7 @@ public final class TendederoPanel: NSPanel {
         self.contentView = tendederoView
         self.ignoresMouseEvents = true
         
-        self.alphaValue = 0.0
+        self.alphaValue = 1.0
         
         watchMenuBarClicks()
     }
@@ -82,12 +84,12 @@ public final class TendederoPanel: NSPanel {
         if pinned { state.pin() }
         guard !isRevealed else { return }
         state.didReveal()
+        alphaValue = 1.0
         orderFront(nil)
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.28
-            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            self.animator().alphaValue = 1.0
-        }
+        // La tira se desliza desde arriba (la ventana recorta el contenido bajo la barra de menús).
+        let sway = !Self.hasSwayedThisSession
+        Self.hasSwayedThisSession = true
+        tendederoView.playReveal(motion: .current(), sway: sway)
         updateTimer()
     }
     
@@ -95,16 +97,11 @@ public final class TendederoPanel: NSPanel {
         guard isRevealed else { return }
         state.didRetract()
         ignoresMouseEvents = true
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.22
-            context.timingFunction = CAMediaTimingFunction(name: .easeIn)
-            self.animator().alphaValue = 0.0
-        }, completionHandler: { [weak self] in
-            MainActor.assumeIsolated {
-                guard let self, !self.isRevealed else { return }
-                self.orderOut(nil)
-            }
-        })
+        tendederoView.updateHover(pointer: nil)
+        tendederoView.playRetract(motion: .current()) { [weak self] in
+            guard let self, !self.isRevealed else { return }
+            self.orderOut(nil)
+        }
         updateTimer()
     }
     
