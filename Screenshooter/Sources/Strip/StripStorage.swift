@@ -11,10 +11,21 @@ enum StripStorage {
     static let legacyCacheFolderName = "Screenshots"
     static let inboxFolderName = "Inbox"
     
-    /// `Application Support` del usuario.
-    static var defaultBase: URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+    /// ¿Se está ejecutando el host de tests (la app lanzada por XCTest)?
+    static var isRunningTests: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
     }
+    
+    /// Carpeta base de la caché (`Application Support` del usuario). Configurable antes del primer acceso a
+    /// `StripManager.screenshotsDirectory`. Bajo XCTest apunta por defecto a un directorio temporal único,
+    /// para que ningún test escriba en el Application Support real.
+    static var defaultBase: URL = {
+        if isRunningTests {
+            return FileManager.default.temporaryDirectory
+                .appendingPathComponent("screenshooter-tests-\(UUID().uuidString)", isDirectory: true)
+        }
+        return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+    }()
     
     static func cacheDirectory(base: URL) -> URL {
         base.appendingPathComponent(rootFolderName, isDirectory: true)
@@ -69,6 +80,13 @@ enum StripStorage {
         guard let children = try? fm.contentsOfDirectory(at: source, includingPropertiesForKeys: [.isDirectoryKey], options: []) else { return 0 }
         var moved = 0
         for child in children {
+            // `.DS_Store` es ruido de Finder: se borra para que la carpeta antigua pueda quedar vacía.
+            // El resto de ocultos (p. ej. temporales de screencapture) no se migran.
+            if child.lastPathComponent == ".DS_Store" {
+                try? fm.removeItem(at: child)
+                continue
+            }
+            if child.lastPathComponent.hasPrefix(".") { continue }
             let target = destination.appendingPathComponent(child.lastPathComponent)
             let childIsDir = (try? child.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
             var targetIsDir: ObjCBool = false

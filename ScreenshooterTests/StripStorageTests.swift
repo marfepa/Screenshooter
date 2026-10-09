@@ -86,4 +86,55 @@ final class StripStorageTests: XCTestCase {
         }
         XCTAssertFalse(InboxManager.isOwnFolder(path: NSHomeDirectory() + "/Desktop"))
     }
+    
+    func testMergeDeletesDSStoreAndSkipsOtherHiddenFiles() throws {
+        let old = StripStorage.legacyCacheDirectory(base: base)
+        let new = StripStorage.cacheDirectory(base: base)
+        try write("ds", to: old.appendingPathComponent(".DS_Store"))
+        try write("ds", to: old.appendingPathComponent("Inbox/.DS_Store"))
+        try write("a", to: old.appendingPathComponent("a.png"))
+        try write("n", to: new.appendingPathComponent("n.png"))
+        try write("n", to: new.appendingPathComponent("Inbox/n.png"))  // fuerza la fusión recursiva de Inbox
+        
+        XCTAssertEqual(StripStorage.migrateLegacyCache(base: base), 1)
+        XCTAssertFalse(fm.fileExists(atPath: new.appendingPathComponent("Inbox/.DS_Store").path))
+        
+        XCTAssertFalse(fm.fileExists(atPath: new.appendingPathComponent(".DS_Store").path), ".DS_Store no se copia")
+        XCTAssertFalse(fm.fileExists(atPath: old.path), "La carpeta antigua queda vacía y se elimina")
+        
+        // Otros ocultos no se migran y se conservan en origen.
+        let old2 = StripStorage.legacyCacheDirectory(base: base)
+        try write("tmp", to: old2.appendingPathComponent(".hidden.png"))
+        XCTAssertEqual(StripStorage.migrateLegacyCache(base: base), 0)
+        XCTAssertFalse(fm.fileExists(atPath: new.appendingPathComponent(".hidden.png").path))
+        XCTAssertTrue(fm.fileExists(atPath: old2.appendingPathComponent(".hidden.png").path))
+    }
+    
+    func testStaleOwnLocationDetection() {
+        let real = StripStorage.defaultBase
+        XCTAssertTrue(InboxManager.isStaleOwnLocation(StripStorage.inboxDirectory(base: real).path))
+        XCTAssertTrue(InboxManager.isStaleOwnLocation(StripStorage.legacyInboxDirectory(base: real).path))
+        XCTAssertFalse(InboxManager.isStaleOwnLocation(nil))
+        XCTAssertFalse(InboxManager.isStaleOwnLocation(""))
+        XCTAssertFalse(InboxManager.isStaleOwnLocation(NSHomeDirectory() + "/Desktop"))
+    }
+    
+    @MainActor
+    func testTestHostNeverUsesRealApplicationSupport() {
+        XCTAssertTrue(StripStorage.isRunningTests)
+        let realSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].path
+        XCTAssertFalse(StripManager.screenshotsDirectory.path.hasPrefix(realSupport))
+        XCTAssertFalse(StripManager.inboxDirectory.path.hasPrefix(realSupport))
+        XCTAssertNotEqual(StripManager.shared.defaults, UserDefaults.standard, "El host de tests no usa los ajustes reales")
+    }
+    
+    @MainActor
+    func testCachedFileNameIsLanguageIndependent() throws {
+        let ctx = try XCTUnwrap(CGContext(data: nil, width: 4, height: 4, bitsPerComponent: 8, bytesPerRow: 16,
+                                          space: CGColorSpaceCreateDeviceRGB(),
+                                          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        let url = try XCTUnwrap(StripManager.shared.saveToCache(cgImage: try XCTUnwrap(ctx.makeImage())))
+        defer { try? fm.removeItem(at: url) }
+        XCTAssertNotNil(url.lastPathComponent.range(of: #"^Screenshot-\d{4}-\d{2}-\d{2}-\d{6}\.png$"#, options: .regularExpression), url.lastPathComponent)
+    }
 }

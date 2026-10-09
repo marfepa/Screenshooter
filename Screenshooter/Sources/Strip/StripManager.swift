@@ -42,23 +42,23 @@ public final class StripManager: StripViewDelegate {
     public var playsTrashSound: Bool = true
     
     /// Carpeta dedicada para almacenar capturas en caché
-    public static let screenshotsDirectory: URL = {
+    public nonisolated static var screenshotsDirectory: URL {
         let base = StripStorage.defaultBase
-        // Primer arranque tras el renombrado: trae el contenido de `Screenshots` a `Shelf`.
+        // Primer arranque tras el renombrado: trae el contenido de `Screenshots` a `Shelf` (idempotente, barato).
         StripStorage.migrateLegacyCache(base: base)
         let dir = StripStorage.cacheDirectory(base: base)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
-    }()
+    }
     
     /// Carpeta vigilada por el Modo Inbox (capturas nativas). Distinta de `screenshotsDirectory`
     /// para que las capturas propias no se cuelguen dos veces.
-    public static let inboxDirectory: URL = {
+    public nonisolated static var inboxDirectory: URL {
         _ = screenshotsDirectory  // garantiza que la migración ya se ejecutó
         let dir = StripStorage.inboxDirectory(base: StripStorage.defaultBase)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
-    }()
+    }
 
     private init() {
         capacity = StripCapacity.load(from: .standard)
@@ -182,11 +182,13 @@ public final class StripManager: StripViewDelegate {
 
     /// Guarda una CGImage en formato PNG dentro del directorio de capturas del Strip.
     public func saveToCache(cgImage: CGImage) -> URL? {
+        // Nombre de archivo estable e independiente del idioma y del calendario del usuario.
         let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
         formatter.dateFormat = "yyyy-MM-dd-HHmmss"
         let timestamp = formatter.string(from: Date())
-        let prefix = String(localized: "Capture", bundle: L10n.bundle, locale: L10n.locale, comment: "Prefix of the file name of saved captures, followed by a timestamp")
-        let filename = "\(prefix)-\(timestamp).png"
+        let filename = "Screenshot-\(timestamp).png"
         let destination = Self.screenshotsDirectory.appendingPathComponent(filename)
         
         let bitmap = NSBitmapImageRep(cgImage: cgImage)

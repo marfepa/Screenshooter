@@ -127,23 +127,6 @@
         }
       }
     },
-    "Capture" : {
-      "comment" : "Prefix of the file name of saved captures, followed by a timestamp",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Capture"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Captura"
-          }
-        }
-      }
-    },
     "Capture Selected Area..." : {
       "comment" : "Menu item: start an area capture",
       "localizations" : {

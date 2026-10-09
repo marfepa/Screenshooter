@@ -68,6 +68,33 @@ public final class InboxManager {
         // anterior (la migración corre al acceder por primera vez a `StripManager.inboxDirectory`).
         if isEnabled {
             enableInboxMode()
+        } else {
+            clearStaleOwnLocation()
+        }
+    }
+    
+    /// Lógica pura: ¿la `location` del sistema apunta a una carpeta nuestra (caché o Inbox, antigua o nueva)?
+    nonisolated static func isStaleOwnLocation(_ path: String?) -> Bool {
+        guard let path, !path.isEmpty else { return false }
+        return isOwnFolder(path: path)
+    }
+    
+    /// Con el Modo Inbox desactivado, si el sistema sigue guardando capturas en una carpeta nuestra
+    /// (cierre brusco, versión anterior…) se restaura el valor por defecto de macOS.
+    private func clearStaleOwnLocation() {
+        CFPreferencesAppSynchronize(Self.domain)
+        var cleared = false
+        for key in [Self.locationKey, Self.screenshotLocationKey] {
+            let value = CFPreferencesCopyAppValue(key, Self.domain) as? String
+            if Self.isStaleOwnLocation(value) {
+                CFPreferencesSetAppValue(key, nil, Self.domain)
+                cleared = true
+            }
+        }
+        if cleared {
+            CFPreferencesAppSynchronize(Self.domain)
+            killSystemScreencaptureService()
+            NSLog("[InboxManager] Location del sistema apuntaba a una carpeta propia con el Modo Inbox desactivado: restaurada.")
         }
     }
     

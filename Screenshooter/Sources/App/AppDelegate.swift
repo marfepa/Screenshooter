@@ -5,6 +5,13 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusBarController: StatusBarController?
     
     public func applicationDidFinishLaunching(_ notification: Notification) {
+        // Host de tests (la app lanzada por XCTest): nada que toque Application Support, UserDefaults
+        // ni com.apple.screencapture reales. La base de la caché ya es un temporal (`StripStorage.defaultBase`).
+        if StripStorage.isRunningTests {
+            StripManager.shared.defaults = UserDefaults(suiteName: "screenshooter-tests-\(UUID().uuidString)") ?? UserDefaults()
+            return
+        }
+        
         // Inicializar controlador de la barra de menús
         statusBarController = StatusBarController()
         
@@ -47,6 +54,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     public func applicationWillTerminate(_ notification: Notification) {
+        if StripStorage.isRunningTests { return }
         HotKeyManager.shared.unregister()
         
         // Si el modo Inbox estaba activo, restaurar preferencias originales de macOS
