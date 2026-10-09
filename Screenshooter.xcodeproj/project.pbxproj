@@ -250,13 +250,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		"TEMP_BCD31B41-1596-46B7-9E76-6D5D662A00D2" /* .claude */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = .claude;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
