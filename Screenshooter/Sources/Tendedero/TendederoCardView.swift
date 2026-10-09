@@ -1032,9 +1032,58 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
         // El writer debe ser la URL del archivo (NSURL) para que Finder acepte el archivo.
         let draggingItem = NSDraggingItem(pasteboardWriter: item.url as NSURL)
         // `setDraggingFrame` espera coordenadas de esta vista (la fuente), no de ventana:
-        // así la imagen arrastrada arranca exactamente sobre la miniatura.
-        draggingItem.setDraggingFrame(thumbnailRect, contents: item.image)
+        // así la imagen arrastrada arranca exactamente sobre la tarjeta, con su inclinación.
+        let snapshot = dragSnapshot()
+        draggingItem.setDraggingFrame(snapshot.frame, contents: snapshot.image)
         beginDraggingSession(with: [draggingItem], event: event, source: self)
+    }
+
+    /// Instantánea de la tarjeta para arrastrar: marco, borde, miniatura y sombra, girada con la misma
+    /// inclinación y pivote (centro superior) que en la tira. El desenfoque real de `NSVisualEffectView`
+    /// no se puede capturar, así que el vidrio se imita con el fondo de ventana casi opaco.
+    private func dragSnapshot() -> (image: NSImage, frame: NSRect) {
+        let card = cardRect
+        let margin: CGFloat = 18 // cabe la rotación (±2,5°) y la sombra
+        let frame = card.insetBy(dx: -margin, dy: -margin)
+        let thumb = imageView.frame.offsetBy(dx: margin, dy: margin) // coords. de cardBody → de la imagen
+        let body = NSRect(x: margin, y: margin, width: card.width, height: card.height)
+        let tilt = CGFloat(item.tilt)
+        let image = item.image
+        let appearance = effectiveAppearance
+        let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+
+        let snapshot = NSImage(size: frame.size, flipped: false) { _ in
+            appearance.performAsCurrentDrawingAppearance {
+                let rotation = NSAffineTransform()
+                rotation.translateX(by: body.midX, yBy: body.maxY)
+                rotation.rotate(byDegrees: tilt)
+                rotation.translateX(by: -body.midX, yBy: -body.maxY)
+                rotation.concat()
+
+                let outline = NSBezierPath(roundedRect: body, xRadius: 10, yRadius: 10)
+                NSGraphicsContext.saveGraphicsState()
+                let shadow = NSShadow()
+                shadow.shadowColor = NSColor.black.withAlphaComponent(0.3)
+                shadow.shadowBlurRadius = 12
+                shadow.shadowOffset = NSSize(width: 0, height: -6)
+                shadow.set()
+                NSColor.windowBackgroundColor.withAlphaComponent(0.92).setFill()
+                outline.fill()
+                NSGraphicsContext.restoreGraphicsState()
+
+                NSGraphicsContext.saveGraphicsState()
+                NSBezierPath(roundedRect: thumb, xRadius: 6, yRadius: 6).addClip()
+                image.draw(in: thumb)
+                NSGraphicsContext.restoreGraphicsState()
+
+                NSColor.white.withAlphaComponent(isDark ? 0.22 : 0.75).setStroke()
+                let edge = NSBezierPath(roundedRect: body.insetBy(dx: 0.25, dy: 0.25), xRadius: 10, yRadius: 10)
+                edge.lineWidth = 0.5
+                edge.stroke()
+            }
+            return true
+        }
+        return (snapshot, frame)
     }
 
     // MARK: NSDraggingSource
