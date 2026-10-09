@@ -58,12 +58,12 @@
   /* Reducir transparencia: vidrio → sólido */
   .no-transparency { --glass-fill: var(--bg-surface); }
   .no-transparency .card, .no-transparency .close, .no-transparency .action, .no-transparency .badge,
-  .no-transparency .meta, .no-transparency .empty, .no-transparency .peg, .no-transparency .ctx {
+  .no-transparency .meta, .no-transparency .empty, .no-transparency .peg, .no-transparency .ctx, .no-transparency .edge-count {
     backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
   /* Aumentar contraste: bordes sólidos, texto primario, cuerda más gruesa */
   .hi-contrast { --glass-edge: var(--text-primary); --text-secondary: var(--text-primary); --rope-core: #5a5a5a; }
   [data-theme="dark"] .hi-contrast { --rope-core: #c8c8c8; }
-  .hi-contrast .card, .hi-contrast .close, .hi-contrast .action, .hi-contrast .badge, .hi-contrast .meta, .hi-contrast .empty {
+  .hi-contrast .card, .hi-contrast .close, .hi-contrast .action, .hi-contrast .badge, .hi-contrast .meta, .hi-contrast .empty, .hi-contrast .edge-count {
     box-shadow: inset 0 0 0 1px var(--text-primary), 0 8px 18px rgba(0,0,0,.18) !important; }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -84,7 +84,7 @@
   .state-btn:hover { background: var(--border-subtle); }
   .state-btn[aria-pressed="true"] { background: var(--mac-blue-subtle); color: var(--mac-blue); font-weight: 600; }
   .seg { display: flex; gap: 4px; background: var(--border-subtle); border-radius: var(--radius-sm); padding: 2px; }
-  .seg button { flex: 1; border: none; background: transparent; color: var(--text-secondary); font: inherit;
+  .seg button { flex: 1; white-space: nowrap; border: none; background: transparent; color: var(--text-secondary); font: inherit;
                 font-size: 12px; padding: 5px 0; border-radius: 4px; cursor: pointer; }
   .seg button[aria-pressed="true"] { background: var(--bg-surface); color: var(--text-primary); box-shadow: 0 1px 2px rgba(0,0,0,.2); }
   .toggle { display: flex; align-items: center; justify-content: space-between; padding: 6px 2px; }
@@ -141,9 +141,34 @@
   .rope path { fill: none; }
 
   .cards { position: absolute; inset: 0; }
-  .card-slot { position: absolute; top: 14px; width: 150px; height: 146px; pointer-events: auto;
-               transition: left .55s cubic-bezier(.3,1.2,.5,1); transform-origin: 50% 0; }
-  .reduce .card-slot { transition: left .2s ease; }
+  /* Posición por la propiedad `translate` (la mueve JS cada fotograma, siguiendo la cuerda); así las
+     animaciones de `transform` (llegada, caída) se componen sin pisarla. */
+  .card-slot { position: absolute; left: 0; top: 14px; width: 150px; height: 146px; pointer-events: auto;
+               transform-origin: 50% 0; }
+  .strip.scrollable .card-slot { will-change: translate; }
+  .strip.moving .swing { will-change: rotate; }
+
+  /* Franja de cuerda arrastrable (solo con scroll); el resto de la tira sigue dejando pasar los clics */
+  .rope-hit { position: absolute; left: 0; right: 0; top: 0; height: 36px; pointer-events: none; touch-action: none; }
+  .strip.scrollable .rope-hit { pointer-events: auto; cursor: grab; }
+  .strip.rope-drag .rope-hit { cursor: grabbing; }
+
+  /* Contadores de tarjetas fuera de vista */
+  .edge-count { position: absolute; top: 66px; z-index: 5; height: 28px; min-width: 48px; padding: 0 11px; gap: 4px;
+                display: flex; align-items: center; justify-content: center; border: none; border-radius: 999px;
+                font: inherit; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text-primary);
+                background: var(--glass-fill); backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
+                box-shadow: inset 0 0 0 .5px var(--glass-edge), inset 0 1px 0 var(--glass-highlight), 0 4px 12px rgba(0,0,0,.2);
+                cursor: pointer; opacity: 0; visibility: hidden; pointer-events: none;
+                transition: opacity .18s ease, transform .18s ease, visibility 0s .18s; }
+  .edge-count.on { opacity: 1; visibility: visible; pointer-events: auto; transition-delay: 0s; }
+  .edge-count.left { left: 10px; } .edge-count.right { right: 10px; }
+  .edge-count::before { content: ""; position: absolute; inset: -4px; border-radius: 999px; } /* área 36 pt */
+  .edge-count:hover { transform: scale(1.06); } .edge-count:active { transform: scale(.95); }
+  .edge-count:focus-visible { outline: 2px solid var(--mac-blue); outline-offset: 2px; }
+  .edge-count svg { width: 8px; height: 10px; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .reduce .edge-count { transition: opacity .2s ease, visibility 0s .2s; transform: none !important; }
+  .reduce .edge-count.on { transition-delay: 0s; }
   .peg { position: absolute; left: 50%; top: 0; width: 8px; height: 14px; margin-left: -4px; border-radius: 3px;
          background: var(--glass-fill); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
          box-shadow: inset 0 0 0 .5px var(--glass-edge), 0 1px 2px rgba(0,0,0,.25); z-index: 2; }
@@ -273,6 +298,11 @@
   <h3>Estado</h3>
   <div id="states" role="group" aria-label="Estados"></div>
 
+  <h3>Capturas en la tira</h3>
+  <div class="seg" id="cap" role="group" aria-label="Capturas en la tira">
+    <button data-v="8" aria-pressed="false">8</button><button data-v="16" aria-pressed="false">16</button><button data-v="32" aria-pressed="true">32</button><button data-v="inf" aria-pressed="false" style="flex:1.9">Sin límite</button>
+  </div>
+
   <h3>Apariencia</h3>
   <div class="seg" id="theme" role="group" aria-label="Tema">
     <button data-v="dark" aria-pressed="true">Oscuro</button><button data-v="light" aria-pressed="false">Claro</button>
@@ -289,6 +319,7 @@
 
   <div class="note">
     <b>Gestos:</b> clic copia · mantener 0,5 s abre Marcación · doble clic abre Vista Previa · arrastrar envía/guarda · clic derecho menú · ✕ a la Papelera.<br><br>
+    <b>Desplazamiento</b> (cuando no caben): rueda o trackpad (vertical u horizontal) sobre la tira · arrastrar la cuerda (franja superior vacía) · cápsulas <kbd>+N</kbd> de los extremos · <kbd>←</kbd><kbd>→</kbd> llevan la tarjeta a la vista.<br><br>
     <b>Teclado (tira con foco):</b> <kbd>←</kbd><kbd>→</kbd> moverse · <kbd>Inicio</kbd>/<kbd>Fin</kbd> · <kbd>Intro</kbd> copiar · <kbd>M</kbd> Marcación · <kbd>⌘O</kbd> Vista Previa · <kbd>⌘⌫</kbd> Papelera · <kbd>⇧F10</kbd> menú · <kbd>Esc</kbd> recoger.<br><br>
     <b>Atajos de la maqueta:</b> <kbd>N</kbd> nueva captura · <kbd>T</kbd> mostrar la tira y darle foco.
   </div>
@@ -316,7 +347,10 @@
 
     <div class="strip" id="strip" role="region" aria-label="Capturas recientes">
       <svg class="rope" id="rope" preserveAspectRatio="none" aria-hidden="true"></svg>
+      <div class="rope-hit" id="ropeHit" aria-hidden="true"></div>
       <div class="cards" id="cards" role="list"></div>
+      <button class="edge-count left" id="cntL" type="button" tabindex="0"><svg viewBox="0 0 8 10" aria-hidden="true"><path d="M6 1L2 5l4 4"/></svg><b></b></button>
+      <button class="edge-count right" id="cntR" type="button" tabindex="0"><b></b><svg viewBox="0 0 8 10" aria-hidden="true"><path d="M2 1l4 4-4 4"/></svg></button>
       <div class="empty" id="empty" role="status">Haz una captura con <kbd>⌥⌘S</kbd> y aparecerá aquí</div>
     </div>
 
@@ -332,6 +366,7 @@
     <div><b>Llegada</b>Cae con muelle (0,42 s) y se balancea desde 10° hasta parar en 0,9 s.</div>
     <div><b>Despliegue</b>Desliza con muelle. Vaivén de ±1,5° solo en el primer despliegue de la sesión.</div>
     <div><b>Accesibilidad</b>Reducir movimiento (automático por preferencia del sistema) → fundidos sin escalas. Reducir transparencia → sólido. Aumentar contraste → bordes de 1 pt.</div>
+    <div><b>Desplazamiento</b>Rueda, trackpad o arrastrar la cuerda. Inercia (0,95 por fotograma), rebote elástico en los extremos, tarjetas deslizándose por la cuerda fija con inclinación contraria a la velocidad (máx. 6°) y bordes difuminados. Reducir movimiento: sin inclinación ni rebote.</div>
     <div><b>VoiceOver</b>Etiqueta «Captura, 14:32, 1440 por 900», posición «2 de 8», acciones personalizadas y anuncio «Copiado».</div>
   </div>
 </main>
@@ -345,11 +380,25 @@
     ['#5e8bff','#a36bff'], ['#ff8a5c','#ffcf5c'], ['#2ec4b6','#3a86ff'], ['#ef476f','#ffd166'],
     ['#06d6a0','#118ab2'], ['#8338ec','#ff006e'], ['#fb5607','#ffbe0b'], ['#3a0ca3','#4cc9f0'], ['#90be6d','#277da1']
   ];
-  let seq = 0, items = [], revealed = false, reduce = false, slow = 1;
+  let seq = 0, items = [], revealed = false, reduce = false, slow = 1, cap = 32;
 
-  const makeItem = () => {
+  /* --- Constantes de la física del desplazamiento (px, s) --- */
+  const PAD = 24, CW = 150, GAP = 14, VIEW_MARGIN = 64;
+  const FRICTION = 0.95, FRICTION_REDUCED = 0.86;  // por fotograma a 60 fps (inercia estilo macOS)
+  const RUBBER = 0.55, RUBBER_MAX = 160;           // resistencia al estirar más allá del borde / tope de estiramiento
+  const BACK_K = 140, BACK_C = 22;                 // muelle de vuelta desde el rebote (casi crítico)
+  const TILT_K = 0.004, TILT_MAX = 6;              // grados por (px/s) y tope en grados
+  const TILT_KS = 220, TILT_CS = 15;               // muelle de inclinación (ζ≈0,5; reposo < 1 s)
+  const LAG_MAX = 1.6;                             // retraso de fase máximo entre tarjetas, en fotogramas
+  const LAYOUT_K = 140, LAYOUT_C = 17.7;           // reacomodo al añadir/quitar tarjetas
+  const FADE_ZONE = 40;                            // desvanecimiento en los extremos
+  const S = { off: 0, vel: 0, mode: 'idle', pending: 0, anim: null, max: 0, scrollable: false, start: PAD, W: 0, sag: 0 };
+  const offH = new Array(6).fill(0), velH = new Array(6).fill(0);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  const makeItem = (age = 0) => {
     const i = seq++;
-    const d = new Date(Date.now() - (8 - i) * 60000);
+    const d = new Date(Date.now() - age * 60000);
     const w = [1440, 1280, 980, 760, 1920, 640][i % 6], h = [900, 720, 620, 480, 1080, 400][i % 6];
     return { id: 'c' + i, pal: palettes[i % palettes.length], tilt: (Math.random() * 5 - 2.5),
              time: d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }), w, h };
@@ -374,23 +423,189 @@
   }
   const ropeY = (x, W, sag) => { const t = x / W; return 4 * sag * t * (1 - t); };
 
+  /* --------- Física del desplazamiento --------- */
+  const slotOf = id => cardsEl.querySelector(`[data-id="${id}"]`);
+  const sample = (arr, l) => { const i = Math.floor(l), f = l - i; return arr[i] * (1 - f) + arr[Math.min(i + 1, arr.length - 1)] * f; };
+  const cntL = $('#cntL'), cntR = $('#cntR'), counts = { L: -1, R: -1 };
+  let raf = 0, lastT = 0, adding = false;
+
+  function kick() { if (!raf) { lastT = performance.now(); raf = requestAnimationFrame(frame); } }
+  function frame(now) {
+    raf = 0;
+    const dt = Math.min(0.05, (now - lastT) / 1000) / slow; lastT = now;
+    const busy = tick(dt);
+    strip.classList.toggle('moving', busy);
+    if (busy) raf = requestAnimationFrame(frame);
+  }
+  const scrolling = () => S.mode !== 'idle';
+  function rubber(d) {
+    if (reduce) return clamp(S.off + d, 0, S.max) - S.off;               // clamp duro
+    const over = S.off < 0 ? -S.off : S.off > S.max ? S.off - S.max : 0;
+    const outward = (S.off <= 0 && d < 0) || (S.off >= S.max && d > 0);
+    return outward ? d * RUBBER * Math.max(0.05, 1 - over / RUBBER_MAX) : d;
+  }
+  function cancelAnim() {
+    const a = S.anim; S.anim = null; if (S.mode === 'anim') S.mode = 'idle';
+    if (a && a.cb) a.cb(true);
+  }
+  function animateTo(t, ms, cb) {
+    t = clamp(t, 0, S.max); S.pending = 0;
+    S.mode = 'anim'; S.anim = { from: S.off, to: t, t: 0, dur: (reduce ? Math.min(ms, 160) : ms) / 1000, cb };
+    kick();
+  }
+  function resetScroll() {
+    S.anim = null; S.mode = 'idle'; S.off = 0; S.vel = 0; S.pending = 0; adding = false;
+    offH.fill(0); velH.fill(0); strip.classList.remove('rope-drag');
+  }
+  function jumpTo(o) {
+    S.anim = null; S.mode = 'idle'; S.off = clamp(o, 0, S.max); S.vel = 0; S.pending = 0;
+    offH.fill(S.off); velH.fill(0); tick(0);
+  }
+  function flick(v) { cancelAnim(); S.mode = 'free'; S.vel = v; kick(); }
+  function ensureVisible(idx) {
+    if (!S.scrollable) return;
+    const tx = S.start + idx * (CW + GAP); let t = S.off;
+    if (tx - S.off < VIEW_MARGIN) t = tx - VIEW_MARGIN;
+    else if (tx + CW - S.off > S.W - VIEW_MARGIN) t = tx + CW - S.W + VIEW_MARGIN;
+    t = clamp(t, 0, S.max);
+    if (Math.abs(t - (S.anim ? S.anim.to : S.off)) < 1) return;
+    cancelAnim(); animateTo(t, 320);
+  }
+  function page(dir) {
+    const base = S.anim ? S.anim.to : S.off;
+    cancelAnim(); animateTo(clamp(base + dir * S.W * 0.8, 0, S.max), 420);
+  }
+  function updateCounts(nl, nr) {
+    [[cntL, nl, 'L', 'izquierda'], [cntR, nr, 'R', 'derecha']].forEach(([btn, n, k, side]) => {
+      if (n === counts[k]) return; counts[k] = n;
+      btn.classList.toggle('on', n > 0);
+      if (n > 0) { btn.querySelector('b').textContent = '+' + n; btn.setAttribute('aria-label', `${n} ${n === 1 ? 'captura más' : 'capturas más'} a la ${side}`); }
+      else if (document.activeElement === btn) focusIdx(roving);
+    });
+  }
+
+  /* Un paso de simulación. Devuelve true si algo sigue en movimiento. */
+  function tick(dt) {
+    let active = false;
+    const prev = S.off;
+    if (S.mode === 'drag' || S.mode === 'wheel') {
+      const d = S.pending; S.pending = 0;
+      if (d) S.off += rubber(d);
+      if (dt > 0) S.vel = S.vel * 0.5 + ((S.off - prev) / dt) * 0.5;
+    } else if (S.mode === 'anim' && S.anim) {
+      const a = S.anim; a.t += dt; const p = a.dur > 0 ? Math.min(1, a.t / a.dur) : 1;
+      S.off = a.from + (a.to - a.from) * (1 - Math.pow(1 - p, 3));        // easeOutCubic
+      if (dt > 0) S.vel = (S.off - prev) / dt;
+      if (p >= 1) { S.mode = 'idle'; S.vel = 0; S.anim = null; if (a.cb) a.cb(false); }
+    } else if (S.mode === 'free' && dt > 0) {
+      const over = S.off < 0 ? S.off : S.off > S.max ? S.off - S.max : 0;
+      if (reduce) {                                                       // inercia corta, sin rebote
+        S.vel *= Math.pow(FRICTION_REDUCED, dt * 60); S.off += S.vel * dt;
+        if (S.off < 0 || S.off > S.max) { S.off = clamp(S.off, 0, S.max); S.vel = 0; }
+        if (Math.abs(S.vel) < 8) { S.vel = 0; S.mode = 'idle'; }
+      } else if (over !== 0) {                                            // rebote: muelle hacia el borde
+        S.vel += (-BACK_K * over - BACK_C * S.vel) * dt; S.off += S.vel * dt;
+        S.off = clamp(S.off, -RUBBER_MAX * 1.5, S.max + RUBBER_MAX * 1.5);
+        const o2 = S.off < 0 ? S.off : S.off > S.max ? S.off - S.max : 0;
+        if (Math.abs(o2) < 0.4 && Math.abs(S.vel) < 10) { S.off = clamp(S.off, 0, S.max); S.vel = 0; S.mode = 'idle'; }
+      } else {                                                            // inercia
+        S.vel *= Math.pow(FRICTION, dt * 60); S.off += S.vel * dt;
+        if (Math.abs(S.vel) < 6) { S.vel = 0; S.mode = 'idle'; }
+      }
+    }
+    if (S.mode !== 'idle') active = true;
+    if (dt > 0) { offH.unshift(S.off); offH.pop(); velH.unshift(S.vel); velH.pop(); }
+    if (velH.some(v => Math.abs(v) > 0.5) || offH.some(o => o !== offH[0])) active = true;
+
+    const W = S.W, sag = S.sag, dir = velH[0] >= 0;
+    let nl = 0, nr = 0;
+    for (const el of cardsEl.children) {
+      const s = el._s; if (!s) continue;
+      if (s.cur !== s.x || s.v) {                                          // reacomodo en la cuerda
+        if (reduce) { s.cur += (s.x - s.cur) * (1 - Math.exp(-20 * dt)); s.v = 0; if (Math.abs(s.x - s.cur) < 0.3) s.cur = s.x; }
+        else { s.v += (-LAYOUT_K * (s.cur - s.x) - LAYOUT_C * s.v) * dt; s.cur += s.v * dt;
+               if (Math.abs(s.cur - s.x) < 0.2 && Math.abs(s.v) < 2) { s.cur = s.x; s.v = 0; } }
+        active = true;
+      }
+      if (!s.fall) { const nom = s.cur - S.off; if (nom + CW <= 8) nl++; else if (nom >= W - 8) nr++; }
+      // Retraso de fase: las tarjetas del lado "de cola" reaccionan 1-2 fotogramas después
+      const f = clamp((s.cur - S.off) / W, 0, 1), lag = reduce ? 0 : LAG_MAX * (dir ? f : 1 - f);
+      const sx = s.cur - sample(offH, lag), cx = sx + CW / 2;
+      const y = 4 * sag * (cx / W) * (1 - cx / W);                         // misma curva que la cuerda (fija)
+      // Inclinación contraria a la velocidad + muelle amortiguado
+      const target = reduce ? 0 : -clamp(sample(velH, lag) * TILT_K, -TILT_MAX, TILT_MAX);
+      if (reduce) { s.ang = 0; s.av = 0; }
+      else { s.av += (-TILT_KS * (s.ang - target) - TILT_CS * s.av) * dt; s.ang += s.av * dt; }
+      if (Math.abs(s.ang) < 0.01 && Math.abs(s.av) < 0.05 && Math.abs(target) < 0.01) { s.ang = 0; s.av = 0; } else active = true;
+
+      const hid = sx < -CW - 30 || sx > W + 30;
+      if (!(hid && s.hid)) {
+        el.style.translate = `${sx.toFixed(1)}px ${y.toFixed(2)}px`;
+        const r = s.ang.toFixed(2) + 'deg'; if (r !== s.rot) { s.rot = r; s.sw.style.rotate = r; }
+        let o = 1;
+        if (S.scrollable) o = clamp((Math.min(cx, W - cx) + FADE_ZONE * .75) / (FADE_ZONE * 1.75), 0, 1);  // 40 px extremos
+        const os = o >= .999 ? '' : o.toFixed(3); if (os !== s.op) { s.op = os; el.style.opacity = os; }
+      }
+      s.hid = hid;
+    }
+    updateCounts(nl, nr);
+    return active;
+  }
+
+  /* Entradas: rueda/trackpad y arrastre de la cuerda */
+  strip.addEventListener('wheel', e => {
+    if (!revealed || !S.scrollable || e.ctrlKey) return;
+    let d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;   // sin necesidad de Mayús
+    if (e.deltaMode === 1) d *= 16; else if (e.deltaMode === 2) d *= S.W;
+    if (!d) return;
+    e.preventDefault();                                                       // solo dentro de la tira
+    if (S.mode !== 'drag') { cancelAnim(); S.mode = 'wheel'; }
+    S.pending += d; clearTimeout(S.wheelT);
+    S.wheelT = setTimeout(() => { if (S.mode === 'wheel') { S.mode = 'free'; kick(); } }, 70);
+    kick();
+  }, { passive: false });
+  const hit = $('#ropeHit'); let dragId = null, lastX = 0;
+  hit.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || !S.scrollable) return;
+    e.preventDefault(); hit.setPointerCapture(e.pointerId); dragId = e.pointerId; lastX = e.clientX;
+    cancelAnim(); S.mode = 'drag'; S.pending = 0; strip.classList.add('rope-drag'); kick();
+  });
+  hit.addEventListener('pointermove', e => { if (e.pointerId !== dragId) return; S.pending += lastX - e.clientX; lastX = e.clientX; });
+  const endDrag = e => {
+    if (e.pointerId !== dragId) return; dragId = null; strip.classList.remove('rope-drag');
+    if (S.pending) { S.off += rubber(S.pending); S.pending = 0; }
+    S.mode = 'free'; kick();
+  };
+  hit.addEventListener('pointerup', endDrag); hit.addEventListener('pointercancel', endDrag);
+  cntL.addEventListener('click', () => page(-1)); cntR.addEventListener('click', () => page(1));
+  // El navegador no debe desplazar la pantalla simulada al enfocar tarjetas fuera de vista
+  screen.addEventListener('scroll', () => { screen.scrollLeft = 0; screen.scrollTop = 0; });
+
   /* --------- Render --------- */
   function render(opts = {}) {
-    const W = strip.clientWidth, sag = drawRope();
-    const cw = 150, gap = 14, total = items.length * cw + Math.max(0, items.length - 1) * gap;
-    let x = Math.max(24, (W - total) / 2);
+    S.W = strip.clientWidth; S.sag = drawRope();
+    const n = items.length, total = n * CW + Math.max(0, n - 1) * GAP;
+    S.scrollable = total + 2 * PAD > S.W; S.max = S.scrollable ? total + 2 * PAD - S.W : 0;
+    S.start = S.scrollable ? PAD : Math.max(PAD, (S.W - total) / 2);
+    strip.classList.toggle('scrollable', S.scrollable);
     emptyEl.style.display = items.length ? 'none' : 'block';
     const keep = new Set(items.map(i => i.id));
     [...cardsEl.children].forEach(el => { if (!keep.has(el.dataset.id) && !el.classList.contains('falling')) el.remove(); });
-    items.forEach(it => {
-      let el = cardsEl.querySelector(`[data-id="${it.id}"]`);
-      if (!el) { el = buildCard(it); cardsEl.appendChild(el); if (opts.arriving === it.id) arrive(el); }
-      el.style.left = x + 'px';
-      el.style.top = (14 + ropeY(x + cw / 2, W, sag)) + 'px';
+    items.forEach((it, idx) => {
+      let el = slotOf(it.id), created = false;
+      if (!el) {
+        el = buildCard(it); created = true;
+        const next = items[idx + 1] && slotOf(items[idx + 1].id);
+        cardsEl.insertBefore(el, next || null);                              // el DOM sigue el orden de la tira
+        el._s = { x: 0, cur: 0, v: 0, ang: 0, av: 0, hid: false, rot: '', op: '', fall: false, sw: el.querySelector('.swing') };
+        if (opts.arriving === it.id) arrive(el);
+      }
+      const s = el._s; s.x = S.start + idx * (CW + GAP);
+      if (created || opts.snap) { s.cur = s.x; s.v = 0; }
       el.querySelector('.card').style.rotate = it.tilt + 'deg';
-      x += cw + gap;
     });
-    syncRoving();
+    if (S.mode === 'idle' && (S.off < 0 || S.off > S.max)) { S.mode = 'free'; S.vel = 0; }
+    syncRoving(); tick(0); kick();
   }
 
   function buildCard(it) {
@@ -454,7 +669,7 @@
       if (e.detail === 1) act('copy', it, slot); else if (e.detail === 2) act('open', it, slot);
     });
     card.addEventListener('contextmenu', e => { e.preventDefault(); openMenu(e.clientX, e.clientY, it, slot); });
-    card.addEventListener('focus', () => { roving = items.findIndex(i => i.id === it.id); });
+    card.addEventListener('focus', () => { roving = items.findIndex(i => i.id === it.id); if (card.matches(':focus-visible')) ensureVisible(roving); });
     slot.querySelector('.close').addEventListener('click', e => { e.stopPropagation(); act('trash', it, slot); });
     slot.querySelector('.action').addEventListener('click', e => { e.stopPropagation(); act('markup', it, slot); });
   }
@@ -505,7 +720,7 @@
       if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); closeMenu(); }
     };
   }
-  function closeMenu() { if (ctx.style.display === 'none') return; ctx.style.display = 'none'; ctx.returnTo?.focus(); }
+  function closeMenu() { if (ctx.style.display === 'none') return; ctx.style.display = 'none'; ctx.returnTo?.focus({ preventScroll: true }); }
   document.addEventListener('mousedown', e => { if (!ctx.contains(e.target)) ctx.style.display = 'none'; });
 
   /* --------- Teclado: una sola parada de Tab, flechas entre tarjetas --------- */
@@ -517,12 +732,17 @@
       c.closest('.card-slot').setAttribute('aria-posinset', i + 1); c.closest('.card-slot').setAttribute('aria-setsize', cards.length); });
     return cards;
   }
+  function focusIdx(n) {
+    const cards = syncRoving(); if (!cards.length) return;
+    roving = clamp(n, 0, cards.length - 1); syncRoving();
+    cards[roving].focus({ preventScroll: true }); ensureVisible(roving);
+  }
   cardsEl.addEventListener('keydown', e => {
     if (e.key === 'Escape' && !e.target.closest('.card')) { e.preventDefault(); reveal(false); return; }
     const card = e.target.closest('.card'); if (!card) return;
     const cards = syncRoving(), i = cards.indexOf(card), slot = card.closest('.card-slot');
     const it = items.find(x => x.id === slot.dataset.id);
-    const go = n => { roving = n; syncRoving(); cards[n].focus(); };
+    const go = n => focusIdx(n);
     if (e.key === 'ArrowRight') { e.preventDefault(); go(Math.min(cards.length - 1, i + 1)); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); go(Math.max(0, i - 1)); }
     else if (e.key === 'Home') { e.preventDefault(); go(0); }
@@ -530,7 +750,7 @@
     else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act('copy', it, slot); }
     else if (e.key === 'm' || e.key === 'M') { e.preventDefault(); act('markup', it, slot); }
     else if (e.key === 'o' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); act('open', it, slot); }
-    else if ((e.key === 'Backspace' && (e.metaKey || e.ctrlKey)) || e.key === 'Delete') { e.preventDefault(); roving = Math.max(0, i - (i === cards.length - 1 ? 1 : 0)); act('trash', it, slot); syncRoving()[roving]?.focus(); }
+    else if ((e.key === 'Backspace' && (e.metaKey || e.ctrlKey)) || e.key === 'Delete') { e.preventDefault(); roving = Math.max(0, i - (i === cards.length - 1 ? 1 : 0)); act('trash', it, slot); focusIdx(roving); }
     else if ((e.key === 'F10' && e.shiftKey) || e.key === 'ContextMenu') { e.preventDefault(); const b = card.getBoundingClientRect(); openMenu(b.left + 40, b.top + 50, it, slot); }
     else if (e.key === 'Escape') { e.preventDefault(); reveal(false); }
   });
@@ -542,17 +762,27 @@
     setTimeout(() => slot.classList.remove('landing'), 500 * slow);
   }
   function addCapture() {
-    const it = makeItem(); items.unshift(it);
-    if (items.length > 8) items.pop();
-    if (!revealed) reveal(true);
-    render({ arriving: it.id });
+    if (adding) return;
+    const hang = () => {
+      adding = false;
+      const it = makeItem(0); items.unshift(it);
+      if (isFinite(cap)) items.splice(cap).forEach(o => fallOut(o.id));     // la más antigua sale (caída)
+      if (!revealed) reveal(true);
+      render({ arriving: it.id });
+    };
+    if (S.off > 2 && revealed) { adding = true; cancelAnim(); animateTo(0, 350, hang); }  // primero vuelve al inicio
+    else { if (S.off) jumpTo(0); hang(); }
   }
-  function discard(id) {
-    const slot = cardsEl.querySelector(`[data-id="${id}"]`); if (!slot) return;
+  function fallOut(id, after) {
+    const slot = slotOf(id); if (!slot) return;
+    slot._s.fall = true;
     slot.style.setProperty('--fall-rot', (Math.random() > .5 ? 1 : -1) * (12 + Math.random() * 10) + 'deg');
     slot.classList.add('falling');
+    setTimeout(() => { slot.remove(); render(); if (after) after(); }, 450 * slow);
+  }
+  function discard(id) {
     items = items.filter(i => i.id !== id);
-    setTimeout(() => { slot.remove(); render(); if (!items.length) caption.innerHTML = '<b>Tira vacía</b> tras descartar la última captura.'; }, 450 * slow);
+    fallOut(id, () => { if (!items.length) caption.innerHTML = '<b>Tira vacía</b> tras descartar la última captura.'; });
     render();
   }
   function reveal(on) {
@@ -586,8 +816,8 @@
   screen.addEventListener('mousemove', e => {
     if (!revealed) return;
     const r = screen.getBoundingClientRect(), y = e.clientY - r.top;
-    const busy = ctx.style.display === 'block' || ghost.style.display === 'block' || !!strip.querySelector(':focus-visible');
-    if (y > 24 + 168 && !busy) { if (!awayT) awayT = setTimeout(() => { reveal(false); awayT = null; }, 500 * slow); }
+    const busy = ctx.style.display === 'block' || ghost.style.display === 'block' || !!strip.querySelector(':focus-visible') || scrolling();
+    if (y > 24 + 168 && !busy) { if (!awayT) awayT = setTimeout(() => { if (!scrolling()) reveal(false); awayT = null; }, 500 * slow); }
     else { clearTimeout(awayT); awayT = null; }
   });
   document.querySelectorAll('[data-tab]').forEach(t => t.addEventListener('click', () => {
@@ -596,7 +826,17 @@
   }));
 
   /* --------- Estados --------- */
-  const fill = n => { items = []; seq = 0; cardsEl.innerHTML = ''; for (let i = 0; i < n; i++) items.push(makeItem()); };
+  const timers = [];
+  const later = (fn, ms) => { const id = setTimeout(fn, ms * slow); timers.push(id); return id; };
+  const every = (fn, ms) => { const id = setInterval(fn, ms); timers.push(id); return id; };
+  const clearDemo = () => { timers.forEach(id => { clearTimeout(id); clearInterval(id); }); timers.length = 0; };
+  const capBtns = document.querySelectorAll('#cap button');
+  const showCap = () => capBtns.forEach(b => b.setAttribute('aria-pressed', (b.dataset.v === 'inf' ? Infinity : +b.dataset.v) === cap));
+  const fill = n => {
+    clearDemo(); resetScroll();
+    if (n > cap) { cap = [8, 16, 32].find(v => v >= n) || Infinity; showCap(); }   // el estado necesita más capacidad
+    items = []; seq = 0; cardsEl.innerHTML = ''; for (let i = 0; i < n; i++) items.push(makeItem(i));
+  };
   const hoverFirst = cls => setTimeout(() => {
     const s = cardsEl.querySelector('.card-slot'); if (!s) return;
     s.querySelector('.card').classList.add(...cls); s.classList.add('show-close');
@@ -605,7 +845,24 @@
     ['recogida', 'Recogida', () => { fill(3); render(); reveal(false); }, 'La tira está oculta. Deja el puntero quieto 0,25 s en la barra de menús (verás una barra azul de progreso) o pulsa <kbd>T</kbd>.'],
     ['desplegando', 'Desplegándose', () => { fill(3); render(); reveal(false); reveal.swayed = false; setTimeout(() => reveal(true), 350); }, 'Desliza con muelle. En el primer despliegue de la sesión, vaivén leve (±1,5°); después, ninguno.'],
     ['una', '1 captura', () => { fill(1); render(); reveal(true); }, 'Una sola captura centrada bajo la cuerda.'],
-    ['ocho', '8 capturas (máximo)', () => { fill(8); render(); reveal(true); }, 'Ocho capturas siguiendo la caída de la cuerda.'],
+    ['ocho', '8 capturas', () => { fill(8); render(); reveal(true); }, 'Ocho capturas siguiendo la caída de la cuerda. Si la ventana es estrecha ya no caben y la tira se desplaza.'],
+    ['treinta', '32 capturas (scroll)', () => { fill(32); render(); reveal(true); },
+      'No caben: gira la rueda o el trackpad sobre la tira, o arrastra la cuerda (franja superior, cursor de mano). Observa que la cuerda no se mueve, las tarjetas se deslizan por su curva, se difuminan en los bordes y aparecen las cápsulas +N.'],
+    ['desplazando', 'Desplazándose (inclinación por velocidad)', () => { fill(32); render(); reveal(true);
+        later(() => flick(3200), 700); later(() => flick(-3200), 3000); },
+      'Lanza dos empujones automáticos. Observa: inercia con fricción, tarjetas inclinadas en sentido contrario a la velocidad (máx. 6°) que vuelven con oscilación amortiguada en menos de 1 s, y las de un lado reaccionando 1-2 fotogramas después.'],
+    ['rebote', 'Rebote en el borde', () => { fill(32); render(); reveal(true);
+        later(() => animateTo(S.max, 700), 500);
+        later(() => { cancelAnim(); S.mode = 'drag'; S.pending = 0; let n = 0; kick();
+          const id = every(() => { S.pending += 16; if (++n >= 28) { clearInterval(id); S.mode = 'free'; kick(); } }, 16); }, 1600); },
+      'Llega al final, empuja más allá (la resistencia crece, factor 0,55) y suelta: el muelle devuelve la tira al borde. Con Reducir movimiento no hay rebote (tope duro).'],
+    ['contadores', 'Contadores en los extremos', () => { fill(32); render(); reveal(true); jumpTo(S.max * .45); },
+      'Posición intermedia: cápsulas de vidrio «+N» a ambos lados con las capturas fuera de vista. Clic desplaza una página con animación; son botones con etiqueta («12 capturas más a la derecha»).'],
+    ['nuevaScroll', 'Nueva captura con la tira desplazada', () => { fill(32); render(); reveal(true); jumpTo(S.max * .5); later(addCapture, 900); },
+      'La tira vuelve primero al inicio (0,35 s) y luego cuelga la nueva; como el límite es 32, la más antigua cae. Pulsa <kbd>N</kbd> con la tira desplazada para repetir.'],
+    ['tecladoScroll', 'Teclado lleva la tarjeta a la vista', () => { fill(32); render(); reveal(true);
+        later(() => { focusIdx(0); let i = 0; const id = every(() => { if (++i > 14) { clearInterval(id); return; } focusIdx(i); }, 380); }, 600); },
+      'El foco avanza con → y la tarjeta enfocada entra en vista con animación al salir de la zona visible. Después sigue tú con ←/→/Inicio/Fin.'],
     ['llegada', 'Captura llegando', () => { fill(3); render(); reveal(true); setTimeout(addCapture, 400); }, 'La nueva cae, se balancea desde 10° y para en 0,9 s; las demás se apartan. Pulsa <kbd>N</kbd> para repetir.'],
     ['hover', 'Puntero encima', () => { fill(4); render(); reveal(true); hoverFirst(['hover']); }, 'Crece ×1,035 sin perder la inclinación. Aparecen ✕ y lápiz (24 pt, área 32 pt) y la hora/tamaño en cápsula legible. La captura no se tapa.'],
     ['press', 'Pulsación larga', () => { fill(4); render(); reveal(true); hoverFirst(['pressed']); }, 'Encoge a ×0,95 con anillo de acento y abre Marcación a los 0,5 s. Alternativas: botón lápiz, menú y tecla M.'],
@@ -618,7 +875,7 @@
     ['descartar', 'Descartando (caída)', () => { fill(4); render(); reveal(true); setTimeout(() => discard(items[1].id), 600); }, 'Cae girando y las demás se recolocan. Con Reducir movimiento, solo se desvanece.'],
     ['error', 'Archivo no encontrado', () => { fill(4); render(); reveal(true); markMissing(cardsEl.querySelectorAll('.card-slot')[2]); },
       'La captura se movió o borró fuera de la app: tarjeta atenuada; clic la quita de la tira. Si falla copiar, la cápsula dice «No se pudo copiar».'],
-    ['teclado', 'Navegación con teclado', () => { fill(5); render(); reveal(true); setTimeout(() => { roving = 1; syncRoving()[1].focus(); }, 450); },
+    ['teclado', 'Navegación con teclado', () => { fill(5); render(); reveal(true); setTimeout(() => focusIdx(1), 450); },
       'Una sola parada de Tab; flechas entre tarjetas. Prueba Intro, M, ⌘O, ⌘⌫, ⇧F10 y Esc.'],
     ['vacia', 'Tira vacía', () => { fill(0); render(); reveal(true); }, 'Mensaje en cápsula de material con colores del sistema.'],
     ['menu', 'Menú contextual', () => { fill(4); render(); reveal(true); setTimeout(() => {
@@ -629,7 +886,7 @@
   let current = 'recogida';
   function setCaption() { const s = STATES.find(s => s[0] === current); caption.innerHTML = `<b>${s[1]}.</b> ${s[3]}`; }
   function setState(key) {
-    current = key; ctx.style.display = 'none'; ghost.style.display = 'none';
+    current = key; clearDemo(); ctx.style.display = 'none'; ghost.style.display = 'none';
     document.querySelectorAll('.state-btn').forEach(b => b.setAttribute('aria-pressed', b.dataset.k === key));
     STATES.find(s => s[0] === key)[2](); setCaption();
   }
@@ -646,6 +903,11 @@
   });
   seg('#theme', v => document.documentElement.dataset.theme = v);
   seg('#wall', v => $('#wallEl').dataset.wall = v);
+  seg('#cap', v => {
+    cap = v === 'inf' ? Infinity : +v;
+    if (isFinite(cap) && items.length > cap) { items.splice(cap).forEach(o => fallOut(o.id)); announce(`Límite de ${cap} capturas`); }
+    render();
+  });
   const setReduce = v => { reduce = v; $('#reduce').checked = v; screen.classList.toggle('reduce', v); };
   $('#reduce').addEventListener('change', e => setReduce(e.target.checked));
   const mq = matchMedia('(prefers-reduced-motion: reduce)'); setReduce(mq.matches); mq.addEventListener('change', e => setReduce(e.matches));
@@ -668,9 +930,9 @@
   document.addEventListener('keydown', e => {
     if (e.target.closest('.card, .ctx')) return;
     if (e.key === 'n' || e.key === 'N') addCapture();
-    if (e.key === 't' || e.key === 'T') { if (!revealed) { reveal(true); setTimeout(() => syncRoving()[roving]?.focus(), 450); } else reveal(false); }
+    if (e.key === 't' || e.key === 'T') { if (!revealed) { reveal(true); setTimeout(() => focusIdx(roving), 450); } else reveal(false); }
   });
-  window.addEventListener('resize', () => render());
+  window.addEventListener('resize', () => render({ snap: true }));
 
   setState('recogida');
 })();
