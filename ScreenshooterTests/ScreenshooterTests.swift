@@ -224,4 +224,106 @@ final class ScreenshooterTests: XCTestCase {
         XCTAssertEqual(M.dragEndDecision(operation: .copy, fileExists: false), .keep)
         XCTAssertEqual(M.dragEndDecision(operation: [], fileExists: true), .keep)
     }
+    
+    // MARK: - RevealState
+    
+    private let t0 = Date(timeIntervalSinceReferenceDate: 1000)
+    
+    private func revealed() -> RevealState {
+        var st = RevealState()
+        st.didReveal()
+        return st
+    }
+    
+    func testRevealRequiresDwell() {
+        var st = RevealState()
+        XCTAssertEqual(st.tick(now: t0, inMenuBar: true, inZone: false, fullScreen: false, busy: false), .none)
+        XCTAssertEqual(st.tick(now: t0.addingTimeInterval(0.2), inMenuBar: true, inZone: false, fullScreen: false, busy: false), .none)
+        XCTAssertEqual(st.tick(now: t0.addingTimeInterval(0.25), inMenuBar: true, inZone: false, fullScreen: false, busy: false), .reveal)
+    }
+    
+    func testLeavingMenuBarResetsDwell() {
+        var st = RevealState()
+        _ = st.tick(now: t0, inMenuBar: true, inZone: false, fullScreen: false, busy: false)
+        _ = st.tick(now: t0.addingTimeInterval(0.2), inMenuBar: false, inZone: false, fullScreen: false, busy: false)
+        XCTAssertNil(st.hotZoneSince)
+        XCTAssertEqual(st.tick(now: t0.addingTimeInterval(0.3), inMenuBar: true, inZone: false, fullScreen: false, busy: false), .none)
+        XCTAssertEqual(st.tick(now: t0.addingTimeInterval(0.5), inMenuBar: true, inZone: false, fullScreen: false, busy: false), .none)
+        XCTAssertEqual(st.tick(now: t0.addingTimeInterval(0.55), inMenuBar: true, inZone: false, fullScreen: false, busy: false), .reveal)
+    }
+    
+    func testMenuBarClickSuppressesUntilPointerLeavesBand() {
+        var st = RevealState()
+        XCTAssertEqual(st.menuBarClicked(), .none)
+        XCTAssertEqual(st.tick(now: t0, inMenuBar: true, inZone: false, fullScreen: false, busy: false), .none)
+        XCTAssertEqual(st.tick(now: t0.addingTimeInterval(1), inMenuBar: true, inZone: false, fullScreen: false, busy: false), .none)
+        _ = st.tick(now: t0.addingTimeInterval(1.1), inMenuBar: false, inZone: false, fullScreen: false, busy: false)
+        XCTAssertFalse(st.menuBarSuppressed)
+        _ = st.tick(now: t0.addingTimeInterval(2), inMenuBar: true, inZone: false, fullScreen: false, busy: false)
+        XCTAssertEqual(st.tick(now: t0.addingTimeInterval(2.3), inMenuBar: true, inZone: false, fullScreen: false, busy: false), .reveal)
+    }
+    
+    func testMenuBarClickRetractsWhenRevealed() {
+        var st = revealed()
+        st.pin()
+        XCTAssertEqual(st.menuBarClicked(), .retract)
+        XCTAssertFalse(st.pinned)
+    }
+    
+    func testFullScreenBlocksReveal() {
+        var st = RevealState()
+        _ = st.tick(now: t0, inMenuBar: true, inZone: false, fullScreen: true, busy: false)
+        XCTAssertEqual(st.tick(now: t0.addingTimeInterval(5), inMenuBar: true, inZone: false, fullScreen: true, busy: false), .none)
+    }
+    
+    func testRetractsAfterHalfSecondAway() {
+        var st = revealed()
+        XCTAssertEqual(st.tick(now: t0, inMenuBar: false, inZone: false, fullScreen: false, busy: false), .none)
+        XCTAssertEqual(st.tick(now: t0.addingTimeInterval(0.4), inMenuBar: false, inZone: false, fullScreen: false, busy: false), .none)
+        XCTAssertEqual(st.tick(now: t0.addingTimeInterval(0.5), inMenuBar: false, inZone: false, fullScreen: false, busy: false), .retract)
+        st.didRetract()
+        XCTAssertFalse(st.isRevealed)
+    }
+    
+    func testReturningToZoneResetsAwayTimer() {
+        var st = revealed()
+        _ = st.tick(now: t0, inMenuBar: false, inZone: false, fullScreen: false, busy: false)
+        _ = st.tick(now: t0.addingTimeInterval(0.4), inMenuBar: false, inZone: true, fullScreen: false, busy: false)
+        XCTAssertEqual(st.tick(now: t0.addingTimeInterval(0.6), inMenuBar: false, inZone: false, fullScreen: false, busy: false), .none)
+    }
+    
+    func testPinnedDoesNotRetractUntilPointerEntersZone() {
+        var st = revealed()
+        st.pin()
+        XCTAssertEqual(st.tick(now: t0, inMenuBar: false, inZone: false, fullScreen: false, busy: false), .none)
+        XCTAssertEqual(st.tick(now: t0.addingTimeInterval(10), inMenuBar: false, inZone: false, fullScreen: false, busy: false), .none)
+        _ = st.tick(now: t0.addingTimeInterval(11), inMenuBar: false, inZone: true, fullScreen: false, busy: false)
+        XCTAssertFalse(st.pinned)
+        _ = st.tick(now: t0.addingTimeInterval(12), inMenuBar: false, inZone: false, fullScreen: false, busy: false)
+        XCTAssertEqual(st.tick(now: t0.addingTimeInterval(12.5), inMenuBar: false, inZone: false, fullScreen: false, busy: false), .retract)
+    }
+    
+    func testPeekPreventsRetractUntilExpired() {
+        var st = revealed()
+        st.peek(until: t0.addingTimeInterval(4))
+        XCTAssertEqual(st.tick(now: t0.addingTimeInterval(1), inMenuBar: false, inZone: false, fullScreen: false, busy: false), .none)
+        XCTAssertEqual(st.tick(now: t0.addingTimeInterval(3.9), inMenuBar: false, inZone: false, fullScreen: false, busy: false), .none)
+        XCTAssertEqual(st.tick(now: t0.addingTimeInterval(4.1), inMenuBar: false, inZone: false, fullScreen: false, busy: false), .none)
+        XCTAssertEqual(st.tick(now: t0.addingTimeInterval(4.6), inMenuBar: false, inZone: false, fullScreen: false, busy: false), .retract)
+    }
+    
+    func testBusyPreventsRetract() {
+        var st = revealed()
+        XCTAssertEqual(st.tick(now: t0, inMenuBar: false, inZone: false, fullScreen: false, busy: true), .none)
+        XCTAssertEqual(st.tick(now: t0.addingTimeInterval(5), inMenuBar: false, inZone: false, fullScreen: false, busy: true), .none)
+    }
+    
+    func testDidRetractClearsPinAndPeek() {
+        var st = revealed()
+        st.pin()
+        st.peek(until: t0.addingTimeInterval(100))
+        st.didRetract()
+        XCTAssertFalse(st.pinned)
+        XCTAssertEqual(st.peekUntil, .distantPast)
+    }
 }
