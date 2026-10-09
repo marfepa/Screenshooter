@@ -9,7 +9,7 @@ public final class TendederoPanel: NSPanel {
     public let tendederoView: TendederoView
     public var isRevealed: Bool { state.isRevealed }
     
-    private let panelHeight: CGFloat = 160
+    private let panelHeight: CGFloat = StripMotion.stripHeight
     private var state = RevealState()
     private var tickTimer: Timer?
     private var clickMonitors: [Any] = []
@@ -156,6 +156,9 @@ public final class TendederoPanel: NSPanel {
             if let s = screen { zone.size.height = s.frame.maxY - zone.minY }
             inZone = NSMouseInRect(mouse, zone, false)
             updateMousePassThrough(mouse)
+            if !TendederoCardView.isBusy {
+                tendederoView.updateHover(pointer: ignoresMouseEvents ? nil : convertPoint(fromScreen: mouse))
+            }
         }
         
         // La consulta de pantalla completa solo hace falta si podría revelarse.
