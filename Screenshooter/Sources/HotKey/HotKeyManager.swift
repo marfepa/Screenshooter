@@ -8,25 +8,47 @@ public final class HotKeyManager {
     public static let shared = HotKeyManager()
     
     private var hotKeyRef: EventHotKeyRef?
+    private var tendederoHotKeyRef: EventHotKeyRef?
     private var eventHandlerRef: EventHandlerRef?
     public var onHotKeyTriggered: (() -> Void)?
+    public var onTendederoHotKeyTriggered: (() -> Void)?
     
     private let signature = OSType(0x5343524E) // 'SCRN'
-    private let hotKeyIDNumber: UInt32 = 1
+    private let captureHotKeyIDNumber: UInt32 = 1
+    private let tendederoHotKeyIDNumber: UInt32 = 2
     
     private init() {}
     
-    /// Registra el atajo por defecto: Option + Command + S (⌥⌘S)
+    /// Registra el atajo por defecto para captura: Option + Command + S (⌥⌘S)
     public func registerDefaultHotKey() {
-        register(keyCode: UInt32(kVK_ANSI_S), modifiers: UInt32(cmdKey | optionKey))
+        registerCapture(keyCode: UInt32(kVK_ANSI_S), modifiers: UInt32(cmdKey | optionKey))
     }
     
-    /// Registra una combinación arbitraria de código de tecla y modificadores de Carbon
-    public func register(keyCode: UInt32, modifiers: UInt32) {
-        unregister()
+    /// Registra el atajo por defecto para el Tendedero: Control + Option + T (⌃⌥T)
+    public func registerTendederoHotKey() {
+        unregisterTendedero()
         installEventHandlerIfNeeded()
         
-        let hotKeyID = EventHotKeyID(signature: signature, id: hotKeyIDNumber)
+        let hotKeyID = EventHotKeyID(signature: signature, id: tendederoHotKeyIDNumber)
+        let status = RegisterEventHotKey(
+            UInt32(kVK_ANSI_T),
+            UInt32(controlKey | optionKey),
+            hotKeyID,
+            GetApplicationEventTarget(),
+            0,
+            &tendederoHotKeyRef
+        )
+        if status != noErr {
+            NSLog("[HotKeyManager] Error al registrar atajo de Tendedero (⌃⌥T): %d", status)
+        }
+    }
+    
+    /// Registra una combinación arbitraria de código de tecla y modificadores de Carbon para captura
+    public func registerCapture(keyCode: UInt32, modifiers: UInt32) {
+        unregisterCapture()
+        installEventHandlerIfNeeded()
+        
+        let hotKeyID = EventHotKeyID(signature: signature, id: captureHotKeyIDNumber)
         let status = RegisterEventHotKey(
             keyCode,
             modifiers,
@@ -43,11 +65,23 @@ public final class HotKeyManager {
         }
     }
     
-    /// Da de baja el atajo actualmente registrado
+    /// Da de baja los atajos actualmente registrados
     public func unregister() {
+        unregisterCapture()
+        unregisterTendedero()
+    }
+    
+    public func unregisterCapture() {
         if let ref = hotKeyRef {
             UnregisterEventHotKey(ref)
             hotKeyRef = nil
+        }
+    }
+    
+    public func unregisterTendedero() {
+        if let ref = tendederoHotKeyRef {
+            UnregisterEventHotKey(ref)
+            tendederoHotKeyRef = nil
         }
     }
     
@@ -74,7 +108,11 @@ public final class HotKeyManager {
             
             if status == noErr && hotKeyID.signature == OSType(0x5343524E) {
                 DispatchQueue.main.async {
-                    HotKeyManager.shared.onHotKeyTriggered?()
+                    if hotKeyID.id == 1 {
+                        HotKeyManager.shared.onHotKeyTriggered?()
+                    } else if hotKeyID.id == 2 {
+                        HotKeyManager.shared.onTendederoHotKeyTriggered?()
+                    }
                 }
             }
             return noErr

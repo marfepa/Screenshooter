@@ -60,8 +60,10 @@ public final class CaptureCoordinator {
         // sin interacción completada, cancelar automáticamente para evitar bloqueos.
         safetyTimer?.invalidate()
         safetyTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: false) { [weak self] _ in
-            NSLog("[CaptureCoordinator] Temporizador de seguridad: cancelando captura por inactividad.")
-            self?.cancelCapture()
+            Task { @MainActor in
+                NSLog("[CaptureCoordinator] Temporizador de seguridad: cancelando captura por inactividad.")
+                self?.cancelCapture()
+            }
         }
     }
     
@@ -89,12 +91,24 @@ public final class CaptureCoordinator {
                     playSound: true
                 )
                 
+                // Guardar en la caché del Tendedero y colgar la captura con animación de vuelo
+                let savedURL = TendederoManager.shared.saveToCache(cgImage: result.image)
+                if let url = savedURL {
+                    TendederoManager.shared.hang(
+                        url: url,
+                        cgImage: result.image,
+                        fromRect: rect,
+                        screen: screen
+                    )
+                }
+                
                 if copied {
-                    // Mostrar notificación HUD flotante durante 1.5s
+                    // Mostrar notificación HUD flotante breve durante 1.5s
                     self.activeHUD?.dismiss()
                     let hud = HUDNotificationWindow(
                         cgImage: result.image,
-                        pixelSize: CGSize(width: result.image.width, height: result.image.height)
+                        pixelSize: CGSize(width: result.image.width, height: result.image.height),
+                        fileURL: savedURL
                     )
                     self.activeHUD = hud
                     hud.present()
