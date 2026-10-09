@@ -569,4 +569,68 @@ final class ScreenshooterTests: XCTestCase {
         XCTAssertEqual(r.height, 70, accuracy: 1e-9)
         XCTAssertEqual(r.midY, 47, accuracy: 1e-9)
     }
+
+    // MARK: - Marcación
+
+    private func makePNG(width: Int, height: Int, r: UInt8, g: UInt8, b: UInt8, at url: URL) throws {
+        let ctx = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+                            space: CGColorSpaceCreateDeviceRGB(),
+                            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        ctx.setFillColor(CGColor(red: CGFloat(r)/255, green: CGFloat(g)/255, blue: CGFloat(b)/255, alpha: 1))
+        ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        let rep = NSBitmapImageRep(cgImage: ctx.makeImage()!)
+        try rep.representation(using: .png, properties: [:])!.write(to: url)
+    }
+
+    private func tempDir() throws -> URL {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("markup-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    func testReloadFromDiskPicksUpNewContentAndSize() throws {
+        let dir = try tempDir(); defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appendingPathComponent("a.png")
+        try makePNG(width: 4, height: 4, r: 255, g: 0, b: 0, at: url)
+        let src = CGImageSourceCreateWithURL(url as CFURL, nil)!
+        var item = TendederoItem(url: url, cgImage: CGImageSourceCreateImageAtIndex(src, 0, nil)!)
+        XCTAssertEqual(item.pixelSize, CGSize(width: 4, height: 4))
+
+        try makePNG(width: 6, height: 3, r: 0, g: 0, b: 255, at: url)
+        XCTAssertTrue(item.reloadFromDisk())
+
+        XCTAssertEqual(item.pixelSize, CGSize(width: 6, height: 3))
+        XCTAssertEqual(item.logicalSize, CGSize(width: 3, height: 1.5))
+        XCTAssertEqual(item.image.size, item.logicalSize)
+        let rep = NSBitmapImageRep(cgImage: item.cgImage)
+        let c = rep.colorAt(x: 0, y: 0)!.usingColorSpace(.deviceRGB)!
+        XCTAssertEqual(c.blueComponent, 1, accuracy: 0.02)
+        XCTAssertEqual(c.redComponent, 0, accuracy: 0.02)
+    }
+
+    func testResolveEditedCases() {
+        let original = URL(fileURLWithPath: "/tmp/orig.png")
+        let other = URL(fileURLWithPath: "/tmp/other/edited.png")
+        if case .sameFile = MarkupService.resolveEdited(items: [original as NSURL], original: original) {} else { XCTFail("sameFile") }
+        if case .sameFile = MarkupService.resolveEdited(items: [URL(fileURLWithPath: "/tmp/x/../orig.png")], original: original) {} else { XCTFail("sameFile estandarizada") }
+        if case .replace(let u) = MarkupService.resolveEdited(items: [other], original: original) { XCTAssertEqual(u, other) } else { XCTFail("replace") }
+        if case .image = MarkupService.resolveEdited(items: [NSImage(size: NSSize(width: 1, height: 1))], original: original) {} else { XCTFail("image") }
+        if case .none = MarkupService.resolveEdited(items: [], original: original) {} else { XCTFail("none") }
+        if case .none = MarkupService.resolveEdited(items: ["texto"], original: original) {} else { XCTFail("none texto") }
+    }
+
+    func testReplaceAtomicallyKeepsOriginalPathWithNewContent() throws {
+        let dir = try tempDir(); defer { try? FileManager.default.removeItem(at: dir) }
+        let original = dir.appendingPathComponent("orig.png")
+        let edited = dir.appendingPathComponent("edited.png")
+        try Data("old".utf8).write(to: original)
+        try Data("new-content".utf8).write(to: edited)
+
+        XCTAssertTrue(MarkupService.replaceAtomically(original: original, with: edited))
+
+        XCTAssertEqual(try Data(contentsOf: original), Data("new-content".utf8))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: edited.path), "La copia de origen no se toca")
+        let names = try FileManager.default.contentsOfDirectory(atPath: dir.path).sorted()
+        XCTAssertEqual(names, ["edited.png", "orig.png"], "Sin temporales sobrantes")
+    }
 }
