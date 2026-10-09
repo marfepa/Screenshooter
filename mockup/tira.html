@@ -28,6 +28,8 @@
     /* Vidrio (equivalente a NSVisualEffectView .popover) */
     --glass-fill: rgba(40,40,44,0.74);
     --glass-edge: rgba(255,255,255,0.22);
+    --chip-fill: rgba(40,40,44,0.9);          /* cápsulas de contador: relleno >= 0,88 */
+    --chip-edge: rgba(255,255,255,0.42);
     --glass-highlight: rgba(255,255,255,0.10);
     --menubar-bg: rgba(30,30,32,0.55);
     --menubar-text: rgba(255,255,255,0.92);
@@ -50,13 +52,15 @@
     --shadow-menu: 0 10px 30px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.08);
     --glass-fill: rgba(250,250,252,0.78);
     --glass-edge: rgba(255,255,255,0.75);
+    --chip-fill: rgba(250,250,252,0.92);
+    --chip-edge: rgba(0,0,0,0.28);
     --glass-highlight: rgba(255,255,255,0.55);
     --menubar-bg: rgba(246,246,246,0.6);
     --menubar-text: rgba(0,0,0,0.85);
   }
 
   /* Reducir transparencia: vidrio → sólido */
-  .no-transparency { --glass-fill: var(--bg-surface); }
+  .no-transparency { --glass-fill: var(--bg-surface); --chip-fill: var(--bg-surface); }
   .no-transparency .card, .no-transparency .close, .no-transparency .action, .no-transparency .badge,
   .no-transparency .meta, .no-transparency .empty, .no-transparency .peg, .no-transparency .ctx, .no-transparency .edge-count {
     backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
@@ -148,22 +152,28 @@
   .strip.scrollable .card-slot { will-change: translate; }
   .strip.moving .swing { will-change: rotate; }
 
-  /* Franja de cuerda arrastrable (solo con scroll); el resto de la tira sigue dejando pasar los clics */
-  .rope-hit { position: absolute; left: 0; right: 0; top: 0; height: 36px; pointer-events: none; touch-action: none; }
-  .strip.scrollable .rope-hit { pointer-events: auto; cursor: grab; }
-  .strip.rope-drag .rope-hit { cursor: grabbing; }
+  /* Franja de cuerda arrastrable: solo ±10 px alrededor de la curva (trazo invisible); el resto pasa los clics */
+  .rope-hit { position: absolute; left: 0; right: 0; top: 10px; height: 14px; overflow: visible; pointer-events: none; touch-action: none; }
+  .rope-hit path { fill: none; stroke: transparent; stroke-width: 20; pointer-events: none; }
+  .strip.scrollable .rope-hit path { pointer-events: stroke; cursor: grab; }
+  .strip.rope-drag .rope-hit path { cursor: grabbing; }
+  .strip.rope-hover .rope path:nth-of-type(2), .strip.rope-drag .rope path:nth-of-type(2) { stroke-width: 2.6; }
+  .strip.rope-hover .rope path:nth-of-type(3), .strip.rope-drag .rope path:nth-of-type(3) { stroke-width: .8; }
 
   /* Contadores de tarjetas fuera de vista */
-  .edge-count { position: absolute; top: 66px; z-index: 5; height: 28px; min-width: 48px; padding: 0 11px; gap: 4px;
+  .edge-count { position: absolute; top: 56px; z-index: 5; height: 36px; min-width: 52px; padding: 0 13px; gap: 5px;
                 display: flex; align-items: center; justify-content: center; border: none; border-radius: 999px;
                 font: inherit; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text-primary);
-                background: var(--glass-fill); backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
-                box-shadow: inset 0 0 0 .5px var(--glass-edge), inset 0 1px 0 var(--glass-highlight), 0 4px 12px rgba(0,0,0,.2);
+                background: var(--chip-fill); backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
+                box-shadow: inset 0 0 0 1px var(--chip-edge), inset 0 1px 0 var(--glass-highlight), 0 4px 12px rgba(0,0,0,.25);
                 cursor: pointer; opacity: 0; visibility: hidden; pointer-events: none;
                 transition: opacity .18s ease, transform .18s ease, visibility 0s .18s; }
   .edge-count.on { opacity: 1; visibility: visible; pointer-events: auto; transition-delay: 0s; }
   .edge-count.left { left: 10px; } .edge-count.right { right: 10px; }
-  .edge-count::before { content: ""; position: absolute; inset: -4px; border-radius: 999px; } /* área 36 pt */
+  .edge-count.bump { animation: bump .6s ease-out; }
+  @keyframes bump { 0% { transform: scale(1); } 25% { transform: scale(1.22); box-shadow: inset 0 0 0 2px var(--mac-blue), 0 4px 12px rgba(0,0,0,.25); } 100% { transform: scale(1); } }
+  .reduce .edge-count.bump { animation: fade-in .4s ease; }
+  .help { margin-top: 6px; color: var(--text-muted); font-size: 11.5px; line-height: 1.4; }
   .edge-count:hover { transform: scale(1.06); } .edge-count:active { transform: scale(.95); }
   .edge-count:focus-visible { outline: 2px solid var(--mac-blue); outline-offset: 2px; }
   .edge-count svg { width: 8px; height: 10px; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
@@ -302,6 +312,7 @@
   <div class="seg" id="cap" role="group" aria-label="Capturas en la tira">
     <button data-v="8" aria-pressed="false">8</button><button data-v="16" aria-pressed="false">16</button><button data-v="32" aria-pressed="true">32</button><button data-v="inf" aria-pressed="false" style="flex:1.9">Sin límite</button>
   </div>
+  <p class="help">Sin límite conserva todas las capturas en disco hasta que las quites; puede ocupar mucho espacio.</p>
 
   <h3>Apariencia</h3>
   <div class="seg" id="theme" role="group" aria-label="Tema">
@@ -345,9 +356,10 @@
     <div class="hot-hint" id="hot" title="Deja el puntero quieto aquí 0,25 s"></div>
     <div class="dwell" id="dwell"></div>
 
-    <div class="strip" id="strip" role="region" aria-label="Capturas recientes">
+    <div class="strip" id="strip" role="region" aria-label="Capturas recientes" aria-describedby="stripDesc">
+      <span class="sr-only" id="stripDesc"></span>
       <svg class="rope" id="rope" preserveAspectRatio="none" aria-hidden="true"></svg>
-      <div class="rope-hit" id="ropeHit" aria-hidden="true"></div>
+      <svg class="rope-hit" id="ropeHit" preserveAspectRatio="none" aria-hidden="true"></svg>
       <div class="cards" id="cards" role="list"></div>
       <button class="edge-count left" id="cntL" type="button" tabindex="0"><svg viewBox="0 0 8 10" aria-hidden="true"><path d="M6 1L2 5l4 4"/></svg><b></b></button>
       <button class="edge-count right" id="cntR" type="button" tabindex="0"><b></b><svg viewBox="0 0 8 10" aria-hidden="true"><path d="M2 1l4 4-4 4"/></svg></button>
@@ -387,13 +399,23 @@
   const FRICTION = 0.95, FRICTION_REDUCED = 0.86;  // por fotograma a 60 fps (inercia estilo macOS)
   const RUBBER = 0.55, RUBBER_MAX = 160;           // resistencia al estirar más allá del borde / tope de estiramiento
   const BACK_K = 140, BACK_C = 22;                 // muelle de vuelta desde el rebote (casi crítico)
-  const TILT_K = 0.004, TILT_MAX = 6;              // grados por (px/s) y tope en grados
-  const TILT_KS = 220, TILT_CS = 15;               // muelle de inclinación (ζ≈0,5; reposo < 1 s)
-  const LAG_MAX = 1.6;                             // retraso de fase máximo entre tarjetas, en fotogramas
+  const TILT_K = 0.0025, TILT_MAX = 3.5;           // grados por (px/s) y tope en grados
+  const TILT_KS = 220, TILT_CS = 20.8;             // muelle de inclinación (ζ≈0,7; reposo < 0,6 s)
+  const LAG_MAX = 1;                               // retraso de fase máximo entre tarjetas, en fotogramas
+  /* ESPECIFICACIÓN (AppKit)
+     - Hit-testing selectivo: el panel solo captura el ratón sobre tarjetas, contadores y la franja de cuerda
+       (±10 px alrededor de la curva). Fuera de esas zonas el evento pasa a la app de debajo. La rueda solo
+       se consume sobre esas mismas zonas, nunca en los huecos.
+     - Trackpad: usar las fases y el momentum del sistema (NSEvent.phase / momentumPhase); NO añadir inercia
+       propia. Inercia propia (fricción 0,95/frame) solo para el arrastre de la cuerda y la rueda de ratón.
+     - Histéresis de eje: al empezar un gesto de scroll se fija el eje dominante (horizontal o vertical) y
+       solo cambia si el otro eje supera 3x al fijado; se libera al terminar el gesto.
+     - Inclinación solo con scroll del usuario (rueda, arrastre, inercia); sin inclinación en desplazamientos
+       programáticos (teclado, contadores, volver al inicio). */
   const LAYOUT_K = 140, LAYOUT_C = 17.7;           // reacomodo al añadir/quitar tarjetas
   const FADE_ZONE = 40;                            // desvanecimiento en los extremos
   const S = { off: 0, vel: 0, mode: 'idle', pending: 0, anim: null, max: 0, scrollable: false, start: PAD, W: 0, sag: 0 };
-  const offH = new Array(6).fill(0), velH = new Array(6).fill(0);
+  const offH = new Array(6).fill(0), velH = new Array(6).fill(0), tvH = new Array(6).fill(0);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
   const makeItem = (age = 0) => {
@@ -419,6 +441,9 @@
         <path d="${d}" stroke="var(--rope-core)" stroke-width="1.5"/>
         <path d="${d}" stroke="var(--rope-light)" stroke-width=".4" transform="translate(0,-.35)"/>
       </g>`;
+    const h = $('#ropeHit');
+    h.setAttribute('viewBox', `0 0 ${W} 14`);
+    h.innerHTML = `<path d="${d}"><title>Arrastra para desplazar</title></path>`;
     return sag;
   }
   const ropeY = (x, W, sag) => { const t = x / W; return 4 * sag * t * (1 - t); };
@@ -450,16 +475,23 @@
   }
   function animateTo(t, ms, cb) {
     t = clamp(t, 0, S.max); S.pending = 0;
+    if (reduce) {                                   // Reducir movimiento: salto instantáneo con fundido corto
+      S.anim = null; S.mode = 'idle'; S.vel = 0; S.off = t; S.moved = true;
+      offH.fill(t); velH.fill(0); tvH.fill(0); tick(0); kick();
+      cardsEl.animate([{ opacity: .35 }, { opacity: 1 }], { duration: 150 });
+      if (cb) cb(false);
+      return;
+    }
     S.mode = 'anim'; S.anim = { from: S.off, to: t, t: 0, dur: (reduce ? Math.min(ms, 160) : ms) / 1000, cb };
     kick();
   }
   function resetScroll() {
     S.anim = null; S.mode = 'idle'; S.off = 0; S.vel = 0; S.pending = 0; adding = false;
-    offH.fill(0); velH.fill(0); strip.classList.remove('rope-drag');
+    offH.fill(0); velH.fill(0); tvH.fill(0); strip.classList.remove('rope-drag'); S.axis = null; S.note = ''; S.moved = false;
   }
   function jumpTo(o) {
     S.anim = null; S.mode = 'idle'; S.off = clamp(o, 0, S.max); S.vel = 0; S.pending = 0;
-    offH.fill(S.off); velH.fill(0); tick(0);
+    offH.fill(S.off); velH.fill(0); tvH.fill(0); tick(0);
   }
   function flick(v) { cancelAnim(); S.mode = 'free'; S.vel = v; kick(); }
   function ensureVisible(idx) {
@@ -475,11 +507,19 @@
     const base = S.anim ? S.anim.to : S.off;
     cancelAnim(); animateTo(clamp(base + dir * S.W * 0.8, 0, S.max), 420);
   }
+  function bump(btn) { btn.classList.remove('bump'); void btn.offsetWidth; btn.classList.add('bump'); }
+  /* Anuncio al reposar (debounce): rango visible o nota especial (p. ej. captura nueva) */
+  function announceRest() {
+    const n = items.length; if (!revealed || !n) return;
+    if (S.note) { announce(S.note.replace('{n}', n)); S.note = ''; return; }
+    if (!S.scrollable) return;
+    announce(`Mostrando de la ${counts.L + 1} a la ${n - counts.R} de ${n}`);
+  }
   function updateCounts(nl, nr) {
     [[cntL, nl, 'L', 'izquierda'], [cntR, nr, 'R', 'derecha']].forEach(([btn, n, k, side]) => {
       if (n === counts[k]) return; counts[k] = n;
       btn.classList.toggle('on', n > 0);
-      if (n > 0) { btn.querySelector('b').textContent = '+' + n; btn.setAttribute('aria-label', `${n} ${n === 1 ? 'captura más' : 'capturas más'} a la ${side}`); }
+      if (n > 0) { btn.querySelector('b').textContent = '+' + n; btn.setAttribute('aria-label', `Mostrar ${n} ${n === 1 ? 'captura más' : 'capturas más'} a la ${side}`); }
       else if (document.activeElement === btn) focusIdx(roving);
     });
   }
@@ -487,7 +527,7 @@
   /* Un paso de simulación. Devuelve true si algo sigue en movimiento. */
   function tick(dt) {
     let active = false;
-    const prev = S.off;
+    const prev = S.off, progr = S.mode === 'anim';   // desplazamiento programático: sin inclinación
     if (S.mode === 'drag' || S.mode === 'wheel') {
       const d = S.pending; S.pending = 0;
       if (d) S.off += rubber(d);
@@ -514,8 +554,10 @@
       }
     }
     if (S.mode !== 'idle') active = true;
-    if (dt > 0) { offH.unshift(S.off); offH.pop(); velH.unshift(S.vel); velH.pop(); }
+    if (dt > 0) { offH.unshift(S.off); offH.pop(); velH.unshift(S.vel); velH.pop(); tvH.unshift(progr ? 0 : S.vel); tvH.pop(); }
     if (velH.some(v => Math.abs(v) > 0.5) || offH.some(o => o !== offH[0])) active = true;
+    if (S.mode !== 'idle') S.moved = true;
+    const FZ = screen.classList.contains('hi-contrast') ? 16 : FADE_ZONE;
 
     const W = S.W, sag = S.sag, dir = velH[0] >= 0;
     let nl = 0, nr = 0;
@@ -527,13 +569,13 @@
                if (Math.abs(s.cur - s.x) < 0.2 && Math.abs(s.v) < 2) { s.cur = s.x; s.v = 0; } }
         active = true;
       }
-      if (!s.fall) { const nom = s.cur - S.off; if (nom + CW <= 8) nl++; else if (nom >= W - 8) nr++; }
+      if (!s.fall) { const nom = s.cur - S.off; if (nom < -1) nl++; else if (nom + CW > W + 1) nr++; }   // parcialmente fuera ya cuenta
       // Retraso de fase: las tarjetas del lado "de cola" reaccionan 1-2 fotogramas después
       const f = clamp((s.cur - S.off) / W, 0, 1), lag = reduce ? 0 : LAG_MAX * (dir ? f : 1 - f);
       const sx = s.cur - sample(offH, lag), cx = sx + CW / 2;
       const y = 4 * sag * (cx / W) * (1 - cx / W);                         // misma curva que la cuerda (fija)
       // Inclinación contraria a la velocidad + muelle amortiguado
-      const target = reduce ? 0 : -clamp(sample(velH, lag) * TILT_K, -TILT_MAX, TILT_MAX);
+      const target = reduce ? 0 : -clamp(sample(tvH, lag) * TILT_K, -TILT_MAX, TILT_MAX);
       if (reduce) { s.ang = 0; s.av = 0; }
       else { s.av += (-TILT_KS * (s.ang - target) - TILT_CS * s.av) * dt; s.ang += s.av * dt; }
       if (Math.abs(s.ang) < 0.01 && Math.abs(s.av) < 0.05 && Math.abs(target) < 0.01) { s.ang = 0; s.av = 0; } else active = true;
@@ -543,25 +585,37 @@
         el.style.translate = `${sx.toFixed(1)}px ${y.toFixed(2)}px`;
         const r = s.ang.toFixed(2) + 'deg'; if (r !== s.rot) { s.rot = r; s.sw.style.rotate = r; }
         let o = 1;
-        if (S.scrollable) o = clamp((Math.min(cx, W - cx) + FADE_ZONE * .75) / (FADE_ZONE * 1.75), 0, 1);  // 40 px extremos
+        if (S.scrollable) o = clamp((Math.min(cx, W - cx) + FZ * .75) / (FZ * 1.75), 0, 1);  // 40 px extremos (16 px con Aumentar contraste)
         const os = o >= .999 ? '' : o.toFixed(3); if (os !== s.op) { s.op = os; el.style.opacity = os; }
       }
       s.hid = hid;
     }
     updateCounts(nl, nr);
+    if (!active && S.moved) { S.moved = false; clearTimeout(S.restT); S.restT = setTimeout(announceRest, 400); }
     return active;
   }
 
   /* Entradas: rueda/trackpad y arrastre de la cuerda */
   strip.addEventListener('wheel', e => {
     if (!revealed || !S.scrollable || e.ctrlKey) return;
-    let d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;   // sin necesidad de Mayús
-    if (e.deltaMode === 1) d *= 16; else if (e.deltaMode === 2) d *= S.W;
+    if (!e.target.closest('.card-slot, .edge-count, .rope-hit')) return;     // solo sobre tarjetas, contadores y cuerda
+    let dx = e.deltaX, dy = e.deltaY;
+    if (e.deltaMode === 1) { dx *= 16; dy *= 16; } else if (e.deltaMode === 2) { dx *= S.W; dy *= S.W; }
+    // Histéresis de eje: se fija al empezar el gesto y solo cambia si el otro eje supera 3x
+    if (!S.axis) S.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+    else if (S.axis === 'x' && Math.abs(dy) > 3 * Math.abs(dx) && Math.abs(dy) > 4) S.axis = 'y';
+    else if (S.axis === 'y' && Math.abs(dx) > 3 * Math.abs(dy) && Math.abs(dx) > 4) S.axis = 'x';
+    const d = S.axis === 'x' ? dx : dy;
     if (!d) return;
-    e.preventDefault();                                                       // solo dentro de la tira
+    e.preventDefault();
     if (S.mode !== 'drag') { cancelAnim(); S.mode = 'wheel'; }
+    // Trackpad (deltas finos, píxeles): el sistema ya envía momentum, sin inercia propia. Rueda de ratón: inercia propia.
+    S.padKind = e.deltaMode === 0 && (Math.abs(d) < 50 || !Number.isInteger(d));
     S.pending += d; clearTimeout(S.wheelT);
-    S.wheelT = setTimeout(() => { if (S.mode === 'wheel') { S.mode = 'free'; kick(); } }, 70);
+    S.wheelT = setTimeout(() => {
+      S.axis = null;
+      if (S.mode === 'wheel') { S.mode = 'free'; if (S.padKind) S.vel = 0; kick(); }
+    }, 100);
     kick();
   }, { passive: false });
   const hit = $('#ropeHit'); let dragId = null, lastX = 0;
@@ -576,6 +630,8 @@
     if (S.pending) { S.off += rubber(S.pending); S.pending = 0; }
     S.mode = 'free'; kick();
   };
+  hit.addEventListener('pointerenter', () => strip.classList.add('rope-hover'));
+  hit.addEventListener('pointerleave', () => strip.classList.remove('rope-hover'));
   hit.addEventListener('pointerup', endDrag); hit.addEventListener('pointercancel', endDrag);
   cntL.addEventListener('click', () => page(-1)); cntR.addEventListener('click', () => page(1));
   // El navegador no debe desplazar la pantalla simulada al enfocar tarjetas fuera de vista
@@ -605,7 +661,13 @@
       el.querySelector('.card').style.rotate = it.tilt + 'deg';
     });
     if (S.mode === 'idle' && (S.off < 0 || S.off > S.max)) { S.mode = 'free'; S.vel = 0; }
-    syncRoving(); tick(0); kick();
+    $('#stripDesc').textContent = `${n} ${n === 1 ? 'captura' : 'capturas'}`;
+    syncRoving(); tick(0); kick(); maybeTug();
+  }
+  /* Tirón de la cuerda: una sola vez, la primera vez que la tira es desplazable (no con Reducir movimiento) */
+  function maybeTug() {
+    if (S.tugged || !S.scrollable || !revealed || reduce) return;
+    S.tugged = true; setTimeout(() => { if (S.mode === 'idle' && S.off === 0) flick(-380); }, 500);
   }
 
   function buildCard(it) {
@@ -747,6 +809,8 @@
     else if (e.key === 'ArrowLeft') { e.preventDefault(); go(Math.max(0, i - 1)); }
     else if (e.key === 'Home') { e.preventDefault(); go(0); }
     else if (e.key === 'End') { e.preventDefault(); go(cards.length - 1); }
+    else if (e.key === 'PageDown') { e.preventDefault(); page(1); }
+    else if (e.key === 'PageUp') { e.preventDefault(); page(-1); }
     else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act('copy', it, slot); }
     else if (e.key === 'm' || e.key === 'M') { e.preventDefault(); act('markup', it, slot); }
     else if (e.key === 'o' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); act('open', it, slot); }
@@ -761,17 +825,29 @@
     const sw = slot.querySelector('.swing'); sw.classList.remove('arrive'); void sw.offsetWidth; sw.classList.add('arrive');
     setTimeout(() => slot.classList.remove('landing'), 500 * slow);
   }
+  let hoverStrip = false;
+  strip.addEventListener('mouseenter', () => hoverStrip = true);
+  strip.addEventListener('mouseleave', () => hoverStrip = false);
+  const interacting = () => S.mode === 'drag' || S.mode === 'wheel' || hoverStrip || !!document.activeElement?.closest?.('.card-slot');
   function addCapture() {
     if (adding) return;
-    const hang = () => {
+    const hang = (keep) => {
       adding = false;
-      const it = makeItem(0); items.unshift(it);
+      const step = CW + GAP, it = makeItem(0); items.unshift(it);
+      if (keep) {                                   // el usuario está en ello: no mover la vista, +1 en el contador izquierdo
+        S.off += step; for (let i = 0; i < offH.length; i++) offH[i] += step;
+        if (S.anim) { S.anim.from += step; S.anim.to += step; }
+      }
       if (isFinite(cap)) items.splice(cap).forEach(o => fallOut(o.id));     // la más antigua sale (caída)
       if (!revealed) reveal(true);
-      render({ arriving: it.id });
+      render({ arriving: keep ? null : it.id, snap: !!keep });
+      if (keep) { bump(cntL); announce('Nueva captura añadida a la izquierda'); }
+      else if (S.off === 0 && S.scrollable) { S.note = 'Nueva captura. Tira al inicio, {n} capturas'; S.moved = true; kick(); }
     };
-    if (S.off > 2 && revealed) { adding = true; cancelAnim(); animateTo(0, 350, hang); }  // primero vuelve al inicio
-    else { if (S.off) jumpTo(0); hang(); }
+    if (S.off > 2 && revealed) {
+      if (interacting()) { hang(true); return; }
+      adding = true; cancelAnim(); animateTo(0, 350, () => hang(false));          // primero vuelve al inicio
+    } else { if (S.off) jumpTo(0); hang(false); }
   }
   function fallOut(id, after) {
     const slot = slotOf(id); if (!slot) return;
@@ -792,7 +868,7 @@
     strip.classList.toggle('revealed', on);
     if (!on && strip.contains(document.activeElement)) { (reveal.returnFocus || document.body).focus?.(); }
     if (on) reveal.returnFocus = document.activeElement !== document.body ? document.activeElement : null;
-    strip.inert = !on; syncRoving();
+    strip.inert = !on; syncRoving(); if (on) setTimeout(maybeTug, 450);
     if (on && !reduce && !reveal.swayed) {
       reveal.swayed = true; // solo en el primer despliegue de la sesión
       cardsEl.querySelectorAll('.swing').forEach(sw => {
@@ -905,7 +981,10 @@
   seg('#wall', v => $('#wallEl').dataset.wall = v);
   seg('#cap', v => {
     cap = v === 'inf' ? Infinity : +v;
-    if (isFinite(cap) && items.length > cap) { items.splice(cap).forEach(o => fallOut(o.id)); announce(`Límite de ${cap} capturas`); }
+    if (isFinite(cap) && items.length > cap) {
+      const gone = items.splice(cap); gone.forEach(o => fallOut(o.id));
+      announce(`Se quitaron ${gone.length} ${gone.length === 1 ? 'captura más antigua' : 'capturas más antiguas'}`);
+    }
     render();
   });
   const setReduce = v => { reduce = v; $('#reduce').checked = v; screen.classList.toggle('reduce', v); };
