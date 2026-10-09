@@ -1,4 +1,5 @@
 import AppKit
+import ImageIO
 
 /// Modelo que representa una captura colgada en el Tendedero.
 public struct TendederoItem: Identifiable, Equatable {
@@ -6,8 +7,8 @@ public struct TendederoItem: Identifiable, Equatable {
     public let url: URL
     public var image: NSImage
     public var cgImage: CGImage
-    public let pixelSize: CGSize
-    public let logicalSize: CGSize
+    public private(set) var pixelSize: CGSize
+    public private(set) var logicalSize: CGSize
     /// Ligera inclinación aleatoria (-2.5° a +2.5°) para simular una foto colgada con pinzas
     public let tilt: Double
     public let createdAt: Date
@@ -37,14 +38,26 @@ public struct TendederoItem: Identifiable, Equatable {
     }
     
     /// Recarga la imagen desde el disco tras una edición en Marcación (Markup).
-    public mutating func reloadFromDisk() {
-        guard let data = try? Data(contentsOf: url),
-              let nsImg = NSImage(data: data),
-              let cgImg = nsImg.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-            return
+    /// Lee sin caché (el archivo puede haber sido sustituido) y actualiza tamaños si Marcación recortó.
+    /// Devuelve `true` si se pudo leer una imagen válida.
+    @discardableResult
+    public mutating func reloadFromDisk() -> Bool {
+        let options = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, options),
+              CGImageSourceGetCount(source) > 0,
+              let cgImg = CGImageSourceCreateImageAtIndex(source, 0, options) else {
+            return false
         }
+        // Conserva la relación píxeles/puntos del item (p. ej. 2x en Retina).
+        let scaleX = pixelSize.width > 0 ? logicalSize.width / pixelSize.width : 0.5
+        let scaleY = pixelSize.height > 0 ? logicalSize.height / pixelSize.height : 0.5
+        let newPixels = CGSize(width: cgImg.width, height: cgImg.height)
+        let newLogical = CGSize(width: newPixels.width * scaleX, height: newPixels.height * scaleY)
         self.cgImage = cgImg
-        self.image = nsImg
+        self.pixelSize = newPixels
+        self.logicalSize = newLogical
+        self.image = NSImage(cgImage: cgImg, size: newLogical)
+        return true
     }
     
     public static func == (lhs: TendederoItem, rhs: TendederoItem) -> Bool {
