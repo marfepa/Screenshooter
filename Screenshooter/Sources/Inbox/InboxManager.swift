@@ -42,7 +42,10 @@ public final class InboxManager {
     
     /// ¿Es una ruta nuestra (caché o Inbox) y por tanto nunca una location "original" del usuario?
     nonisolated static func isOwnFolder(path: String) -> Bool {
-        let own = [StripManager.screenshotsDirectory, StripManager.inboxDirectory]
+        // Incluye las rutas anteriores (`Screenshots`) por si el sistema aún apunta a ellas.
+        let base = StripStorage.defaultBase
+        let own = [StripStorage.cacheDirectory(base: base), StripStorage.inboxDirectory(base: base),
+                   StripStorage.legacyCacheDirectory(base: base), StripStorage.legacyInboxDirectory(base: base)]
             .map { $0.standardizedFileURL.path }
         return own.contains(URL(fileURLWithPath: path).standardizedFileURL.path)
     }
@@ -60,6 +63,9 @@ public final class InboxManager {
     }
     
     private init() {
+        // Con el Modo Inbox activo, `enableInboxMode` vuelve a escribir la `location` del sistema
+        // en la carpeta nueva (`Shelf/Inbox`) y reinicia SystemUIServer, tras migrar la caché
+        // anterior (la migración corre al acceder por primera vez a `StripManager.inboxDirectory`).
         if isEnabled {
             enableInboxMode()
         }

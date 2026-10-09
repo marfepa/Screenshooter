@@ -13,6 +13,7 @@
 		188C21A727F1163933D67BC8 /* StripScroll.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE87426534B4289E8930FB69 /* StripScroll.swift */; };
 		1C3BCC2E642377B687C0F4EE /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CDE7BA3B69BEA8670015B341 /* AudioToolbox.framework */; };
 		3410F57918EDDCDEA5C1816A /* ClipboardService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15508D845249EB71E7890746 /* ClipboardService.swift */; };
+		3969EAC9CD06CC4488626D7B /* StripStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D9645AAF72DE3004FAB2830 /* StripStorage.swift */; };
 		3D4D2B232545AAABA0FE5431 /* ScreenCaptureEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEB515DCE044BAE6D81D56E7 /* ScreenCaptureEngine.swift */; };
 		4653520BF775F8CC63623EA7 /* FullScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 868201BE2896991A061B5F1B /* FullScreen.swift */; };
 		4AB953028BB60918D5F52546 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 47C393AFF90FCC997EB753B3 /* Assets.xcassets */; };
@@ -24,6 +25,7 @@
 		67C0279971A1D6A7BAD72021 /* StripCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE96DE64A89AED3614B3FB7C /* StripCardView.swift */; };
 		72E774F8225110DF8095EAE8 /* LaunchAtLoginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4FBD565BD370B5BF7FB4839 /* LaunchAtLoginManager.swift */; };
 		7DA1FF9C6E2A8EBD95EE9BB9 /* HUDNotificationWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20E2823015DF063215FA3F84 /* HUDNotificationWindow.swift */; };
+		7EACFA5BBF5E611A9DB293C1 /* StripStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A118FD173727EBC8166893 /* StripStorageTests.swift */; };
 		848B2FBE4A638BECC605F4E4 /* SelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 647E94BFFA852B13698CE778 /* SelectionView.swift */; };
 		91EAA59259A369384D5566C8 /* RevealState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523ADF47C5A2229B22CDFEAD /* RevealState.swift */; };
 		9482C3831A8FF008E4F3260F /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 57143BFF2FFD3B93D618C5F7 /* AppKit.framework */; };
@@ -63,6 +65,7 @@
 		47C393AFF90FCC997EB753B3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		47DF73E0CCE786EF5B3E99DD /* PermissionsHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsHelper.swift; sourceTree = "<group>"; };
 		487772EA4005D0123A6F06EB /* HotKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyManager.swift; sourceTree = "<group>"; };
+		4D9645AAF72DE3004FAB2830 /* StripStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripStorage.swift; sourceTree = "<group>"; };
 		523ADF47C5A2229B22CDFEAD /* RevealState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevealState.swift; sourceTree = "<group>"; };
 		57143BFF2FFD3B93D618C5F7 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		5F5C1FEC6CBE0AF4BB1738BF /* StripItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripItem.swift; sourceTree = "<group>"; };
@@ -87,6 +90,7 @@
 		CDE7BA3B69BEA8670015B341 /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		CE87426534B4289E8930FB69 /* StripScroll.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripScroll.swift; sourceTree = "<group>"; };
 		D4FBD565BD370B5BF7FB4839 /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
+		D8A118FD173727EBC8166893 /* StripStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripStorageTests.swift; sourceTree = "<group>"; };
 		DB73AFB7DBA00B120E616728 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		FBBA1B82AE00BEDB7BBBF98A /* ScreenshooterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScreenshooterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -130,6 +134,7 @@
 			isa = PBXGroup;
 			children = (
 				6CE53794E55E8C22EE433E6B /* ScreenshooterTests.swift */,
+				D8A118FD173727EBC8166893 /* StripStorageTests.swift */,
 			);
 			path = ScreenshooterTests;
 			sourceTree = "<group>";
@@ -213,6 +218,7 @@
 				C7DE9AEC6C3386B2ABB20F3A /* StripMotion.swift */,
 				95DD788DB2BEE3330FC2169E /* StripPanel.swift */,
 				CE87426534B4289E8930FB69 /* StripScroll.swift */,
+				4D9645AAF72DE3004FAB2830 /* StripStorage.swift */,
 				2294DAED38B4C8850D42CB9D /* StripView.swift */,
 			);
 			path = Strip;
@@ -366,6 +372,7 @@
 				170DD871D845B0C69003F9AC /* StripMotion.swift in Sources */,
 				5B61FE265DB543FF57B77F8E /* StripPanel.swift in Sources */,
 				188C21A727F1163933D67BC8 /* StripScroll.swift in Sources */,
+				3969EAC9CD06CC4488626D7B /* StripStorage.swift in Sources */,
 				E9BF52A0A9202CC9FE9D1D88 /* StripView.swift in Sources */,
 				A489D750B5BE327FD3A297DD /* main.swift in Sources */,
 			);
@@ -376,6 +383,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				979A92A039BB3976BBB25DEB /* ScreenshooterTests.swift in Sources */,
+				7EACFA5BBF5E611A9DB293C1 /* StripStorageTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

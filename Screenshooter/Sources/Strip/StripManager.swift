@@ -43,8 +43,10 @@ public final class StripManager: StripViewDelegate {
     
     /// Carpeta dedicada para almacenar capturas en caché
     public static let screenshotsDirectory: URL = {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        let dir = base.appendingPathComponent("Screenshooter/Screenshots", isDirectory: true)
+        let base = StripStorage.defaultBase
+        // Primer arranque tras el renombrado: trae el contenido de `Screenshots` a `Shelf`.
+        StripStorage.migrateLegacyCache(base: base)
+        let dir = StripStorage.cacheDirectory(base: base)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }()
@@ -52,7 +54,8 @@ public final class StripManager: StripViewDelegate {
     /// Carpeta vigilada por el Modo Inbox (capturas nativas). Distinta de `screenshotsDirectory`
     /// para que las capturas propias no se cuelguen dos veces.
     public static let inboxDirectory: URL = {
-        let dir = screenshotsDirectory.appendingPathComponent("Inbox", isDirectory: true)
+        _ = screenshotsDirectory  // garantiza que la migración ya se ejecutó
+        let dir = StripStorage.inboxDirectory(base: StripStorage.defaultBase)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }()
