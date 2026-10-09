@@ -12,6 +12,8 @@ public protocol TendederoCardViewDelegate: AnyObject {
     /// El archivo ya no existe: quitar de la tira sin tocar la Papelera.
     func cardDidRequestRemoveMissing(_ card: TendederoCardView, item: TendederoItem)
     func cardDidEndDrag(_ card: TendederoCardView, item: TendederoItem, operation: NSDragOperation)
+    func cardDidRequestFocusMove(_ card: TendederoCardView, to target: TendederoCardView.FocusTarget)
+    func cardDidRequestEscape(_ card: TendederoCardView)
 }
 
 // MARK: - Vidrio
@@ -292,7 +294,13 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
     private var longPressTimer: Timer?
     private var badgeWorkItem: DispatchWorkItem?
 
+    public enum FocusTarget { case previous, next, first, last }
+
     public private(set) var isHovered = false
+    /// La tarjeta tiene el foco de teclado (la tira es key por petición del usuario).
+    public private(set) var isKeyboardFocused = false
+    /// Única parada de Tab de la tira (tabulación "roving"); las flechas mueven el foco entre tarjetas.
+    var isRovingStop = false
     public private(set) var isMissing = false
     private var isPressed = false
     /// La tarjeta está cayendo/desapareciendo: ya no recibe eventos.
@@ -309,7 +317,10 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
         self.item = item
         super.init(frame: NSRect(origin: .zero, size: StripMotion.slotSize))
         wantsLayer = true
+        focusRingType = .exterior
         setupLayout()
+        setAccessibilityElement(true)
+        setAccessibilityRole(.button)
         refreshMissingState()
     }
 
@@ -460,7 +471,113 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
             : []
         missingLabel.isHidden = !missing
         applyState()
+        updateAccessibility()
         return missing
+    }
+
+    // MARK: Accesibilidad
+
+    private var position: (index: Int, count: Int) = (0, 1)
+
+    /// Posición en la lista ("2 de 8") para VoiceOver.
+    func setPosition(index: Int, count: Int) {
+        position = (index, count)
+        updateAccessibility()
+    }
+
+    private func updateAccessibility() {
+        setAccessibilityLabel(StripMotion.accessibilityLabel(for: item, missing: isMissing))
+        setAccessibilityHelp(isMissing ? "Clic para quitar de la tira" : "Clic para copiar. Mantener para Marcación")
+        setAccessibilityIndex(position.index)
+        setAccessibilityValueDescription(StripMotion.positionText(index: position.index, count: position.count))
+        func action(_ name: String, _ a: Action) -> NSAccessibilityCustomAction {
+            NSAccessibilityCustomAction(name: name) { [weak self] in
+                self?.perform(a)
+                return true
+            }
+        }
+        setAccessibilityCustomActions(isMissing
+            ? [action("Quitar de la tira", .trash)]
+            : [action("Abrir con Marcación", .markup), action("Abrir en Vista Previa", .preview),
+               action("Mostrar en Finder", .finder), action("Mover a la Papelera", .trash)])
+    }
+
+    public override func accessibilityPerformPress() -> Bool {
+        perform(.copy)
+        return true
+    }
+
+    public override func accessibilityPerformShowMenu() -> Bool {
+        showContextMenuFromKeyboard()
+        return true
+    }
+
+    // MARK: Teclado y foco
+
+    public override var acceptsFirstResponder: Bool { window?.canBecomeKey == true && !isLeaving }
+    public override var canBecomeKeyView: Bool { isRovingStop }
+
+    public override func becomeFirstResponder() -> Bool {
+        isKeyboardFocused = true
+        applyState()
+        noteFocusRingMaskChanged()
+        return super.becomeFirstResponder()
+    }
+
+    public override func resignFirstResponder() -> Bool {
+        isKeyboardFocused = false
+        applyState()
+        noteFocusRingMaskChanged()
+        return super.resignFirstResponder()
+    }
+
+    public override var focusRingMaskBounds: NSRect { cardRect }
+
+    public override func drawFocusRingMask() {
+        NSBezierPath(roundedRect: cardRect, xRadius: 10, yRadius: 10).fill()
+    }
+
+    public override func keyDown(with event: NSEvent) {
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        switch event.specialKey {
+        case .leftArrow?: delegate?.cardDidRequestFocusMove(self, to: .previous)
+        case .rightArrow?: delegate?.cardDidRequestFocusMove(self, to: .next)
+        case .home?: delegate?.cardDidRequestFocusMove(self, to: .first)
+        case .end?: delegate?.cardDidRequestFocusMove(self, to: .last)
+        case .carriageReturn?, .enter?: perform(.copy)
+        case .deleteForward?: perform(.trash)
+        case .menu?: showContextMenuFromKeyboard()
+        case .f10? where flags.contains(.shift): showContextMenuFromKeyboard()
+        case .tab?: window?.selectNextKeyView(nil)
+        case .backTab?: window?.selectPreviousKeyView(nil)
+        default:
+            if event.keyCode == 53 { // Esc
+                delegate?.cardDidRequestEscape(self)
+            } else if flags.isEmpty || flags == .shift {
+                switch event.charactersIgnoringModifiers?.lowercased() {
+                case " ": perform(.copy)
+                case "m": perform(.markup)
+                default: break // Se consume en silencio (sin NSBeep).
+                }
+            }
+        }
+    }
+
+    public override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        guard window?.firstResponder === self,
+              event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command else { return false }
+        switch event.charactersIgnoringModifiers {
+        case "o": perform(.preview)
+        case "c": perform(.copy)
+        case "\u{7f}": perform(.trash) // ⌘⌫
+        default: return false
+        }
+        return true
+    }
+
+    /// ⇧F10 / tecla de menú: abre el menú contextual junto a la tarjeta.
+    func showContextMenuFromKeyboard() {
+        makeContextMenu().popUp(positioning: nil, at: NSPoint(x: cardRect.midX, y: cardRect.minY + 40), in: self)
     }
 
     // MARK: Estado visual
@@ -471,7 +588,7 @@ public final class TendederoCardView: NSView, NSDraggingSource, NSMenuDelegate {
         applyState()
     }
 
-    private var showsControls: Bool { isHovered && !isDraggingSession && !isLeaving }
+    private var showsControls: Bool { (isHovered || isKeyboardFocused) && !isDraggingSession && !isLeaving }
 
     private func applyState(animated: Bool = true) {
         let motion = MotionStyle.current()

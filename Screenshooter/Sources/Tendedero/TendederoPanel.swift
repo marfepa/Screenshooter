@@ -48,10 +48,14 @@ public final class TendederoPanel: NSPanel {
         
         self.alphaValue = 1.0
         
+        tendederoView.onEscape = { [weak self] in self?.slideUp() }
         watchMenuBarClicks()
     }
     
-    public override var canBecomeKey: Bool { false }
+    /// El panel solo puede ser key cuando el usuario lo pide (atajo ⌃⌥T): así un clic en una tarjeta
+    /// nunca le roba el foco a la app de debajo. Al ser `.nonactivatingPanel`, recibe el teclado sin activar la app.
+    private var keyboardRequested = false
+    public override var canBecomeKey: Bool { keyboardRequested }
     public override var canBecomeMain: Bool { false }
     
     /// Detiene timer y monitores y oculta el panel (antes de descartarlo).
@@ -70,9 +74,28 @@ public final class TendederoPanel: NSPanel {
             slideUp()
         } else {
             place(on: screenUnderPointer() ?? screen ?? NSScreen.main ?? NSScreen.screens[0])
-            reveal(pinned: true)
+            reveal(pinned: true, keyboard: true)
         }
     }
+
+    /// Esc o fin de la sesión de teclado: el panel deja de poder ser key (no se activa la app; el foco sigue en la app de debajo).
+    private func endKeyboardSession() {
+        guard keyboardRequested else { return }
+        keyboardRequested = false
+        tendederoView.clearKeyboardFocus()
+    }
+
+    public override func resignKey() {
+        super.resignKey()
+        endKeyboardSession()
+    }
+
+    /// Teclas sueltas con el panel key y ninguna tarjeta enfocada: Esc recoge, el resto se consume sin pitido.
+    public override func keyDown(with event: NSEvent) {
+        if event.keyCode == 53 { slideUp() }
+    }
+
+    public override func cancelOperation(_ sender: Any?) { slideUp() }
     
     /// Revela la tira y evita que se retraiga durante `seconds`.
     public func peek(seconds: TimeInterval) {
@@ -80,7 +103,8 @@ public final class TendederoPanel: NSPanel {
         if !isRevealed { reveal(pinned: false) }
     }
     
-    public func reveal(pinned: Bool) {
+    /// - Parameter keyboard: si es `true` (atajo ⌃⌥T) el panel se vuelve key y la primera tarjeta recibe el foco.
+    public func reveal(pinned: Bool, keyboard: Bool = false) {
         if pinned { state.pin() }
         guard !isRevealed else { return }
         state.didReveal()
@@ -92,11 +116,17 @@ public final class TendederoPanel: NSPanel {
         Self.hasSwayedThisSession = true
         tendederoView.playReveal(motion: .current(), sway: sway)
         updateTimer()
+        if keyboard && tendederoView.hasCards {
+            keyboardRequested = true
+            makeKey()
+            tendederoView.focusFirstCard()
+        }
     }
     
     public func slideUp() {
         guard isRevealed else { return }
         state.didRetract()
+        endKeyboardSession()
         ignoresMouseEvents = true
         tendederoView.updateHover(pointer: nil)
         tendederoView.playRetract(motion: .current()) { [weak self] in
@@ -161,7 +191,8 @@ public final class TendederoPanel: NSPanel {
         
         // La consulta de pantalla completa solo hace falta si podría revelarse.
         let fullScreen = (inMenuBar && !isRevealed) ? (screenUnder.map { FullScreen.isActive(on: $0) } ?? false) : false
-        let busy = TendederoCardView.isBusy
+        // Una pulsación, un arrastre, un menú contextual o el foco de teclado en la tira impiden recogerla.
+        let busy = TendederoCardView.isBusy || (keyboardRequested && isKeyWindow)
         
         switch state.tick(now: Date(), inMenuBar: inMenuBar, inZone: inZone, fullScreen: fullScreen, busy: busy) {
         case .reveal:

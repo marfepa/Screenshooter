@@ -93,6 +93,9 @@ final class RopeView: NSView {
 /// Vista contenedora del Tendedero. Dibuja la cuerda y distribuye las tarjetas colgadas de ella.
 public final class TendederoView: NSView, TendederoCardViewDelegate {
     public weak var delegate: TendederoViewDelegate?
+    /// Esc con el foco en la tira: la tira se recoge y devuelve el foco.
+    public var onEscape: (() -> Void)?
+    private var rovingID: UUID?
 
     /// Contenido que se desplaza al desplegar/recoger la tira.
     private let slideHost = NSView()
@@ -130,6 +133,9 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
         cardStack.wantsLayer = true
         slideHost.addSubview(cardStack)
 
+        cardStack.setAccessibilityRole(.list)
+        cardStack.setAccessibilityLabel("Capturas recientes")
+
         emptyCapsule.set(text: "Haz una captura con ⌥⌘S y aparecerá aquí")
         slideHost.addSubview(emptyCapsule)
     }
@@ -153,6 +159,7 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
     /// y las que salen se desvanecen (o caen si se marcaron con `markForFall`).
     public func reload(items: [TendederoItem]) {
         let canAnimate = window?.isVisible == true
+        let previousRovingIndex = rovingID.flatMap { id in currentItems.firstIndex { $0.id == id } }
         currentItems = items
         emptyCapsule.isHidden = !items.isEmpty
 
@@ -190,6 +197,7 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
         }
         applyFrames(animated: canAnimate)
         newCards.removeAll()
+        updateKeyboardStops(previousIndex: previousRovingIndex)
         if canAnimate { for (card, drop) in arrivals { card.playArrival(drop: drop) } }
     }
 
@@ -208,6 +216,65 @@ public final class TendederoView: NSView, TendederoCardViewDelegate {
     public func refreshMissingStates() {
         for card in cardViews.values { card.refreshMissingState() }
     }
+
+    // MARK: Teclado
+
+    /// Tarjetas visibles en orden de izquierda a derecha.
+    private var orderedCards: [TendederoCardView] {
+        currentItems.compactMap { cardViews[$0.id] }.filter { !$0.isHidden }
+    }
+
+    /// Mantiene una sola parada de Tab, las posiciones para VoiceOver y recoloca el foco si se quitó la tarjeta enfocada.
+    private func updateKeyboardStops(previousIndex: Int?) {
+        let cards = orderedCards
+        if let id = rovingID, !currentItems.contains(where: { $0.id == id }) {
+            // La tarjeta enfocada desapareció: el foco pasa a la vecina.
+            let next = min(previousIndex ?? 0, cards.count - 1)
+            rovingID = cards.indices.contains(next) ? cards[next].item.id : nil
+            if window?.isKeyWindow == true, let card = rovingID.flatMap({ cardViews[$0] }) {
+                window?.makeFirstResponder(card)
+            }
+        }
+        if rovingID == nil || cardViews[rovingID!] == nil { rovingID = cards.first?.item.id }
+        for (i, card) in cards.enumerated() {
+            card.isRovingStop = card.item.id == rovingID
+            card.setPosition(index: i, count: cards.count)
+        }
+        cardStack.setAccessibilityChildren(cards)
+    }
+
+    /// Da el foco de teclado a la primera tarjeta (la tira debe ser key). Devuelve `false` si no hay tarjetas.
+    @discardableResult
+    public func focusFirstCard() -> Bool {
+        guard let first = orderedCards.first, let window else { return false }
+        rovingID = first.item.id
+        updateKeyboardStops(previousIndex: 0)
+        return window.makeFirstResponder(first)
+    }
+
+    public var hasCards: Bool { !orderedCards.isEmpty }
+
+    /// Suelta el foco de teclado (la tira deja de ser key).
+    public func clearKeyboardFocus() {
+        if window?.firstResponder is TendederoCardView { window?.makeFirstResponder(nil) }
+    }
+
+    public func cardDidRequestFocusMove(_ card: TendederoCardView, to target: TendederoCardView.FocusTarget) {
+        let cards = orderedCards
+        guard let index = cards.firstIndex(where: { $0 === card }), !cards.isEmpty else { return }
+        let destination: Int
+        switch target {
+        case .previous: destination = max(0, index - 1)
+        case .next: destination = min(cards.count - 1, index + 1)
+        case .first: destination = 0
+        case .last: destination = cards.count - 1
+        }
+        rovingID = cards[destination].item.id
+        updateKeyboardStops(previousIndex: destination)
+        window?.makeFirstResponder(cards[destination])
+    }
+
+    public func cardDidRequestEscape(_ card: TendederoCardView) { onEscape?() }
 
     // MARK: Despliegue
 
