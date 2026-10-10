@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8573a"/><stop offset="1" stop-color="#c3311f"/></linearGradient>
+  </defs>
+  <g id="art">
+    <g id="background"><rect x="0" y="0" width="1024" height="1024" fill="url(#bg)"/></g>
+    <g id="card" transform="rotate(-6 512 230)">
+      <rect x="252" y="250" width="520" height="540" rx="72" fill="#ffffff" fill-opacity=".28"/>
+      <rect x="432" y="196" width="160" height="100" rx="34" fill="#ffffff"/>
+      <g id="glyph" fill="none" stroke="#ffffff" stroke-width="72" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M344 460 V376 H428"/><path d="M596 376 H680 V460"/>
+        <path d="M680 604 V688 H596"/><path d="M428 688 H344 V604"/>
+      </g>
+    </g>
+  </g>
+</svg>
