@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8573a"/><stop offset="1" stop-color="#c3311f"/></linearGradient>
+  </defs>
+  <g id="art">
+    <g id="background"><rect x="0" y="0" width="1024" height="1024" fill="url(#bg)"/></g>
+    <g id="back-card" transform="rotate(5 512 250)">
+      <rect x="290" y="282" width="444" height="474" rx="64" fill="#ffffff" fill-opacity=".34"/>
+    </g>
+    <g id="card">
+      <line x1="512" y1="168" x2="512" y2="250" stroke="#ffffff" stroke-width="28" stroke-linecap="round"/>
+      <g transform="rotate(-6 512 250)">
+        <rect x="276" y="262" width="472" height="500" rx="64" fill="#ffffff" fill-opacity=".28"/>
+        <rect x="456" y="222" width="112" height="76" rx="26" fill="#ffffff"/>
+        <g id="glyph" fill="none" stroke="#ffffff" stroke-width="48" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M352 446 V382 H416"/><path d="M608 382 H672 V446"/>
+          <path d="M672 598 V662 H608"/><path d="M416 662 H352 V598"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>
