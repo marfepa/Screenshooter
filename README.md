@@ -1,6 +1,12 @@
+<p align="center">
+  <img src="docs/images/icono.png" width="128" height="128" alt="Icono de Screenshooter">
+</p>
+
 # Screenshooter
 
 App de barra de menús para capturas de pantalla en macOS: seleccionas un área, se copia al portapapeles y queda colgada en una Tira de tarjetas desde la que puedes reutilizarla.
+
+![La Tira: capturas colgadas de una cuerda bajo la barra de menús](docs/images/tira.png)
 
 ## Requisitos
 
@@ -56,6 +62,12 @@ Gestos sobre cada captura de la Tira:
 - Botón ✕: descartarla.
 
 Desde el menú también puedes activar el inicio al abrir sesión.
+
+## Capturas
+
+![Menú contextual de una captura en la Tira: Copiar, Abrir en Vista Previa, Abrir con Marcación, Mostrar en Finder y Mover a la Papelera](docs/images/menu.png)
+
+*Las imágenes proceden de la maqueta de diseño (`mockup/tira.html`); la app real puede variar en detalles.*
 
 ## Compilar desde el código
 
