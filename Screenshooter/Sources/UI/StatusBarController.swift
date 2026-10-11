@@ -9,6 +9,17 @@ public final class StatusBarController {
     public init() {
         setupStatusItem()
         setupMenu()
+        
+        // «Salir del modo captura» solo aparece mientras el modo continuo está activo
+        NotificationCenter.default.addObserver(
+            forName: CaptureCoordinator.activeDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.setupMenu()
+            }
+        }
     }
     
     private func setupStatusItem() {
@@ -40,6 +51,17 @@ public final class StatusBarController {
         captureItem.keyEquivalentModifierMask = [.command, .option]
         captureItem.target = self
         menu.addItem(captureItem)
+        
+        // Vía para salir del modo Navegar sin ESC (no es global sin permiso de Accesibilidad)
+        if CaptureCoordinator.shared.isActive {
+            let exitCaptureItem = NSMenuItem(
+                title: String(localized: "Exit capture mode", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver label of the pill exit button; also the status bar menu item"),
+                action: #selector(handleExitCaptureClicked),
+                keyEquivalent: ""
+            )
+            exitCaptureItem.target = self
+            menu.addItem(exitCaptureItem)
+        }
         
         // 2. Control del Strip
         let stripItem = NSMenuItem(
@@ -154,7 +176,11 @@ public final class StatusBarController {
     }
     
     @objc private func handleCaptureClicked() {
-        CaptureCoordinator.shared.startCapture()
+        CaptureCoordinator.shared.toggleCapture()
+    }
+    
+    @objc private func handleExitCaptureClicked() {
+        CaptureCoordinator.shared.cancelCapture()
     }
     
     @objc private func handleToggleStripClicked() {
