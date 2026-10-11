@@ -1,0 +1,25 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+jobs:
+  release:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar xcodegen
+        run: brew install xcodegen
+      - name: Compilar y publicar
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ "$RELEASE_TAG" == *-* ]]; then
+            scripts/release.sh --publish --prerelease
+          else
+            scripts/release.sh --publish
+          fi
