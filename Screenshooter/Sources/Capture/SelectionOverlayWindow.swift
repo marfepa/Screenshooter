@@ -46,6 +46,12 @@ public final class SelectionOverlayWindow: NSWindow {
         self.isReleasedWhenClosed = false
     }
     
+    /// Deja pasar ratón y scroll a la ventana de debajo (o los vuelve a recibir) y aclara el velo.
+    public func setPassthrough(_ passthrough: Bool) {
+        ignoresMouseEvents = passthrough
+        selectionView.isPassthrough = passthrough
+    }
+
     public override var canBecomeKey: Bool {
         return true
     }

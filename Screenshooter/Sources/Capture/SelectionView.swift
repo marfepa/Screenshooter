@@ -12,6 +12,17 @@ public final class SelectionView: NSView {
     
     public var onSelectionCompleted: ((CGRect, NSScreen) -> Void)?
     public var onCancelled: (() -> Void)?
+    /// Scroll de trackpad o rueda fuera de un arrastre: el coordinador deja pasar los eventos a la app de debajo.
+    public var onScrollPassthrough: ((NSEvent) -> Void)?
+    
+    /// Velo tenue mientras el scroll pasa a la app de debajo (sin barra de instrucciones ni cursor en cruz).
+    public var isPassthrough = false {
+        didSet {
+            guard isPassthrough != oldValue else { return }
+            needsDisplay = true
+            window?.invalidateCursorRects(for: self)
+        }
+    }
     
     public init(frame: NSRect, screen: NSScreen) {
         self.screen = screen
@@ -29,7 +40,15 @@ public final class SelectionView: NSView {
     
     public override func resetCursorRects() {
         super.resetCursorRects()
-        addCursorRect(bounds, cursor: .crosshair)
+        if !isPassthrough {
+            addCursorRect(bounds, cursor: .crosshair)
+        }
+    }
+    
+    public override func scrollWheel(with event: NSEvent) {
+        // Durante un arrastre el scroll no debe romper la selección
+        guard startPoint == nil, !isPassthrough else { return }
+        onScrollPassthrough?(event)
     }
     
     public override func mouseDown(with event: NSEvent) {
@@ -107,9 +126,16 @@ public final class SelectionView: NSView {
         super.draw(dirtyRect)
         guard let context = NSGraphicsContext.current?.cgContext else { return }
         
-        // 1. Dibujar velo oscuro uniforme
-        context.setFillColor(CGColor(red: 0, green: 0, blue: 0, alpha: 0.38))
+        // 1. Dibujar velo oscuro uniforme (tenue mientras el scroll pasa a la app de debajo;
+        //    con Reducir transparencia algo más marcado para que se distinga el modo)
+        let reduceTransparency = NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
+        let veilAlpha: CGFloat = isPassthrough ? (reduceTransparency ? 0.25 : 0.12) : 0.38
+        context.setFillColor(CGColor(red: 0, green: 0, blue: 0, alpha: veilAlpha))
         context.fill(bounds)
+        
+        if isPassthrough {
+            return
+        }
         
         if let start = startPoint, let current = currentPoint {
             let rect = currentSelectionRect(start: start, current: current)
@@ -171,7 +197,7 @@ public final class SelectionView: NSView {
     }
     
     private func drawInstructionBar() {
-        let text = String(localized: "Drag to capture  ·  ESC to exit", bundle: L10n.bundle, locale: L10n.locale, comment: "Instruction bar shown over the dimmed screen during continuous area selection")
+        let text = String(localized: "Drag to capture  ·  Swipe to scroll  ·  ⌥⌘S to navigate  ·  ESC to exit", bundle: L10n.bundle, locale: L10n.locale, comment: "Instruction bar shown over the dimmed screen during continuous area selection")
         let font = NSFont.systemFont(ofSize: 13, weight: .medium)
         let attrs: [NSAttributedString.Key: Any] = [
             .font: font,

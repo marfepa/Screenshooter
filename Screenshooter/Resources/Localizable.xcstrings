@@ -403,20 +403,20 @@
         }
       }
     },
-    "Drag to capture  ·  ESC to exit" : {
+    "Drag to capture  ·  Swipe to scroll  ·  ⌥⌘S to navigate  ·  ESC to exit" : {
       "comment" : "Instruction bar shown over the dimmed screen during continuous area selection",
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Drag to capture  ·  ESC to exit"
+            "value" : "Drag to capture  ·  Swipe to scroll  ·  ⌥⌘S to navigate  ·  ESC to exit"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Arrastra para capturar  ·  ESC para salir"
+            "value" : "Arrastra para capturar  ·  Desliza para hacer scroll  ·  ⌥⌘S para navegar  ·  ESC para salir"
           }
         }
       }
@@ -1341,6 +1341,204 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sin límite"
+          }
+        }
+      }
+    },
+    "Navigate mode active" : {
+      "comment" : "VoiceOver label of the floating pill shown while navigating during continuous capture",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Navigate mode active"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modo Navegar activo"
+          }
+        }
+      }
+    },
+    "Navigating" : {
+      "comment" : "Floating pill title while the overlays are hidden during continuous capture",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Navigating"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Navegando"
+          }
+        }
+      }
+    },
+    "⌥⌘S to capture" : {
+      "comment" : "Floating pill hint: press the shortcut to go back to selecting areas",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌥⌘S to capture"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌥⌘S para capturar"
+          }
+        }
+      }
+    },
+    "Option Command S to capture again" : {
+      "comment" : "VoiceOver reading of the pill shortcut hint",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Option Command S to capture again"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opción Comando S para volver a capturar"
+          }
+        }
+      }
+    },
+    "Exit" : {
+      "comment" : "Floating pill button: end continuous capture",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exit"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salir"
+          }
+        }
+      }
+    },
+    "Exit capture mode" : {
+      "comment" : "VoiceOver label of the pill exit button; also the status bar menu item",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exit capture mode"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salir del modo captura"
+          }
+        }
+      }
+    },
+    "Ending in %@ s" : {
+      "comment" : "Floating pill title shortly before continuous capture ends for inactivity; the argument is a number of seconds",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ending in %@ s"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saliendo en %@ s"
+          }
+        }
+      }
+    },
+    "Selecting. Drag to capture." : {
+      "comment" : "VoiceOver announcement when going back from navigate mode to selecting areas",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecting. Drag to capture."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seleccionando. Arrastra para capturar."
+          }
+        }
+      }
+    },
+    "Scrolling" : {
+      "comment" : "VoiceOver announcement when the overlay lets scrolling through to the app below",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scrolling"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desplazando"
+          }
+        }
+      }
+    },
+    "Capture mode ends in %@ seconds" : {
+      "comment" : "VoiceOver announcement shortly before continuous capture ends for inactivity; the argument is a number of seconds",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capture mode ends in %@ seconds"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El modo captura termina en %@ segundos"
+          }
+        }
+      }
+    },
+    "Navigate mode. Press Option Command S to capture." : {
+      "comment" : "VoiceOver announcement when the overlays hide so the user can use other apps",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Navigate mode. Press Option Command S to capture."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modo Navegar. Pulsa Opción Comando S para capturar."
           }
         }
       }

@@ -7,26 +7,66 @@ import AppKit
 public final class CaptureCoordinator {
     public static let shared = CaptureCoordinator()
     
+    /// Se publica cada vez que el modo continuo empieza o termina (la barra de menús muestra «Salir del modo captura»).
+    public static let activeDidChangeNotification = Notification.Name("CaptureCoordinatorActiveDidChange")
+    
+    /// Inactividad permitida con los overlays visibles y en el modo Navegar.
+    private static let selectingTimeout: TimeInterval = 30
+    private static let navigatingTimeout: TimeInterval = 120
+    private static let navigatingWarningLead: TimeInterval = 10
+    
     private var overlayWindows: [SelectionOverlayWindow] = []
-    private var isCapturing = false
+    private var navigationPill: NavigationPillWindow?
     private var activeHUD: HUDNotificationWindow?
     private var safetyTimer: Timer?
+    private var warningTimer: Timer?
+    private var scrollQuietTimer: Timer?
+    private var scrollMonitors: [Any] = []
+    private var scrollTracker = ScrollPassthroughTracker()
+    /// Sube en cada captura y en cada salida del modo: un `Task` de captura solo toca el estado
+    /// si sigue siendo la sesión vigente (ESC y ⌥⌘S pueden haber abierto otra mientras capturaba).
+    private var captureGeneration = 0
+    
+    public private(set) var state: ContinuousCaptureState = .idle {
+        didSet {
+            if state.isActive != oldValue.isActive {
+                NotificationCenter.default.post(name: Self.activeDidChangeNotification, object: self)
+            }
+        }
+    }
+    
+    public var isActive: Bool { state.isActive }
     
     private init() {}
     
-    /// Inicia el modo de captura continua: el usuario selecciona áreas una tras otra
-    /// hasta pulsar ESC (o hasta que salte el temporizador de inactividad).
-    public func startCapture() {
-        guard !isCapturing else { return }
-        
-        // Verificar permisos antes de oscurecer pantallas
-        if !PermissionsHelper.shared.isScreenCaptureGranted {
-            PermissionsHelper.shared.promptPermissionDialogIfNeeded()
-            return
+    /// ⌥⌘S (o el menú): inicia el modo de captura continua y, con él ya activo,
+    /// alterna entre seleccionar áreas y navegar libremente por el sistema.
+    /// El modo termina con ESC, «Salir» o el temporizador de inactividad.
+    public func toggleCapture() {
+        if state == .idle {
+            // Verificar permisos antes de oscurecer pantallas
+            if !PermissionsHelper.shared.isScreenCaptureGranted {
+                PermissionsHelper.shared.promptPermissionDialogIfNeeded()
+                return
+            }
         }
         
-        isCapturing = true
-        presentOverlays()
+        let previous = state
+        state = ContinuousCaptureMachine.next(state, on: .hotKey)
+        guard state != previous else { return }
+        
+        switch state {
+        case .selecting:
+            dismissNavigationPill()
+            presentOverlays()
+            if previous == .navigating {
+                announce(String(localized: "Selecting. Drag to capture.", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver announcement when going back from navigate mode to selecting areas"))
+            }
+        case .navigating:
+            enterNavigating()
+        default:
+            break
+        }
     }
     
     /// Presenta una ventana de superposición transparente por cada monitor activo.
@@ -47,6 +87,10 @@ public final class CaptureCoordinator {
                 self?.cancelCapture()
             }
             
+            overlay.selectionView.onScrollPassthrough = { [weak self] _ in
+                self?.beginScrollPassthrough()
+            }
+            
             overlay.orderFrontRegardless()
             overlayWindows.append(overlay)
         }
@@ -59,26 +103,146 @@ public final class CaptureCoordinator {
         
         // Temporizador de seguridad: si el overlay lleva más de 30 segundos
         // sin interacción completada, cancelar automáticamente para evitar bloqueos.
-        safetyTimer?.invalidate()
-        safetyTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: false) { [weak self] _ in
+        restartSafetyTimer(after: Self.selectingTimeout)
+    }
+    
+    // MARK: - Scroll pasante
+    
+    /// El usuario empieza a hacer scroll sin arrastrar: los overlays dejan pasar los eventos
+    /// a la ventana bajo el cursor hasta que el puntero se mueve o pasa `quietInterval` sin scroll.
+    private func beginScrollPassthrough() {
+        let previous = state
+        state = ContinuousCaptureMachine.next(state, on: .scrollBegan)
+        guard state == .scrollPassthrough, previous != state else { return }
+        
+        for overlay in overlayWindows {
+            overlay.setPassthrough(true)
+        }
+        scrollTracker.noteScroll(at: ProcessInfo.processInfo.systemUptime, pointer: NSEvent.mouseLocation)
+        restartSafetyTimer(after: Self.selectingTimeout)
+        
+        // Con los overlays transparentes el scroll va a otras apps (monitor global)
+        // o a ventanas propias como la Tira (monitor local). Ninguno pide permiso de Accesibilidad.
+        if let global = NSEvent.addGlobalMonitorForEvents(matching: .scrollWheel, handler: { [weak self] _ in
+            Task { @MainActor in self?.noteScrollActivity() }
+        }) {
+            scrollMonitors.append(global)
+        }
+        if let local = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel, handler: { [weak self] event in
+            Task { @MainActor in self?.noteScrollActivity() }
+            return event
+        }) {
+            scrollMonitors.append(local)
+        }
+        
+        let timer = Timer(timeInterval: 0.05, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.checkScrollPassthroughEnd() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        scrollQuietTimer = timer
+        
+        announce(String(localized: "Scrolling", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver announcement when the overlay lets scrolling through to the app below"))
+    }
+    
+    private func noteScrollActivity() {
+        guard state == .scrollPassthrough else { return }
+        scrollTracker.noteScroll(at: ProcessInfo.processInfo.systemUptime, pointer: NSEvent.mouseLocation)
+        restartSafetyTimer(after: Self.selectingTimeout)
+    }
+    
+    private func checkScrollPassthroughEnd() {
+        // Con un botón pulsado (p. ej. arrastrando la barra de scroll de otra app) no reaparecer a mitad del arrastre
+        guard state == .scrollPassthrough,
+              scrollTracker.shouldEnd(at: ProcessInfo.processInfo.systemUptime, pointer: NSEvent.mouseLocation),
+              NSEvent.pressedMouseButtons == 0 else { return }
+        state = ContinuousCaptureMachine.next(state, on: .scrollEnded)
+        stopScrollPassthrough()
+        
+        for overlay in overlayWindows {
+            overlay.setPassthrough(false)
+        }
+        // Un clic durante el scroll pudo activar otra app: recuperar el foco para que ESC llegue
+        NSApp.activate(ignoringOtherApps: true)
+        if let keyWindow = overlayWindows.first(where: { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) }) ?? overlayWindows.first {
+            keyWindow.makeKey()
+            keyWindow.makeFirstResponder(keyWindow.selectionView)
+        }
+        announce(String(localized: "Selecting. Drag to capture.", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver announcement when going back from navigate mode to selecting areas"))
+    }
+    
+    /// Retira monitores y timer del scroll pasante (no toca los overlays).
+    private func stopScrollPassthrough() {
+        scrollQuietTimer?.invalidate()
+        scrollQuietTimer = nil
+        for monitor in scrollMonitors {
+            NSEvent.removeMonitor(monitor)
+        }
+        scrollMonitors.removeAll()
+        scrollTracker.reset()
+    }
+    
+    // MARK: - Modo Navegar
+    
+    /// Oculta los overlays y deja solo la píldora: el usuario usa el sistema con normalidad
+    /// hasta volver a pulsar ⌥⌘S.
+    private func enterNavigating() {
+        dismissOverlays()
+        
+        let pill = NavigationPillWindow()
+        pill.onExit = { [weak self] in
+            self?.cancelCapture()
+        }
+        navigationPill = pill
+        pill.present()
+        
+        // Devolver el foco a la app que estaba debajo (la nuestra solo lo tenía por los overlays)
+        NSApp.deactivate()
+        
+        restartSafetyTimer(after: Self.navigatingTimeout)
+        let warning = Timer(timeInterval: Self.navigatingTimeout - Self.navigatingWarningLead, repeats: false) { [weak self] _ in
             Task { @MainActor in
-                NSLog("[CaptureCoordinator] Temporizador de seguridad: cancelando captura por inactividad.")
-                self?.cancelCapture()
+                guard let self, self.state == .navigating else { return }
+                let seconds = Int(Self.navigatingWarningLead)
+                self.navigationPill?.showTimeoutWarning(seconds: seconds)
+                self.announce(String(localized: "Capture mode ends in \(String(seconds)) seconds", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver announcement shortly before continuous capture ends for inactivity; the argument is a number of seconds"))
             }
         }
+        RunLoop.main.add(warning, forMode: .common)
+        warningTimer = warning
+        
+        announce(String(localized: "Navigate mode. Press Option Command S to capture.", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver announcement when the overlays hide so the user can use other apps"))
     }
     
-    /// Cancela la captura en curso cerrando todas las superposiciones sin alterar el portapapeles.
+    private func dismissNavigationPill() {
+        navigationPill?.dismiss()
+        navigationPill = nil
+        warningTimer?.invalidate()
+        warningTimer = nil
+    }
+    
+    // MARK: - Fin del modo
+    
+    /// Termina el modo continuo cerrando superposiciones y píldora sin alterar el portapapeles.
     public func cancelCapture() {
+        guard state != .idle else { return }
+        captureGeneration += 1
         dismissOverlays()
-        isCapturing = false
+        dismissNavigationPill()
+        state = ContinuousCaptureMachine.next(state, on: .cancel)
     }
     
-    /// Procesa la selección completada por el usuario. `isCapturing` sigue en `true`:
-    /// el modo continuo solo termina en `cancelCapture()` o si la captura falla.
+    /// Procesa la selección completada por el usuario. El modo continuo solo termina
+    /// en `cancelCapture()` o si la captura falla.
     private func handleSelectionCompleted(rect: CGRect, on screen: NSScreen) {
+        state = ContinuousCaptureMachine.next(state, on: .selectionCompleted)
+        guard state == .processing else { return }
+        
         // Cerrar inmediatamente todas las superposiciones para que no aparezcan en la captura
         dismissOverlays()
+        captureGeneration += 1
+        let generation = captureGeneration
+        // Si la captura se cuelga, el modo no debe quedar vivo sin overlays para siempre
+        restartSafetyTimer(after: Self.selectingTimeout)
         
         Task {
             do {
@@ -116,22 +280,50 @@ public final class CaptureCoordinator {
                 }
                 
                 // Modo continuo: volver a mostrar los overlays para la siguiente selección
-                // (también reinicia el temporizador de inactividad)
-                if self.isCapturing {
+                // (también reinicia el temporizador de inactividad). Si ESC llegó antes, el estado ya es `idle`.
+                if self.state == .processing, generation == self.captureGeneration {
+                    self.state = ContinuousCaptureMachine.next(self.state, on: .captureFinished)
                     self.presentOverlays()
                 }
             } catch {
-                // Salir del modo antes de la alerta: un overlay la taparía
-                self.isCapturing = false
                 NSLog("[CaptureCoordinator] Error al capturar área: %@", error.localizedDescription)
+                // Si ya es otra sesión, no matarla ni abrir una alerta modal que sus overlays taparían
+                guard generation == self.captureGeneration else { return }
+                // Salir del modo antes de la alerta: un overlay la taparía
+                self.cancelCapture()
                 self.showErrorAlert(message: error.localizedDescription)
             }
         }
     }
     
+    private func restartSafetyTimer(after interval: TimeInterval) {
+        safetyTimer?.invalidate()
+        // En `.common` para que no se congele durante el tracking de menús
+        let timer = Timer(timeInterval: interval, repeats: false) { [weak self] _ in
+            Task { @MainActor in
+                NSLog("[CaptureCoordinator] Temporizador de seguridad: cancelando captura por inactividad.")
+                self?.cancelCapture()
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        safetyTimer = timer
+    }
+    
+    private func announce(_ text: String) {
+        NSAccessibility.post(
+            element: NSApp as Any,
+            notification: .announcementRequested,
+            userInfo: [
+                .announcement: text,
+                .priority: NSAccessibilityPriorityLevel.high.rawValue
+            ]
+        )
+    }
+    
     private func dismissOverlays() {
         safetyTimer?.invalidate()
         safetyTimer = nil
+        stopScrollPassthrough()
         
         for window in overlayWindows {
             window.orderOut(nil)

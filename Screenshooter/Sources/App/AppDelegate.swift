@@ -36,7 +36,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupGlobalHotKey() {
         HotKeyManager.shared.onHotKeyTriggered = {
             Task { @MainActor in
-                CaptureCoordinator.shared.startCapture()
+                CaptureCoordinator.shared.toggleCapture()
             }
         }
         HotKeyManager.shared.onStripHotKeyTriggered = {
