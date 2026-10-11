@@ -46,7 +46,10 @@ public final class CaptureCoordinator {
         if state == .idle {
             // Verificar permisos antes de oscurecer pantallas
             if !PermissionsHelper.shared.isScreenCaptureGranted {
+                // La alerta es modal: con la bienvenida delante quedaría tapada y la app parecería colgada
+                OnboardingCoordinator.shared.setSuspended(true)
                 PermissionsHelper.shared.promptPermissionDialogIfNeeded()
+                OnboardingCoordinator.shared.setSuspended(false)
                 return
             }
         }

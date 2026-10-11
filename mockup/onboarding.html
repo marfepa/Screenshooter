@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maqueta Bienvenida — Screenshooter</title>
+<style>
+  /* Icono REAL de la app (Assets.xcassets/AppIcon: icon_256x256.png e icon_32x32@2x.png), incrustado para que la maqueta funcione sin rutas */
+  :root { --icon-big: url("data:image/png;base64,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"); --icon-small: url("data:image/png;base64,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"); }
+  /* ==========================================================================
+     1. TOKENS (mismos nombres que mockup/index.html y mockup/tira.html)
+     ========================================================================== */
+  :root {
+    --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Helvetica, Arial, sans-serif;
+    --bg-body: #1e1e1e;
+    --bg-sidebar: #252526;
+    --bg-surface: #2d2d30;
+    --text-primary: #ffffff;
+    --text-secondary: #a1a1a6;
+    --border-subtle: rgba(255,255,255,0.08);
+    --border-medium: rgba(255,255,255,0.16);
+    --mac-blue: #0a84ff;
+    --mac-blue-subtle: rgba(10,132,255,0.15);
+    --mac-green: #30d158;
+    --mac-orange: #ff9f0a;
+    --radius-sm: 5px;
+    --radius-md: 8px;
+    /* Escritorio simulado */
+    --wallpaper: radial-gradient(900px 500px at 20% 10%, #c3311f 0%, transparent 60%), radial-gradient(800px 600px at 90% 90%, #1d3a6b 0%, transparent 60%), #241c2c;
+    --win-bg: #2b2b2f;
+    --win-bar: #38383d;
+    --win-line: rgba(255,255,255,0.14);
+    --win-b-bg: #23303f;
+    --glass-fill: rgba(40,40,44,0.74);
+    --glass-edge: rgba(255,255,255,0.22);
+    --menubar-bg: rgba(30,30,32,0.55);
+  }
+  [data-theme="light"] {
+    --bg-body: #ececec;
+    --bg-sidebar: #f6f6f6;
+    --bg-surface: #ffffff;
+    --text-primary: #1d1d1f;
+    --text-secondary: #515154;
+    --border-subtle: rgba(0,0,0,0.08);
+    --border-medium: rgba(0,0,0,0.16);
+    --mac-blue: #0071e3;
+    --mac-blue-subtle: rgba(0,113,227,0.12);
+    --wallpaper: radial-gradient(900px 500px at 20% 10%, #f3a08f 0%, transparent 60%), radial-gradient(800px 600px at 90% 90%, #9cc0f0 0%, transparent 60%), #efe8f0;
+    --win-bg: #ffffff;
+    --win-bar: #ececef;
+    --win-line: rgba(0,0,0,0.10);
+    --win-b-bg: #eef4fc;
+    --glass-fill: rgba(250,250,252,0.78);
+    --glass-edge: rgba(255,255,255,0.75);
+    --menubar-bg: rgba(246,246,246,0.6);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-family); background: var(--bg-body); color: var(--text-primary);
+         display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; font-size: 13px; }
+  @media (max-width: 900px) { body { grid-template-columns: 1fr; } }
+
+  /* ==========================================================================
+     2. PANEL LATERAL DE ESTADOS (herramienta de maqueta, no es UI de la app)
+     ========================================================================== */
+  aside { background: var(--bg-sidebar); border-right: 1px solid var(--border-subtle); padding: 20px 16px; overflow-y: auto; }
+  aside h1 { font-size: 15px; margin-bottom: 4px; }
+  aside .sub { color: var(--text-secondary); font-size: 12px; margin-bottom: 12px; line-height: 1.4; }
+  aside h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .6px; color: var(--text-secondary); margin: 16px 0 6px; }
+  .state-btn { display: flex; justify-content: space-between; width: 100%; text-align: left; background: none; border: 0;
+               color: var(--text-primary); font: inherit; padding: 7px 10px; border-radius: var(--radius-sm); cursor: pointer; }
+  .state-btn:hover { background: var(--border-subtle); }
+  .state-btn.active { background: var(--mac-blue-subtle); color: var(--mac-blue); font-weight: 600; }
+  .state-btn .tag { font-size: 12px; color: var(--text-secondary); }
+  .toggle { display: flex; align-items: center; gap: 8px; padding: 5px 10px; cursor: pointer; }
+  .notes { margin-top: 16px; padding: 10px; border-radius: var(--radius-md); background: var(--bg-surface);
+           border: 1px solid var(--border-subtle); color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+
+  /* ==========================================================================
+     3. ESCRITORIO SIMULADO (lo que el usuario ya tiene en pantalla)
+     ========================================================================== */
+  main { display: grid; place-items: center; padding: 24px 16px; overflow: hidden; }
+  .screen-wrap { width: 100%; max-width: 1100px; aspect-ratio: 16 / 10; position: relative; }
+  .screen { position: absolute; left: 0; top: 0; width: 1000px; height: 625px; transform-origin: 0 0; border-radius: 10px; overflow: hidden;
+            background: var(--wallpaper); box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+  .menubar { position: absolute; top: 0; left: 0; right: 0; height: 24px; display: flex; align-items: center; gap: 16px; padding: 0 14px;
+             background: var(--menubar-bg); backdrop-filter: blur(20px); font-size: 12px; color: var(--text-primary); z-index: 1; }
+  .menubar .spacer { flex: 1; }
+  .menubar .status-icon { width: 16px; height: 16px; border-radius: 4px; background: var(--icon-small) center / cover; }
+  .win { position: absolute; border-radius: 10px; background: var(--win-bg); box-shadow: 0 18px 40px rgba(0,0,0,.35); overflow: hidden; }
+  .win .bar { height: 28px; background: var(--win-bar); display: flex; gap: 7px; align-items: center; padding: 0 11px; }
+  .win .bar i { width: 11px; height: 11px; border-radius: 50%; background: #ff5f57; display: block; }
+  .win .bar i:nth-child(2) { background: #febc2e; } .win .bar i:nth-child(3) { background: #28c840; }
+  .win .viewport { position: absolute; top: 28px; left: 0; right: 0; bottom: 0; overflow: hidden; }
+  .win .page { padding: 22px 28px; display: grid; gap: 12px; }
+  .win .page b { display: block; height: 10px; border-radius: 5px; background: var(--win-line); }
+  .win .page b.h { height: 18px; width: 55%; }
+  .win .page b.img { height: 110px; border-radius: 8px; background: linear-gradient(135deg, rgba(232,87,58,.65), rgba(10,132,255,.55)); }
+  .win-a { left: 120px; top: 70px; width: 620px; height: 430px; z-index: 2; }
+  .win-b { left: 420px; top: 120px; width: 480px; height: 360px; z-index: 1; background: var(--win-b-bg); }
+  .dock { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; padding: 8px 12px; border-radius: 18px;
+          background: var(--glass-fill); border: 1px solid var(--glass-edge); backdrop-filter: blur(20px); z-index: 1; }
+  .dock span { width: 40px; height: 40px; border-radius: 10px; background: var(--win-line); }
+
+  /* ==========================================================================
+     4. OVERLAY DE BIENVENIDA (la app real: NSWindow a pantalla completa, sin marco)
+     ========================================================================== */
+  .ob { position: absolute; inset: 0; z-index: 20; color: #fff; }
+  .ob .veil { position: absolute; inset: 0; background: rgba(0,0,0,.55); }
+  /* Texto directamente sobre el velo, sin tarjeta: zona inferior central */
+  .ob .copy { position: absolute; left: 50%; bottom: 82px; transform: translateX(-50%); width: 560px; text-align: center;
+              text-shadow: 0 1px 12px rgba(0,0,0,.55); }
+  /* Contraste garantizado aunque el velo se aclare (paso 4) o el fondo del usuario sea blanco */
+  .ob .scrim { position: absolute; left: 0; right: 0; bottom: 0; height: 300px; pointer-events: none;
+               background: linear-gradient(to top, rgba(0,0,0,.72) 0%, rgba(0,0,0,.55) 55%, rgba(0,0,0,0) 100%); }
+  .hi-contrast .ob .scrim { background: linear-gradient(to top, rgba(0,0,0,.85) 0%, rgba(0,0,0,.72) 60%, rgba(0,0,0,0) 100%); }
+  .ob .btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .ob .copy h2 { font-size: 26px; font-weight: 700; letter-spacing: -.2px; margin-bottom: 8px; }
+  .ob .copy p { font-size: 15px; line-height: 1.5; color: rgba(255,255,255,.88); }
+  .ob .controls { margin-top: 18px; display: flex; align-items: center; justify-content: center; gap: 14px; text-shadow: none; }
+  .ob .dots { display: flex; gap: 7px; }
+  .ob .dots span { width: 7px; height: 7px; border-radius: 4px; background: rgba(255,255,255,.4); }
+  .ob .dots span.on { background: #fff; width: 18px; }
+  .ob .btn { font: 600 13px var(--font-family); min-height: 30px; min-width: 76px; padding: 6px 16px; border-radius: 15px; cursor: pointer;
+             border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.10); color: #fff; }
+  .ob .btn.primary { background: #fff; color: #1d1d1f; border-color: transparent; }
+  .ob .pause { position: absolute; bottom: 24px; right: 24px; min-width: 30px; padding: 6px 0; }
+  .kbd { display: inline-grid; place-items: center; min-width: 34px; height: 34px; padding: 0 8px; border-radius: 8px; font: 600 16px var(--font-family);
+         background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.35); box-shadow: 0 3px 0 rgba(255,255,255,.25); color: #fff; }
+  .kbd.inline { min-width: 22px; height: 22px; font-size: 12px; border-radius: 5px; padding: 0 5px; box-shadow: 0 2px 0 rgba(255,255,255,.25); vertical-align: 1px; }
+  .keys { position: absolute; display: flex; gap: 6px; }
+  .hint { position: absolute; font-size: 13px; font-weight: 600; padding: 5px 12px; border-radius: 14px; background: rgba(0,0,0,.55);
+          border: 1px solid rgba(255,255,255,.25); white-space: nowrap; }
+
+  /* Cursor fantasma (cruz de captura) y puntero normal */
+  .ghost { position: absolute; width: 22px; height: 22px; z-index: 5; }
+  .ghost::before, .ghost::after { content: ""; position: absolute; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.7); }
+  .ghost::before { left: 10px; top: 0; width: 2px; height: 22px; } .ghost::after { top: 10px; left: 0; width: 22px; height: 2px; }
+  .arrow { position: absolute; width: 18px; height: 26px; z-index: 5; filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)); }
+
+  /* --- Paso 1: icono real + señal en la barra de menús --- */
+  .ob-welcome .app-icon { position: absolute; left: 50%; top: 150px; width: 168px; height: 168px; margin-left: -84px;
+       background: var(--icon-big) center / contain no-repeat;
+       filter: drop-shadow(0 18px 40px rgba(0,0,0,.45)); animation: icon-in .8s cubic-bezier(.2,.9,.3,1.2) both; }
+  @keyframes icon-in { from { transform: scale(.6); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+  .ob-welcome .ring { position: absolute; top: 1px; left: 0; width: 22px; height: 22px; border-radius: 6px; border: 2px solid #fff;
+       box-shadow: 0 0 0 4px rgba(10,132,255,.7); animation: ring 1.6s ease-out infinite; }
+  @keyframes ring { 0% { transform: scale(.9); opacity: 1 } 100% { transform: scale(1.8); opacity: 0 } }
+  .ob-welcome .point { top: 34px; left: 0; transform: translateX(-50%); }
+
+  /* --- Paso 2: permiso --- */
+  .perm { position: absolute; left: 50%; top: 190px; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; font-size: 17px; font-weight: 600; }
+  .perm .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--mac-orange); box-shadow: 0 0 0 4px rgba(255,159,10,.25); }
+  .perm .dot.ok { background: var(--mac-green); box-shadow: 0 0 0 4px rgba(48,209,88,.25); }
+  .perm small { display: block; font-size: 13px; font-weight: 400; color: rgba(255,255,255,.75); margin-top: 4px; }
+
+  /* --- Paso 3: captura directamente sobre la ventana del usuario (bucle 6 s) --- */
+  .ob-capture .veil { background: transparent; }
+  .ob-capture .sel { position: absolute; left: 230px; top: 150px; border: 2px solid var(--mac-blue); border-radius: 1px;
+                     box-shadow: 0 0 0 2000px rgba(0,0,0,.55); animation: cap-sel 6s infinite; }
+  @keyframes cap-sel { 0%,18% { width: 0; height: 0; border-color: transparent } 20% { border-color: var(--mac-blue) }
+                       50%,58% { width: 300px; height: 170px; border-color: var(--mac-blue) } 60%,100% { width: 300px; height: 170px; border-color: transparent } }
+  .ob-capture .ghost { left: 219px; top: 139px; animation: cap-ghost 6s infinite; }
+  @keyframes cap-ghost { 0%,16% { transform: translate(0,0) } 50%,100% { transform: translate(300px,170px) } }
+  .ob-capture .badge { position: absolute; left: 345px; top: 330px; font: 600 12px "SF Mono", ui-monospace, monospace; padding: 3px 8px; border-radius: 4px;
+                       background: rgba(20,20,22,.92); animation: cap-badge 6s infinite; }
+  @keyframes cap-badge { 0%,46% { opacity: 0 } 50%,58% { opacity: 1 } 60%,100% { opacity: 0 } }
+  .ob-capture .flash { position: absolute; left: 230px; top: 150px; width: 300px; height: 170px; background: #fff; animation: cap-flash 6s infinite; }
+  @keyframes cap-flash { 0%,58% { opacity: 0 } 60% { opacity: .85 } 68%,100% { opacity: 0 } }
+  .ob-capture .thumb { position: absolute; left: 230px; top: 150px; width: 300px; height: 170px; border-radius: 6px; border: 1px solid rgba(255,255,255,.6);
+       background: linear-gradient(135deg, rgba(232,87,58,.8), rgba(10,132,255,.7)); box-shadow: 0 8px 20px rgba(0,0,0,.4); transform-origin: 0 0; animation: cap-fly 6s infinite; }
+  @keyframes cap-fly { 0%,60% { opacity: 0; transform: translate(0,0) scale(1) } 62% { opacity: 1 }
+                       82%,100% { opacity: 1; transform: translate(240px,-112px) scale(.3) rotate(-4deg) } }
+  .ob-capture .rope { position: absolute; left: 300px; right: 300px; top: 40px; height: 2px; border-radius: 1px; background: rgba(255,255,255,.6); animation: cap-rope 6s infinite; }
+  @keyframes cap-rope { 0%,60% { opacity: 0 } 66%,100% { opacity: 1 } }
+  .ob-capture .keys { left: 50%; top: 70px; transform: translateX(-50%); animation: cap-keys 6s infinite; }
+  @keyframes cap-keys { 0%,2% { opacity: 0; transform: translateX(-50%) scale(1) } 5% { opacity: 1 } 8% { transform: translateX(-50%) scale(.9) }
+                        11%,30% { opacity: 1; transform: translateX(-50%) scale(1) } 36%,100% { opacity: 0 } }
+
+  /* --- Paso 4: dos dedos = la captura se aparta (bucle 8 s) --- */
+  .ob-touch .veil { animation: t-veil 8s infinite; }
+  @keyframes t-veil { 0%,10% { background: rgba(0,0,0,.55) } 16%,78% { background: rgba(0,0,0,.08) } 86%,100% { background: rgba(0,0,0,.55) } }
+  .ob-touch .fingers { position: absolute; left: 470px; top: 300px; width: 70px; height: 40px; animation: t-fingers 8s infinite; }
+  .ob-touch .fingers span { position: absolute; top: 0; width: 26px; height: 26px; border-radius: 50%; background: rgba(255,255,255,.85);
+       box-shadow: 0 0 0 6px rgba(255,255,255,.25), 0 4px 12px rgba(0,0,0,.4); }
+  .ob-touch .fingers span:nth-child(2) { left: 36px; }
+  @keyframes t-fingers { 0%,4% { opacity: 0; transform: scale(1.4) } 8% { opacity: 1; transform: scale(1) } 14% { opacity: 1; transform: translateY(0) }
+                         30% { opacity: 1; transform: translateY(-60px) } 34%,100% { opacity: 0; transform: translateY(-60px) } }
+  .ob-touch .win-a .page { animation: t-scroll 8s infinite; }
+  @keyframes t-scroll { 0%,16% { transform: translateY(0) } 34%,100% { transform: translateY(-150px) } }
+  .ob-touch .arrow { left: 520px; top: 330px; animation: t-arrow 8s infinite; }
+  @keyframes t-arrow { 0%,36% { transform: translate(0,0) } 50%,100% { transform: translate(60px,-30px) } }
+  .ob-touch .hint { left: 50%; transform: translateX(-50%); top: 64px; }
+  .ob-touch .h1 { animation: t-h1 8s infinite; } .ob-touch .h2 { animation: t-h2 8s infinite; } .ob-touch .h3 { animation: t-h3 8s infinite; }
+  @keyframes t-h1 { 0%,6% { opacity: 0 } 9%,32% { opacity: 1 } 35%,100% { opacity: 0 } }
+  @keyframes t-h2 { 0%,36% { opacity: 0 } 39%,62% { opacity: 1 } 65%,100% { opacity: 0 } }
+  @keyframes t-h3 { 0%,66% { opacity: 0 } 69%,96% { opacity: 1 } 99%,100% { opacity: 0 } }
+  /* La ventana de detrás pasa al frente: «puedes cambiar de app» */
+  .screen.touch .win-b { animation: t-front 8s infinite; }
+  @keyframes t-front { 0%,44% { z-index: 1 } 46%,100% { z-index: 3 } }
+  .screen.touch .win-a .page { animation: t-scroll 8s infinite; }
+
+  /* --- Paso 5: la Tira de verdad, arriba --- */
+  .ob-strip .rope { position: absolute; left: 180px; right: 180px; top: 40px; height: 2px; background: rgba(255,255,255,.7); }
+  .ob-strip .card { position: absolute; top: 48px; width: 120px; height: 80px; border-radius: 8px; border: 1px solid rgba(255,255,255,.6);
+       background: linear-gradient(135deg, rgba(232,87,58,.8), rgba(10,132,255,.7)); box-shadow: 0 10px 24px rgba(0,0,0,.4);
+       transform-origin: 50% -10px; animation: sway 3s ease-in-out infinite; }
+  .ob-strip .card::before { content: ""; position: absolute; left: 50%; top: -12px; width: 8px; height: 16px; margin-left: -4px; border-radius: 2px; background: rgba(255,255,255,.85); }
+  .ob-strip .card:nth-of-type(2n) { animation-delay: -1.5s; }
+  @keyframes sway { 0%,100% { transform: rotate(-3deg) } 50% { transform: rotate(3deg) } }
+  .ob-strip .keys { left: 50%; transform: translateX(-50%); top: 170px; }
+
+  /* Reducir movimiento: fotograma explicativo fijo, sin bucles */
+  .reduce-motion .ob *, .reduce-motion .screen.touch * { animation: none !important; }
+  .reduce-motion .ob-capture .sel { width: 300px; height: 170px; }
+  .reduce-motion .ob-capture .ghost { transform: translate(300px,170px); }
+  .reduce-motion .ob-capture .flash, .reduce-motion .ob-capture .thumb, .reduce-motion .ob-capture .rope { opacity: 0; }
+  .reduce-motion .ob-touch .veil { background: rgba(0,0,0,.08); }
+  .reduce-motion .ob-touch .h2, .reduce-motion .ob-touch .h3 { opacity: 0; }
+  .ob.paused *, .screen.paused-touch * { animation-play-state: paused !important; }
+  .hi-contrast .ob .veil { background: rgba(0,0,0,.72); }
+  .hi-contrast .ob .btn { border-color: #fff; }
+</style>
+</head>
+<body>
+<aside>
+  <h1>Bienvenida inmersiva</h1>
+  <p class="sub">Al primer arranque, la bienvenida ocupa la pantalla del usuario: los gestos se ven donde ocurren, sin ventana. Cinco pasos.</p>
+  <h2>Pasos</h2>
+  <div id="steps"></div>
+  <h2>Estados</h2>
+  <button class="state-btn" data-state="perm-ok"><span>Permiso ya concedido</span><span class="tag">datos</span></button>
+  <button class="state-btn" data-state="perm-restart"><span>Permiso: falta reiniciar</span><span class="tag">error</span></button>
+  <button class="state-btn" data-state="closed"><span>Cerrada</span><span class="tag">vacío</span></button>
+  <h2>Entorno</h2>
+  <label class="toggle"><input type="checkbox" id="t-light"> Apariencia clara</label>
+  <label class="toggle"><input type="checkbox" id="t-motion"> Reducir movimiento</label>
+  <label class="toggle"><input type="checkbox" id="t-contrast"> Aumentar contraste</label>
+  <div class="notes" id="notes"></div>
+</aside>
+
+<main>
+  <div class="screen-wrap" id="wrap">
+    <div class="screen" id="screen">
+      <div class="menubar"><strong>Safari</strong><span>Archivo</span><span>Edición</span><span>Visualización</span><span class="spacer"></span><span class="status-icon" aria-label="Screenshooter"></span><span>Wi‑Fi</span><span>dom 11 oct 12:30</span></div>
+      <div class="win win-b"><div class="bar"><i></i><i></i><i></i></div><div class="viewport"><div class="page"><b class="h"></b><b></b><b style="width:80%"></b><b></b><b style="width:60%"></b></div></div></div>
+      <div class="win win-a"><div class="bar"><i></i><i></i><i></i></div><div class="viewport"><div class="page"><b class="h"></b><b></b><b style="width:85%"></b><b class="img"></b><b></b><b style="width:70%"></b><b></b><b style="width:55%"></b><b class="img"></b><b></b><b style="width:80%"></b><b></b></div></div></div>
+      <div class="dock"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      <div id="slot"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const k = (t, inline) => `<span class="kbd${inline ? ' inline' : ''}">${t}</span>`;
+const STEPS = [
+  { id: 'welcome', cls: 'ob-welcome', title: 'Te damos la bienvenida a Screenshooter',
+    body: 'Captura cualquier zona de la pantalla y tenla al momento en el portapapeles y en la Tira. Vive aquí arriba, en la barra de menús.',
+    art: () => `<div class="app-icon" role="img" aria-label="Icono de Screenshooter"></div><span class="ring"></span><div class="hint point">Aquí está</div>`,
+    notes: 'Paso 1. Ventana sin marco a pantalla completa sobre el escritorio real, velo 0,55. Icono REAL de la app (NSApp.applicationIconImage) con entrada en muelle. Un anillo pulsante señala el icono de la barra de menús en su posición real (frame del NSStatusItem.button).' },
+  { id: 'permission', cls: 'ob-perm', title: 'Permite la grabación de pantalla',
+    body: 'macOS necesita tu permiso para que Screenshooter pueda leer la pantalla. Cuando lo actives, Screenshooter se reiniciará una vez y esta bienvenida seguirá donde la dejaste.',
+    art: (v) => v === 'ok'
+      ? `<div class="perm"><span class="dot ok"></span><div>Grabación de pantalla: permitida</div></div>`
+      : v === 'restart'
+      ? `<div class="perm"><span class="dot"></span><div>Ya casi está<small>Si ya lo activaste, reinicia Screenshooter para aplicarlo.</small></div></div>`
+      : `<div class="perm"><span class="dot"></span><div>Grabación de pantalla: aún no permitida</div></div>`,
+    primary: (v) => v === 'ok' ? 'Siguiente' : v === 'restart' ? 'Reiniciar ahora' : 'Abrir Ajustes…',
+    secondary: (v) => v === 'ok' ? null : 'Más tarde',
+    notes: 'Paso 2. Si el permiso ya está, se ve en verde y el botón es «Siguiente». Si falta: «Abrir Ajustes…» (CGRequestScreenCaptureAccess una vez + deep link) y «Más tarde». Al volver a la app tras abrir Ajustes, el botón pasa a «Reiniciar ahora» (TCC exige reinicio); se guarda el paso 3 para reanudar. El velo baja de nivel (.normal) mientras Ajustes está delante para no taparlo.' },
+  { id: 'capture', cls: 'ob-capture', title: 'Pulsa ⌥⌘S y arrastra',
+    body: `Selecciona lo que quieras, como aquí. Cada captura se copia y se cuelga en la Tira; puedes hacer varias seguidas hasta pulsar ${k('esc', true)}.`,
+    art: () => `<div class="keys">${k('⌥')}${k('⌘')}${k('S')}</div><div class="sel"></div><div class="badge">300 × 170</div><div class="flash"></div><div class="ghost"></div><div class="rope"></div><div class="thumb"></div>`,
+    notes: 'Paso 3. Demostración SOBRE la pantalla real: aparecen las teclas, la cruz fantasma arrastra una selección en el centro (el velo se recorta como en la captura de verdad), destello, y la miniatura vuela hasta donde vive la Tira. Bucle 6 s, máx. 3 repeticiones y luego fotograma fijo. No captura nada de verdad.' },
+  { id: 'touch', cls: 'ob-touch', title: 'Toca con dos dedos para apartarla',
+    body: 'Con la captura activa, toca el trackpad con dos dedos: la pantalla se aclara y puedes hacer scroll o cambiar de app. Si no haces nada, vuelve sola en un momento.',
+    art: () => `<div class="fingers"><span></span><span></span></div><svg class="arrow" viewBox="0 0 18 26" aria-hidden="true"><path d="M1.5 1.5 L1.5 20.5 L6.2 16.2 L9.4 23.6 L12.6 22.2 L9.5 15 L15.8 15 Z" fill="#000" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      <div class="hint h1">Dos dedos: la captura se aparta</div><div class="hint h2">Haz scroll o cambia de app</div><div class="hint h3">Sin tocar nada, vuelve sola</div>`,
+    screenCls: 'touch',
+    notes: 'Paso 4 (sustituye a «Scroll» y «Navegar»: el usuario descubrió que el toque de dos dedos basta y es más natural que ⌥⌘S). Bucle 8 s: dos huellas aparecen junto al puntero, el velo se aclara, la página de la ventana real se desplaza, la ventana de detrás pasa al frente y al final vuelve el velo. ⌥⌘S para navegar sigue existiendo pero no se enseña.' },
+  { id: 'strip', cls: 'ob-strip', title: 'Todo queda en la Tira',
+    body: `Tus capturas cuelgan aquí arriba. Arrástralas a cualquier app, haz clic para copiar o pulsa ${k('⌃',1)}${k('⌥',1)}${k('T',1)} para mostrarla u ocultarla.`,
+    art: () => `<div class="rope"></div>${[260,410,560,710].map(x => `<div class="card" style="left:${x - 60}px"></div>`).join('')}`,
+    last: true,
+    notes: 'Paso 5. En la app real se despliega la Tira de verdad (StripManager.peek) en su sitio; si está vacía, tarjetas de ejemplo que se retiran al cerrar. «Empezar» cierra y guarda onboardingVersion = 1.' },
+];
+const EXTRA = {
+  'perm-ok': { step: 'permission', variant: 'ok' },
+  'perm-restart': { step: 'permission', variant: 'restart' },
+  closed: { notes: 'Cerrada: queda el escritorio tal cual. Se vuelve a abrir desde «Cómo funciona…» en el menú de la barra (empieza en el paso 3 si el permiso ya está).' },
+};
+
+const stepsBox = document.getElementById('steps');
+STEPS.forEach((s, i) => {
+  const b = document.createElement('button');
+  b.className = 'state-btn'; b.dataset.state = s.id;
+  b.innerHTML = `<span>${i + 1}. ${s.title}</span><span class="tag">paso</span>`;
+  stepsBox.appendChild(b);
+});
+document.querySelectorAll('.state-btn').forEach(b => b.addEventListener('click', () => show(b.dataset.state)));
+
+let current = 'welcome';
+function show(id) {
+  current = id;
+  const ex = EXTRA[id];
+  const stepId = ex && ex.step ? ex.step : id;
+  const variant = ex && ex.variant;
+  const idx = STEPS.findIndex(s => s.id === stepId);
+  const screen = document.getElementById('screen');
+  const slot = document.getElementById('slot');
+  screen.classList.remove('touch', 'paused-touch');
+  document.querySelectorAll('.state-btn').forEach(b => b.classList.toggle('active', b.dataset.state === id));
+  if (idx < 0) { slot.innerHTML = ''; document.getElementById('notes').textContent = ex.notes; return; }
+  const s = STEPS[idx];
+  if (s.screenCls) screen.classList.add(s.screenCls);
+  const dots = STEPS.map((_, j) => `<span class="${j === idx ? 'on' : ''}"></span>`).join('');
+  const primary = s.primary ? s.primary(variant) : (s.last ? 'Empezar' : 'Siguiente');
+  const secondary = s.secondary ? s.secondary(variant) : null;
+  const animated = ['capture', 'touch', 'welcome'].includes(s.id);
+  slot.innerHTML = `<div class="ob ${s.cls}" role="dialog" aria-label="Bienvenida a Screenshooter">
+      <div class="veil"></div>${s.art(variant)}<div class="scrim"></div>
+      ${animated ? '<button class="btn pause" aria-label="Pausar animación" data-go="pause">❚❚</button>' : ''}
+      <div class="copy"><h2>${s.title}</h2><p>${s.body}</p>
+        <div class="controls">
+          <button class="btn" data-go="closed">Saltar</button>
+          ${idx > 0 ? '<button class="btn" data-go="prev">Atrás</button>' : ''}
+          <div class="dots" role="img" aria-label="Paso ${idx + 1} de ${STEPS.length}">${dots}</div>
+          ${secondary ? `<button class="btn" data-go="next">${secondary}</button>` : ''}
+          <button class="btn primary" data-go="${s.last ? 'closed' : (variant === 'restart' ? 'capture' : 'next')}">${primary}</button>
+        </div></div></div>`;
+  document.getElementById('notes').textContent = s.notes;
+  // Anillo y etiqueta sobre la posición real del icono de la barra de menús
+  const icon = screen.querySelector('.status-icon');
+  const cx = icon.offsetLeft + icon.offsetWidth / 2;
+  slot.querySelectorAll('.ring').forEach(r => r.style.left = (cx - 11) + 'px');
+  slot.querySelectorAll('.point').forEach(p => p.style.left = cx + 'px');
+  slot.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => {
+    const go = b.dataset.go;
+    if (go === 'next') show(STEPS[idx + 1].id);
+    else if (go === 'prev') show(STEPS[idx - 1].id);
+    else if (go === 'pause') {
+      const ob = slot.querySelector('.ob'); ob.classList.toggle('paused'); screen.classList.toggle('paused-touch');
+      const p = ob.classList.contains('paused'); b.textContent = p ? '▶' : '❚❚'; b.setAttribute('aria-label', p ? 'Reproducir animación' : 'Pausar animación');
+    } else show(go);
+  }));
+  slot.querySelector('.btn.primary').focus({ preventScroll: true });
+}
+
+document.addEventListener('keydown', e => {
+  const idx = STEPS.findIndex(s => s.id === current);
+  if (e.key === 'Escape' && idx >= 0) show('closed');
+});
+function fit() {
+  const wrap = document.getElementById('wrap');
+  document.getElementById('screen').style.transform = `scale(${wrap.clientWidth / 1000})`;
+}
+addEventListener('resize', fit); fit();
+const root = document.documentElement;
+document.getElementById('t-light').addEventListener('change', e => root.dataset.theme = e.target.checked ? 'light' : 'dark');
+document.getElementById('t-motion').addEventListener('change', e => document.body.classList.toggle('reduce-motion', e.target.checked));
+document.getElementById('t-contrast').addEventListener('change', e => document.body.classList.toggle('hi-contrast', e.target.checked));
+if (matchMedia('(prefers-reduced-motion: reduce)').matches) { document.getElementById('t-motion').checked = true; document.body.classList.add('reduce-motion'); }
+show('welcome');
+</script>
+</body>
+</html>

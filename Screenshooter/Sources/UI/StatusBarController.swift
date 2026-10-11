@@ -6,6 +6,12 @@ public final class StatusBarController {
     private var statusItem: NSStatusItem?
     private let menu = NSMenu()
     
+    /// Marco del icono en la barra de menús, en coordenadas de pantalla (la bienvenida lo señala).
+    public var statusItemScreenFrame: NSRect? {
+        guard let button = statusItem?.button, let window = button.window else { return nil }
+        return window.convertToScreen(button.convert(button.bounds, to: nil))
+    }
+    
     public init() {
         setupStatusItem()
         setupMenu()
@@ -62,6 +68,15 @@ public final class StatusBarController {
             exitCaptureItem.target = self
             menu.addItem(exitCaptureItem)
         }
+        
+        // Bienvenida con los gestos (también aparece sola en el primer arranque)
+        let howItWorksItem = NSMenuItem(
+            title: String(localized: "How It Works…", bundle: L10n.bundle, locale: L10n.locale, comment: "Menu item: reopen the onboarding that explains the gestures"),
+            action: #selector(handleHowItWorksClicked),
+            keyEquivalent: ""
+        )
+        howItWorksItem.target = self
+        menu.addItem(howItWorksItem)
         
         // 2. Control del Strip
         let stripItem = NSMenuItem(
@@ -177,6 +192,10 @@ public final class StatusBarController {
     
     @objc private func handleCaptureClicked() {
         CaptureCoordinator.shared.toggleCapture()
+    }
+    
+    @objc private func handleHowItWorksClicked() {
+        OnboardingCoordinator.shared.present(reopenedFromMenu: true)
     }
     
     @objc private func handleExitCaptureClicked() {

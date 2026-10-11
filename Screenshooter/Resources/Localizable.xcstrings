@@ -1542,6 +1542,618 @@
           }
         }
       }
+    },
+    "Welcome to Screenshooter" : {
+      "comment" : "Onboarding step 1 title",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcome to Screenshooter"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te damos la bienvenida a Screenshooter"
+          }
+        }
+      }
+    },
+    "Allow screen recording" : {
+      "comment" : "Onboarding step 2 title",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow screen recording"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permite la grabación de pantalla"
+          }
+        }
+      }
+    },
+    "Press ⌥⌘S and drag" : {
+      "comment" : "Onboarding step 3 title",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press ⌥⌘S and drag"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulsa ⌥⌘S y arrastra"
+          }
+        }
+      }
+    },
+    "Touch with two fingers to move it aside" : {
+      "comment" : "Onboarding step 4 title: a two-finger touch on the trackpad lets events through the capture overlay",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touch with two fingers to move it aside"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toca con dos dedos para apartarla"
+          }
+        }
+      }
+    },
+    "Everything stays on the Shelf" : {
+      "comment" : "Onboarding step 5 title",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Everything stays on the Shelf"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todo queda en la Tira"
+          }
+        }
+      }
+    },
+    "Capture any part of the screen and have it instantly on the clipboard and on the Shelf. It lives up here, in the menu bar." : {
+      "comment" : "Onboarding step 1 body",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capture any part of the screen and have it instantly on the clipboard and on the Shelf. It lives up here, in the menu bar."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Captura cualquier zona de la pantalla y tenla al momento en el portapapeles y en la Tira. Vive aquí arriba, en la barra de menús."
+          }
+        }
+      }
+    },
+    "macOS needs your permission so Screenshooter can read the screen. Once you turn it on, Screenshooter restarts once and this welcome continues where you left it." : {
+      "comment" : "Onboarding step 2 body",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS needs your permission so Screenshooter can read the screen. Once you turn it on, Screenshooter restarts once and this welcome continues where you left it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS necesita tu permiso para que Screenshooter pueda leer la pantalla. Cuando lo actives, Screenshooter se reiniciará una vez y esta bienvenida seguirá donde la dejaste."
+          }
+        }
+      }
+    },
+    "Select whatever you want, like here. Each capture is copied and hung on the Shelf; you can take several in a row until you press esc." : {
+      "comment" : "Onboarding step 3 body",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select whatever you want, like here. Each capture is copied and hung on the Shelf; you can take several in a row until you press esc."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecciona lo que quieras, como aquí. Cada captura se copia y se cuelga en la Tira; puedes hacer varias seguidas hasta pulsar esc."
+          }
+        }
+      }
+    },
+    "While capturing, touch the trackpad with two fingers: the screen lightens and you can scroll or switch apps. If you do nothing, it comes back by itself in a moment." : {
+      "comment" : "Onboarding step 4 body",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "While capturing, touch the trackpad with two fingers: the screen lightens and you can scroll or switch apps. If you do nothing, it comes back by itself in a moment."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con la captura activa, toca el trackpad con dos dedos: la pantalla se aclara y puedes hacer scroll o cambiar de app. Si no haces nada, vuelve sola en un momento."
+          }
+        }
+      }
+    },
+    "Your captures hang up here. Drag them into any app, click to copy, or press ⌃⌥T to show or hide the Shelf." : {
+      "comment" : "Onboarding step 5 body",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your captures hang up here. Drag them into any app, click to copy, or press ⌃⌥T to show or hide the Shelf."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tus capturas cuelgan aquí arriba. Arrástralas a cualquier app, haz clic para copiar o pulsa ⌃⌥T para mostrarla u ocultarla."
+          }
+        }
+      }
+    },
+    "Screenshooter icon, pointing to its place in the menu bar" : {
+      "comment" : "VoiceOver description of the onboarding step 1 illustration",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screenshooter icon, pointing to its place in the menu bar"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Icono de Screenshooter señalando su sitio en la barra de menús"
+          }
+        }
+      }
+    },
+    "Animation: press Option Command S and drag to select; the capture flies to the Shelf" : {
+      "comment" : "VoiceOver description of the onboarding step 3 animation",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Animation: press Option Command S and drag to select; the capture flies to the Shelf"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Animación: pulsas Opción Comando S y arrastras para seleccionar; la captura vuela a la Tira"
+          }
+        }
+      }
+    },
+    "Animation: two fingers on the trackpad lighten the screen so you can scroll or switch apps; then it comes back" : {
+      "comment" : "VoiceOver description of the onboarding step 4 animation",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Animation: two fingers on the trackpad lighten the screen so you can scroll or switch apps; then it comes back"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Animación: dos dedos en el trackpad aclaran la pantalla para hacer scroll o cambiar de app; después vuelve"
+          }
+        }
+      }
+    },
+    "Captures hanging on the Shelf at the top of the screen" : {
+      "comment" : "VoiceOver description of the onboarding step 5 illustration",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Captures hanging on the Shelf at the top of the screen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capturas colgadas en la Tira, arriba de la pantalla"
+          }
+        }
+      }
+    },
+    "Option Command S" : {
+      "comment" : "VoiceOver reading of the ⌥⌘S shortcut",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Option Command S"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opción Comando S"
+          }
+        }
+      }
+    },
+    "Control Option T" : {
+      "comment" : "VoiceOver reading of the ⌃⌥T shortcut",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Control Option T"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Control Opción T"
+          }
+        }
+      }
+    },
+    "Screen recording: allowed" : {
+      "comment" : "Onboarding permission status when granted",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screen recording: allowed"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grabación de pantalla: permitida"
+          }
+        }
+      }
+    },
+    "Screen recording: not allowed yet" : {
+      "comment" : "Onboarding permission status when not granted",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screen recording: not allowed yet"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grabación de pantalla: aún no permitida"
+          }
+        }
+      }
+    },
+    "If you already turned it on, restart Screenshooter to apply it." : {
+      "comment" : "Onboarding permission hint after opening System Settings",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If you already turned it on, restart Screenshooter to apply it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si ya lo activaste, reinicia Screenshooter para aplicarlo."
+          }
+        }
+      }
+    },
+    "Skip" : {
+      "comment" : "Onboarding button: close the welcome",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saltar"
+          }
+        }
+      }
+    },
+    "Back" : {
+      "comment" : "Onboarding button: previous step",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atrás"
+          }
+        }
+      }
+    },
+    "Next" : {
+      "comment" : "Onboarding button: next step",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siguiente"
+          }
+        }
+      }
+    },
+    "Get Started" : {
+      "comment" : "Onboarding button on the last step: close the welcome",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get Started"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empezar"
+          }
+        }
+      }
+    },
+    "Open System Settings…" : {
+      "comment" : "Onboarding button: open the screen recording settings",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open System Settings…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Ajustes…"
+          }
+        }
+      }
+    },
+    "Restart Now" : {
+      "comment" : "Onboarding button: relaunch the app to apply the permission",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart Now"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reiniciar ahora"
+          }
+        }
+      }
+    },
+    "Later" : {
+      "comment" : "Onboarding button: continue without granting the permission",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Later"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Más tarde"
+          }
+        }
+      }
+    },
+    "Pause animation" : {
+      "comment" : "Onboarding button: pause the demonstration",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause animation"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pausar animación"
+          }
+        }
+      }
+    },
+    "Play animation" : {
+      "comment" : "Onboarding button: resume or replay the demonstration",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play animation"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reproducir animación"
+          }
+        }
+      }
+    },
+    "Step %@ of %@" : {
+      "comment" : "VoiceOver label of the onboarding page dots; arguments are the current step and the total",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Step %@ of %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paso %@ de %@"
+          }
+        }
+      }
+    },
+    "Here it is" : {
+      "comment" : "Onboarding hint next to the menu bar icon",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Here it is"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aquí está"
+          }
+        }
+      }
+    },
+    "Two fingers: the capture moves aside" : {
+      "comment" : "Onboarding animation caption 1 of step 4",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Two fingers: the capture moves aside"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dos dedos: la captura se aparta"
+          }
+        }
+      }
+    },
+    "Scroll or switch apps" : {
+      "comment" : "Onboarding animation caption 2 of step 4",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scroll or switch apps"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haz scroll o cambia de app"
+          }
+        }
+      }
+    },
+    "Do nothing and it comes back" : {
+      "comment" : "Onboarding animation caption 3 of step 4",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do nothing and it comes back"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin tocar nada, vuelve sola"
+          }
+        }
+      }
+    },
+    "How It Works…" : {
+      "comment" : "Menu item: reopen the onboarding that explains the gestures",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How It Works…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cómo funciona…"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

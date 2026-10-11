@@ -29,16 +29,19 @@ public final class PermissionsHelper {
         }
     }
     
+    /// Dispara la petición del sistema una única vez para no spamear el diálogo de macOS en cada pulsación.
+    public func requestAccessOnce() {
+        guard !hasPromptedSystemDialog else { return }
+        hasPromptedSystemDialog = true
+        CGRequestScreenCaptureAccess()
+    }
+    
     /// Muestra un diálogo nativo indicando la necesidad del permiso y ofreciendo
     /// tanto la apertura de Ajustes como el reinicio necesario de la app.
     public func promptPermissionDialogIfNeeded() {
         guard !isScreenCaptureGranted else { return }
         
-        // Disparar la petición del sistema una única vez para no spamear el diálogo de macOS en cada pulsación
-        if !hasPromptedSystemDialog {
-            hasPromptedSystemDialog = true
-            CGRequestScreenCaptureAccess()
-        }
+        requestAccessOnce()
         
         let alert = NSAlert()
         alert.messageText = String(localized: "Screen Recording Permission Required", bundle: L10n.bundle, locale: L10n.locale, comment: "Alert title: the app needs screen recording permission")
