@@ -23,6 +23,9 @@ public final class CaptureCoordinator {
     private var scrollQuietTimer: Timer?
     private var scrollMonitors: [Any] = []
     private var scrollTracker = ScrollQuietTracker()
+    /// Sube en cada captura y en cada salida del modo: un `Task` de captura solo toca el estado
+    /// si sigue siendo la sesión vigente (ESC y ⌥⌘S pueden haber abierto otra mientras capturaba).
+    private var captureGeneration = 0
     
     public private(set) var state: ContinuousCaptureState = .idle {
         didSet {
@@ -148,8 +151,10 @@ public final class CaptureCoordinator {
     }
     
     private func checkScrollQuiet() {
+        // Con un botón pulsado (p. ej. arrastrando la barra de scroll de otra app) no reaparecer a mitad del arrastre
         guard state == .scrollPassthrough,
-              scrollTracker.isQuiet(at: ProcessInfo.processInfo.systemUptime) else { return }
+              scrollTracker.isQuiet(at: ProcessInfo.processInfo.systemUptime),
+              NSEvent.pressedMouseButtons == 0 else { return }
         state = ContinuousCaptureMachine.next(state, on: .scrollEnded)
         stopScrollPassthrough()
         
@@ -220,6 +225,7 @@ public final class CaptureCoordinator {
     /// Termina el modo continuo cerrando superposiciones y píldora sin alterar el portapapeles.
     public func cancelCapture() {
         guard state != .idle else { return }
+        captureGeneration += 1
         dismissOverlays()
         dismissNavigationPill()
         state = ContinuousCaptureMachine.next(state, on: .cancel)
@@ -233,6 +239,10 @@ public final class CaptureCoordinator {
         
         // Cerrar inmediatamente todas las superposiciones para que no aparezcan en la captura
         dismissOverlays()
+        captureGeneration += 1
+        let generation = captureGeneration
+        // Si la captura se cuelga, el modo no debe quedar vivo sin overlays para siempre
+        restartSafetyTimer(after: Self.selectingTimeout)
         
         Task {
             do {
@@ -271,14 +281,16 @@ public final class CaptureCoordinator {
                 
                 // Modo continuo: volver a mostrar los overlays para la siguiente selección
                 // (también reinicia el temporizador de inactividad). Si ESC llegó antes, el estado ya es `idle`.
-                if self.state == .processing {
+                if self.state == .processing, generation == self.captureGeneration {
                     self.state = ContinuousCaptureMachine.next(self.state, on: .captureFinished)
                     self.presentOverlays()
                 }
             } catch {
+                NSLog("[CaptureCoordinator] Error al capturar área: %@", error.localizedDescription)
+                // Si ya es otra sesión, no matarla ni abrir una alerta modal que sus overlays taparían
+                guard generation == self.captureGeneration else { return }
                 // Salir del modo antes de la alerta: un overlay la taparía
                 self.cancelCapture()
-                NSLog("[CaptureCoordinator] Error al capturar área: %@", error.localizedDescription)
                 self.showErrorAlert(message: error.localizedDescription)
             }
         }
