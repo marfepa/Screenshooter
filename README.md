@@ -48,9 +48,11 @@ Screenshooter necesita el permiso de Grabación de pantalla (Ajustes del Sistema
 
 ## Uso
 
-Screenshooter vive en la barra de menús.
+Screenshooter vive en la barra de menús. La primera vez que la abres, una bienvenida a pantalla completa te enseña los gestos sobre tu propio escritorio; puedes volver a verla con «Cómo funciona…» en el menú.
 
 - `⌥⌘S`: captura un área. Se copia al portapapeles y se cuelga en la Tira. Es un modo de captura continua: puedes seleccionar áreas una tras otra hasta pulsar `ESC`.
+  - Toca el trackpad con dos dedos (o gira la rueda) para apartar la captura: puedes hacer scroll o cambiar de app y, si no haces nada o mueves el puntero, vuelve sola para seguir seleccionando.
+  - Vuelve a pulsar `⌥⌘S` para navegar libremente con el modo activo (aparece una píldora «Navegando» con el botón Salir); otro `⌥⌘S` y sigues capturando.
 - `⌃⌥T`: muestra u oculta la Tira. Al llevar el puntero a la parte superior de la pantalla, la Tira también se desliza hacia abajo.
 
 Gestos sobre cada captura de la Tira:
