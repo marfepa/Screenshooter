@@ -14,7 +14,8 @@ public final class CaptureCoordinator {
     
     private init() {}
     
-    /// Inicia el flujo de selección interactiva de área en pantalla.
+    /// Inicia el modo de captura continua: el usuario selecciona áreas una tras otra
+    /// hasta pulsar ESC (o hasta que salte el temporizador de inactividad).
     public func startCapture() {
         guard !isCapturing else { return }
         
@@ -73,13 +74,13 @@ public final class CaptureCoordinator {
         isCapturing = false
     }
     
-    /// Procesa la selección completada por el usuario.
+    /// Procesa la selección completada por el usuario. `isCapturing` sigue en `true`:
+    /// el modo continuo solo termina en `cancelCapture()` o si la captura falla.
     private func handleSelectionCompleted(rect: CGRect, on screen: NSScreen) {
         // Cerrar inmediatamente todas las superposiciones para que no aparezcan en la captura
         dismissOverlays()
         
         Task {
-            defer { self.isCapturing = false }
             do {
                 // Capturar el área seleccionada
                 let result = try await ScreenCaptureEngine.shared.captureArea(rect: rect, on: screen)
@@ -113,7 +114,15 @@ public final class CaptureCoordinator {
                     self.activeHUD = hud
                     hud.present()
                 }
+                
+                // Modo continuo: volver a mostrar los overlays para la siguiente selección
+                // (también reinicia el temporizador de inactividad)
+                if self.isCapturing {
+                    self.presentOverlays()
+                }
             } catch {
+                // Salir del modo antes de la alerta: un overlay la taparía
+                self.isCapturing = false
                 NSLog("[CaptureCoordinator] Error al capturar área: %@", error.localizedDescription)
                 self.showErrorAlert(message: error.localizedDescription)
             }
