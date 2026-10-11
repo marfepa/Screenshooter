@@ -594,6 +594,46 @@
       color: #ffffff;
     }
 
+    /* Modo continuo: scroll pasante y modo Navegar */
+    .capture-overlay.passthrough {
+      background: rgba(0, 0, 0, 0.12);
+      cursor: default;
+      transition: background 0.15s ease-out;
+    }
+
+    .navigation-pill {
+      position: absolute;
+      top: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(24, 24, 28, 0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      padding: 6px 6px 6px 16px;
+      border-radius: 20px;
+      box-shadow: var(--shadow-hud);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      color: #ffffff;
+      z-index: 90;
+    }
+
+    .navigation-pill .pill-exit {
+      background: rgba(255, 255, 255, 0.15);
+      border: none;
+      color: #ffffff;
+      font: inherit;
+      font-weight: 600;
+      padding: 6px 14px;
+      min-height: 28px;
+      min-width: 44px;
+      border-radius: 14px;
+      cursor: pointer;
+    }
+
     /* ==========================================================================
        6. COMPONENTE: HUD DE CONFIRMACIÓN (FLASH / CLIPBOARD)
        ========================================================================== */
@@ -908,6 +948,18 @@
             </button>
           </li>
           <li>
+            <button class="scene-btn" onclick="renderScene('overlay_scrolling', this)">
+              <span>1.2b Scroll pasante</span>
+              <span class="scene-badge">Overlay</span>
+            </button>
+          </li>
+          <li>
+            <button class="scene-btn" onclick="renderScene('overlay_navigating', this)">
+              <span>1.2c Modo Navegar</span>
+              <span class="scene-badge">Overlay</span>
+            </button>
+          </li>
+          <li>
             <button class="scene-btn" onclick="renderScene('hud_feedback', this)">
               <span>1.3 Portapapeles & HUD</span>
               <span class="scene-badge">Feedback</span>
@@ -1074,6 +1126,33 @@
                 <span class="info-tag" data-info="Dimensiones en píxeles lógicos (o 2x en Retina Display).">(i)</span>
               </div>
             </div>
+          </div>
+        `
+      },
+
+      // 1.2b Scroll pasante durante el modo continuo
+      overlay_scrolling: {
+        notes: "Scroll pasante: con el modo continuo activo, deslizar dos dedos en el trackpad (o girar la rueda) sin estar arrastrando hace que el overlay deje pasar los eventos (ignoresMouseEvents = true) y el velo se aclara a 0,12. El scroll llega a la ventana bajo el cursor. Tras ~350 ms sin scroll (incluida la inercia) el velo vuelve a 0,38 y se puede seleccionar sin pulsar nada. Reinicia el temporizador de 30 s.",
+        render: () => `
+          <div class="capture-overlay passthrough" style="pointer-events:auto;" onclick="renderScene('overlay_selecting')">
+            <div class="overlay-floating-bar">
+              <div class="help-hint"><span class="key-badge">Arrastrar</span><span>Capturar</span></div>
+              <div class="help-hint" style="color:#fff; font-weight:600;"><span class="key-badge" style="background:var(--mac-blue);">Deslizar</span><span>Scroll</span></div>
+              <div class="help-hint"><span class="key-badge">⌥⌘S</span><span>Navegar</span></div>
+              <div class="help-hint"><span class="key-badge">ESC</span><span>Salir</span></div>
+            </div>
+          </div>
+        `
+      },
+
+      // 1.2c Modo Navegar (⌥⌘S como interruptor)
+      overlay_navigating: {
+        notes: "Modo Navegar: durante el modo continuo, ⌥⌘S oculta los overlays y muestra solo esta píldora (panel no activador, sin robar el foco). El usuario puede hacer clic, ⌘Tab, usar el Dock o cambiar de Space. ⌥⌘S de nuevo vuelve a Seleccionar sobre lo que haya en pantalla. ESC no es global sin permiso de Accesibilidad: se sale con «Salir» o desde el menú. Inactividad: 2 min.",
+        render: () => `
+          <div class="navigation-pill" style="pointer-events:auto;">
+            <span>Navegando</span>
+            <span class="help-hint"><span class="key-badge">⌥⌘S</span><span>Capturar</span></span>
+            <button class="pill-exit" onclick="renderScene('menubar_normal')">Salir</button>
           </div>
         `
       },
