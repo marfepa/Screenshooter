@@ -30,6 +30,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil
         )
         
+        // Bienvenida inmersiva: primer arranque o reanudación tras reiniciar por el permiso
+        OnboardingCoordinator.shared.statusItemFrame = { [weak self] in self?.statusBarController?.statusItemScreenFrame }
+        OnboardingCoordinator.shared.presentAtLaunchIfNeeded()
+        
         NSLog("[AppDelegate] Screenshooter iniciado con Strip y Modo Inbox.")
     }
     
