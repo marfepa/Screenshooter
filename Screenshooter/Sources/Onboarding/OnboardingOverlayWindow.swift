@@ -70,9 +70,11 @@ final class OnboardingOverlayWindow: NSWindow {
 
     override func keyDown(with event: NSEvent) {
         switch event.keyCode {
-        case 123: onArrow?(false)  // ←
-        case 124: onArrow?(true)   // →
-        default: break             // Consumir sin pitido
+        case 53: onCancel?()                   // Esc (por si no llega como cancelOperation)
+        case 123: onArrow?(false)              // ←
+        case 124: onArrow?(true)               // →
+        case 48: super.keyDown(with: event)    // Tab / ⇧Tab: recorrer los botones
+        default: break                         // Consumir sin pitido
         }
     }
 }

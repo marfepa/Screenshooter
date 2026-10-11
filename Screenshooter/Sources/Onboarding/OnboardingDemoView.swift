@@ -302,7 +302,7 @@ final class OnboardingDemoView: NSView {
             dot.borderWidth = 6
             dot.shadowOpacity = 0.4
             dot.shadowRadius = 6
-            dot.shadowOffset = CGSize(width: 0, height: -3)
+            dot.shadowOffset = CGSize(width: 0, height: 3)  // canvas invertido: y positiva = hacia abajo
             fingers.addSublayer(dot)
         }
         content.addSublayer(fingers)
@@ -473,7 +473,7 @@ final class OnboardingDemoView: NSView {
         card.borderWidth = 1
         card.shadowOpacity = 0.4
         card.shadowRadius = 10
-        card.shadowOffset = CGSize(width: 0, height: -6)
+        card.shadowOffset = CGSize(width: 0, height: 6)
         return card
     }
 

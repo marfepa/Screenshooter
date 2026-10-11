@@ -14,14 +14,48 @@ final class OnboardingCoordinator {
     private var step: OnboardingStep = .welcome
     private var permissionRequested = false
     private var awaitingSettings = false
-    private var observers: [NSObjectProtocol] = []
+    private var observers: [(center: NotificationCenter, token: NSObjectProtocol)] = []
+    private var suspended = false
+    private var captureObserver: NSObjectProtocol?
 
     var isPresented: Bool { !windows.isEmpty }
 
-    private init() {}
+    private init() {
+        // ⌥⌘S durante la bienvenida: apartarla mientras dure la captura (si no, saldría en la imagen)
+        // y devolverla al terminar
+        captureObserver = NotificationCenter.default.addObserver(forName: CaptureCoordinator.activeDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.setSuspended(CaptureCoordinator.shared.isActive)
+            }
+        }
+    }
+
+    /// Oculta (o recupera) las capas sin cerrar la bienvenida: captura en curso o alerta modal.
+    func setSuspended(_ suspend: Bool) {
+        guard isPresented, suspend != suspended else { return }
+        suspended = suspend
+        if suspend {
+            for window in windows {
+                window.orderOut(nil)
+            }
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
+            for window in windows {
+                window.orderFrontRegardless()
+            }
+            mainWindow?.makeKeyAndOrderFront(nil)
+        }
+    }
 
     /// Al arrancar: solo la primera vez (o para reanudar tras el reinicio por el permiso).
     func presentAtLaunchIfNeeded() {
+        // Un ciclo después: recién lanzada la app, la ventana del icono de la barra de menús aún puede no estar colocada
+        DispatchQueue.main.async { [weak self] in
+            MainActor.assumeIsolated { self?.presentAtLaunchNow() }
+        }
+    }
+
+    private func presentAtLaunchNow() {
         guard OnboardingFlow.shouldShowAtLaunch(seenVersion: store.seenVersion,
                                                 resumeStep: store.resumeStep,
                                                 isCaptureActive: CaptureCoordinator.shared.isActive) else { return }
@@ -57,10 +91,17 @@ final class OnboardingCoordinator {
     // MARK: - Ventanas
 
     private var mainScreen: NSScreen? {
-        if let frame = statusItemFrame?(), let screen = NSScreen.screens.first(where: { $0.frame.intersects(frame) }) {
+        if let frame = validStatusItemFrame, let screen = NSScreen.screens.first(where: { $0.frame.intersects(frame) }) {
             return screen
         }
         return NSScreen.main ?? NSScreen.screens.first
+    }
+
+    /// El marco del icono solo vale si está colocado en alguna pantalla (al arrancar puede ser 0,0).
+    private var validStatusItemFrame: NSRect? {
+        guard let frame = statusItemFrame?(), frame.width > 0,
+              NSScreen.screens.contains(where: { $0.frame.contains(CGPoint(x: frame.midX, y: frame.midY)) }) else { return nil }
+        return frame
     }
 
     private func buildWindows() {
@@ -76,7 +117,7 @@ final class OnboardingCoordinator {
                 controls.onTogglePause = { [weak self] in self?.togglePause() }
                 window.onCancel = { [weak self] in self?.dismiss() }
                 window.onArrow = { [weak self] forward in forward ? self?.goForward() : self?.goBack() }
-                if let item = statusItemFrame?() {
+                if let item = validStatusItemFrame {
                     // Pantalla (abajo-izquierda) → vista con origen arriba-izquierda
                     let local = CGRect(x: item.minX - screen.frame.minX,
                                        y: screen.frame.maxY - item.maxY,
@@ -100,9 +141,10 @@ final class OnboardingCoordinator {
 
     private func tearDown() {
         for observer in observers {
-            NotificationCenter.default.removeObserver(observer)
+            observer.center.removeObserver(observer.token)
         }
         observers.removeAll()
+        suspended = false
         for window in windows {
             window.orderOut(nil)
             window.close()
@@ -114,27 +156,30 @@ final class OnboardingCoordinator {
     private func observe() {
         let center = NotificationCenter.default
         // Volver de Ajustes del Sistema: recuperar el nivel y el foco
-        observers.append(center.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+        observers.append((center, center.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.returnFromSettings() }
-        })
+        }))
         // Monitor conectado o desconectado: rehacer las capas
-        observers.append(center.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
+        observers.append((center, center.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self, self.isPresented else { return }
                 let current = self.step
+                let wasSuspended = self.suspended
                 self.tearDown()
                 self.buildWindows()
                 self.observe()
                 self.show(current)
+                if wasSuspended { self.setSuspended(true) }
             }
-        })
+        }))
         // Reducir movimiento / Aumentar contraste cambiados con la bienvenida abierta
-        observers.append(NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
+        let workspace = NSWorkspace.shared.notificationCenter
+        observers.append((workspace, workspace.addObserver(forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self, self.isPresented else { return }
                 self.show(self.step)
             }
-        })
+        }))
     }
 
     // MARK: - Pasos
@@ -200,7 +245,11 @@ final class OnboardingCoordinator {
 
     private func togglePause() {
         guard let demo = mainWindow?.demoView else { return }
-        demo.togglePause()
+        // Todas las pantallas a la vez (el velo del paso 4 anima también en las secundarias)
+        let pause = !demo.isPaused
+        for window in windows where window.demoView.isPaused != pause {
+            window.demoView.togglePause()
+        }
         mainWindow?.controls?.setPaused(demo.isPaused)
     }
 
