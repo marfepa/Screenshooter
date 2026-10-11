@@ -21,6 +21,7 @@
   - [x] Pruebas unitarias de conversión de coordenadas y escritura en portapapeles (`ScreenshooterTests`).
   - [x] Icono de aplicación «La captura colgada»: squircle macOS rojo-coral (degradado vertical #e8573a→#c3311f), tarjeta de vidrio translúcida colgada de una pinza con hilo, tarjeta trasera ladeada y marcas de encuadre en las esquinas; versión simplificada (sin tarjeta trasera, trazo grueso) para 16/32 px. Fuentes en `design/icon/`, catálogo `Assets.xcassets/AppIcon.appiconset` y `AppIcon.icns` generados por `scripts/make-icon.sh`.
   - [x] Compilación Release y despliegue local en `/Applications/Screenshooter.app`.
+  - [x] Captura continua: ⌥⌘S abre un modo en el que se seleccionan áreas una tras otra (cada una al portapapeles y a la Tira) hasta pulsar ESC.
 - **Pendiente / Roadmap inmediato:**
   - [ ] Añadir panel gráfico interactivo para remapear teclas en Ajustes.
   - [ ] Registro en `SMAppService` para inicio automático al encender el Mac.
@@ -79,11 +80,11 @@
   - `OverlayActive` (pantalla atenuada, cursor en cruz, esperando inicio de arrastre)
   - `SelectingArea` (usuario arrastrando con botón pulsado, recalculando rectángulo y dimensiones en tiempo real)
   - `ProcessingCapture` (soltado de ratón, cálculo de coordenadas lógicas a píxeles de pantalla, llamada a ScreenCaptureKit)
-  - `CopiedToClipboard` (transferencia a `NSPasteboard`, disparo de sonido y HUD flotante, regreso inmediato a `Idle`)
-  - `Cancelled` (tecla Escape pulsada o clic sin arrastrar, cierre del overlay sin acción, regreso a `Idle`)
+  - `CopiedToClipboard` (transferencia a `NSPasteboard`, sonido, Tira o HUD flotante; modo continuo: regreso a `OverlayActive` con los overlays recreados)
+  - `Cancelled` (tecla Escape, 30 s sin completar una selección o error de captura: cierre del overlay y regreso a `Idle`). Un clic sin arrastrar ya NO cancela.
 - **Invariantes y reglas de negocio:**
-  - Si el usuario pulsa `ESC` en cualquier momento, el overlay se descarta al instante sin escribir en el portapapeles.
-  - Si el área seleccionada es menor a 4×4 píxeles (un clic accidental), se cancela la captura para evitar imágenes corruptas o vacías en el portapapeles.
+  - Si el usuario pulsa `ESC` en cualquier momento, el modo continuo termina al instante; el portapapeles conserva la última captura hecha.
+  - Si el área seleccionada es menor a 4×4 píxeles (un clic accidental), se ignora (sin captura) y el modo sigue activo.
   - Las coordenadas de AppKit (origen en esquina inferior izquierda) deben convertirse correctamente al sistema de coordenadas de CoreGraphics / ScreenCaptureKit (origen en esquina superior izquierda) considerando la altura total del display y la escala Retina (`backingScaleFactor`).
   - La aplicación debe operar sin icono en el Dock (`LSUIElement = true`).
 
@@ -153,3 +154,4 @@
 - ⚠️ **Dimensiones sin separador de millares:** interpolar un `Int` en `String(localized:)` con una `locale` explícita agrupa miles según la región («1,440 by 900» en en_GB/en_US). Los píxeles se pasan como `String(Int(x))` (clave `%@`), no como `%lld`. Para recuentos (`%lld captures`) el agrupado es aceptable.
 - ⚠️ **Nombres de la Tira:** en código `Strip*`; texto de usuario «Tira» (es) / «Shelf» (en); carpeta de caché `Shelf`. El nombre anterior (el del proyecto original) solo aparece en `NOTICE` (atribución al proyecto MIT de Alejandro Buján que inspiró el diseño; su licencia no concede el nombre ni el icono, no reutilizarlos).
 - ⚠️ **Migración de la caché (`Screenshots` → `Shelf`):** `StripStorage.migrateLegacyCache(base:)` corre la primera vez que se accede a `StripManager.screenshotsDirectory` (antes de crear la carpeta nueva). Si solo existe la antigua se mueve entera (incluye `Inbox`); si existen ambas se fusiona archivo a archivo sin sobrescribir (nombre «x 2.png»…) y la antigua se borra solo si queda vacía. Idempotente. El host de tests ES la app: al ejecutar los tests la migración corre sobre el Application Support real. Con Modo Inbox activo, `InboxManager.init` → `enableInboxMode` reescribe la `location` del sistema a `Shelf/Inbox` y reinicia SystemUIServer. `isOwnFolder` reconoce rutas antiguas y nuevas. Los tests de migración inyectan una base temporal. Las claves de UserDefaults nunca contuvieron el nombre antiguo: no se migran.
+- ⚠️ **Captura continua y `isCapturing`:** `isCapturing` se mantiene `true` durante todo el modo (no hay `defer` que lo resetee tras cada captura); solo lo bajan `cancelCapture()` (ESC / temporizador) y el `catch` del `Task`, que además sale del modo antes de `showErrorAlert` para que el overlay no tape la alerta. Entre capturas los overlays se cierran (`dismissOverlays`, también invalida el temporizador) y se recrean con `presentOverlays()` al terminar, lo que reinicia los 30 s. Mientras se procesa no hay overlay, así que no se pueden encadenar selecciones ni pulsar ESC. La Tira desplegada por `hang()` queda bajo el overlay (nivel 102) y puede salir en la siguiente captura si se selecciona sobre ella. Sin verificar a ojo en esta sesión.
