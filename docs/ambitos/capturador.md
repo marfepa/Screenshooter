@@ -23,6 +23,7 @@
   - [x] Compilación Release y despliegue local en `/Applications/Screenshooter.app`.
   - [x] Captura continua: ⌥⌘S abre un modo en el que se seleccionan áreas una tras otra (cada una al portapapeles y a la Tira) hasta pulsar ESC.
   - [x] Captura navegable: durante el modo continuo, el scroll del trackpad/rueda pasa a la app de debajo (velo tenue, vuelve solo tras 350 ms de silencio) y ⌥⌘S alterna con el modo Navegar (sin overlays, píldora «Navegando · ⌥⌘S para capturar · Salir»; menú «Salir del modo captura»).
+  - [x] Bienvenida inmersiva (`Onboarding/`): al primer arranque, capas a pantalla completa sobre el escritorio del usuario con 5 pasos (icono real señalando la barra de menús · permiso · ⌥⌘S y arrastrar · toque de dos dedos · la Tira), demostraciones en Core Animation, reanudación tras el reinicio por el permiso y «Cómo funciona…» en el menú.
 - **Pendiente / Roadmap inmediato:**
   - [ ] Añadir panel gráfico interactivo para remapear teclas en Ajustes.
   - [ ] Registro en `SMAppService` para inicio automático al encender el Mac.
@@ -45,6 +46,8 @@
 - `Screenshooter/Sources/Capture/CaptureCoordinator.swift`
 - `Screenshooter/Sources/Capture/ContinuousCaptureState.swift` (máquina de estados pura del modo continuo y `ScrollQuietTracker`)
 - `Screenshooter/Sources/UI/NavigationPillWindow.swift`
+- `Screenshooter/Sources/Onboarding/*` (bienvenida: `OnboardingFlow` lógica pura y persistencia, `OnboardingText`, `OnboardingDemoView`, `OnboardingOverlayWindow` + controles, `OnboardingCoordinator`)
+- `mockup/onboarding.html` (maqueta aprobada de la bienvenida)
 - `Screenshooter/Sources/Capture/SelectionOverlayWindow.swift`
 - `Screenshooter/Sources/Capture/SelectionView.swift`
 - `Screenshooter/Sources/Capture/ScreenCaptureEngine.swift`
@@ -163,4 +166,7 @@
 - ⚠️ **Modo Navegar:** los overlays se cierran (no se ocultan) y se llama a `NSApp.deactivate()` para devolver el foco a la app de debajo; la píldora es `NSPanel` `.nonactivatingPanel` a nivel `.statusBar` con `canBecomeKey = false` (el botón «Salir» funciona sin activar la app). `CaptureCoordinator.activeDidChangeNotification` hace que `StatusBarController` reconstruya el menú para mostrar u ocultar «Salir del modo captura». Los cambios de modo se anuncian a VoiceOver con `.announcementRequested` sobre `NSApp`, no cada ciclo de scroll. Sin verificar a ojo en esta sesión.
 - ⚠️ **Coma flotante en tests de tiempo:** `10.35 - 10.0 < 0.35`; los tests de tiempo comprueban los bordes con margen.
 - ⚠️ **Generación de captura (`captureGeneration`):** sube en cada selección completada y en `cancelCapture()`. El `Task` de captura solo reabre overlays o sale del modo si su generación sigue vigente; si no (ESC + ⌥⌘S mientras capturaba), solo registra el error: una alerta `runModal` quedaría bajo los overlays (nivel 102) de la sesión nueva y bloquearía la app. En `processing` también corre el temporizador de 30 s por si `captureArea` se cuelga.
+- ⚠️ **Bienvenida: cuándo sale.** `OnboardingFlow.shouldShowAtLaunch`: si `onboardingVersion` < `currentVersion` o hay `onboardingResumeStep`, y nunca con una captura activa. Subir `currentVersion` cuando se enseñe un gesto nuevo hace que todos la vean una vez más. `resumeStep` se guarda justo antes de `relaunchApp()` y se consume al presentarla; `0` (`.welcome`) es un paso válido, por eso se comprueba `object(forKey:)` y no `integer`. `OnboardingStore` es inyectable: el host de tests ES la app.
+- ⚠️ **Bienvenida: capas.** Una `OnboardingOverlayWindow` por pantalla a nivel `.statusBar`: cubre Dock y barra de menús, pero queda por debajo del overlay de captura (102), así que ⌥⌘S se puede probar en mitad de la bienvenida. Solo la pantalla del icono de la barra de menús lleva textos y botones; las demás, el velo. El velo intercepta clics (`hitTest` devuelve la vista). Al abrir Ajustes del Sistema las capas bajan a `.normal` (no se cierran: un clic en ellas reactiva la app) y `didBecomeActive` las devuelve a `.statusBar`. Se rehacen con `didChangeScreenParameters`.
+- ⚠️ **Bienvenida: demostraciones.** `OnboardingDemoView` dibuja en un `canvas` con `isGeometryFlipped` (origen arriba-izquierda; el rectángulo del `NSStatusItem` se convierte a mano). Los valores del MODELO son el fotograma explicativo fijo y las animaciones (máx. 3 bucles, WCAG 2.2.2) se añaden encima: al terminar o con Reducir movimiento queda ese fotograma sin código aparte. La selección recorta el velo animando `path` de un `CAShapeLayer` par-impar (todos los rectángulos, también el vacío, tienen los mismos elementos, si no la interpolación falla). `show()` fija `canvas.frame` porque puede llamarse antes del primer `layout()`. La Tira del paso 5 es de ejemplo (no la real). Sin verificar a ojo en pantalla real en esta sesión: solo un render de capas fuera de pantalla.
 
