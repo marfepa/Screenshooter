@@ -403,20 +403,20 @@
         }
       }
     },
-    "Drag to select  ·  ESC to cancel" : {
-      "comment" : "Instruction bar shown over the dimmed screen during area selection",
+    "Drag to capture  ·  ESC to exit" : {
+      "comment" : "Instruction bar shown over the dimmed screen during continuous area selection",
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Drag to select  ·  ESC to cancel"
+            "value" : "Drag to capture  ·  ESC to exit"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Arrastra para seleccionar  ·  ESC para cancelar"
+            "value" : "Arrastra para capturar  ·  ESC para salir"
           }
         }
       }

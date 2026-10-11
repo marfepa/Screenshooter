@@ -55,19 +55,16 @@ public final class SelectionView: NSView {
     }
     
     public override func mouseUp(with event: NSEvent) {
-        guard let start = startPoint, let current = currentPoint else {
-            onCancelled?()
-            return
-        }
-        
+        // Modo continuo: un clic suelto no sale del modo (solo ESC lo hace)
+        guard let start = startPoint, let current = currentPoint else { return }
+
         let rect = currentSelectionRect(start: start, current: current)
         startPoint = nil
         currentPoint = nil
         needsDisplay = true
-        
-        // Si el área es menor a 4x4 px (un clic involuntario), cancelar
+
+        // Si el área es menor a 4x4 px (un clic involuntario), ignorarla y seguir seleccionando
         if rect.width < 4 || rect.height < 4 {
-            onCancelled?()
             return
         }
         
@@ -174,7 +171,7 @@ public final class SelectionView: NSView {
     }
     
     private func drawInstructionBar() {
-        let text = String(localized: "Drag to select  ·  ESC to cancel", bundle: L10n.bundle, locale: L10n.locale, comment: "Instruction bar shown over the dimmed screen during area selection")
+        let text = String(localized: "Drag to capture  ·  ESC to exit", bundle: L10n.bundle, locale: L10n.locale, comment: "Instruction bar shown over the dimmed screen during continuous area selection")
         let font = NSFont.systemFont(ofSize: 13, weight: .medium)
         let attrs: [NSAttributedString.Key: Any] = [
             .font: font,
