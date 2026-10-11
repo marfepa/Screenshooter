@@ -22,7 +22,7 @@ public final class CaptureCoordinator {
     private var warningTimer: Timer?
     private var scrollQuietTimer: Timer?
     private var scrollMonitors: [Any] = []
-    private var scrollTracker = ScrollQuietTracker()
+    private var scrollTracker = ScrollPassthroughTracker()
     /// Sube en cada captura y en cada salida del modo: un `Task` de captura solo toca el estado
     /// si sigue siendo la sesión vigente (ESC y ⌥⌘S pueden haber abierto otra mientras capturaba).
     private var captureGeneration = 0
@@ -109,7 +109,7 @@ public final class CaptureCoordinator {
     // MARK: - Scroll pasante
     
     /// El usuario empieza a hacer scroll sin arrastrar: los overlays dejan pasar los eventos
-    /// a la ventana bajo el cursor hasta que pasan `quietInterval` sin scroll (inercia incluida).
+    /// a la ventana bajo el cursor hasta que el puntero se mueve o pasa `quietInterval` sin scroll.
     private func beginScrollPassthrough() {
         let previous = state
         state = ContinuousCaptureMachine.next(state, on: .scrollBegan)
@@ -118,7 +118,7 @@ public final class CaptureCoordinator {
         for overlay in overlayWindows {
             overlay.setPassthrough(true)
         }
-        scrollTracker.noteScroll(at: ProcessInfo.processInfo.systemUptime)
+        scrollTracker.noteScroll(at: ProcessInfo.processInfo.systemUptime, pointer: NSEvent.mouseLocation)
         restartSafetyTimer(after: Self.selectingTimeout)
         
         // Con los overlays transparentes el scroll va a otras apps (monitor global)
@@ -136,7 +136,7 @@ public final class CaptureCoordinator {
         }
         
         let timer = Timer(timeInterval: 0.05, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.checkScrollQuiet() }
+            Task { @MainActor in self?.checkScrollPassthroughEnd() }
         }
         RunLoop.main.add(timer, forMode: .common)
         scrollQuietTimer = timer
@@ -146,14 +146,14 @@ public final class CaptureCoordinator {
     
     private func noteScrollActivity() {
         guard state == .scrollPassthrough else { return }
-        scrollTracker.noteScroll(at: ProcessInfo.processInfo.systemUptime)
+        scrollTracker.noteScroll(at: ProcessInfo.processInfo.systemUptime, pointer: NSEvent.mouseLocation)
         restartSafetyTimer(after: Self.selectingTimeout)
     }
     
-    private func checkScrollQuiet() {
+    private func checkScrollPassthroughEnd() {
         // Con un botón pulsado (p. ej. arrastrando la barra de scroll de otra app) no reaparecer a mitad del arrastre
         guard state == .scrollPassthrough,
-              scrollTracker.isQuiet(at: ProcessInfo.processInfo.systemUptime),
+              scrollTracker.shouldEnd(at: ProcessInfo.processInfo.systemUptime, pointer: NSEvent.mouseLocation),
               NSEvent.pressedMouseButtons == 0 else { return }
         state = ContinuousCaptureMachine.next(state, on: .scrollEnded)
         stopScrollPassthrough()

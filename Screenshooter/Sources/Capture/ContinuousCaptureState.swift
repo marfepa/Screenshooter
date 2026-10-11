@@ -52,27 +52,41 @@ public enum ContinuousCaptureMachine {
     }
 }
 
-/// Detecta el final de un gesto de scroll (incluida la inercia) por silencio:
-/// los eventos de inercia siguen llegando, así que basta con esperar `quietInterval` sin ninguno.
-public struct ScrollQuietTracker {
+/// Decide cuándo termina el scroll pasante.
+///
+/// macOS entrega todo un gesto de scroll (inercia incluida) a la ventana donde empezó, así que el gesto
+/// que activa el modo lo recibe el overlay y no llega al fondo: el modo debe sobrevivir a ese gesto para
+/// que los siguientes sí pasen. Termina cuando el usuario mueve el puntero (va a seleccionar) o tras
+/// `quietInterval` sin scroll. El puntero se re-ancla en cada evento de scroll: una rueda de ratón que
+/// tiembla al girar no cuenta como movimiento.
+public struct ScrollPassthroughTracker {
     public let quietInterval: TimeInterval
+    public let pointerTolerance: CGFloat
     public private(set) var lastScroll: TimeInterval?
+    public private(set) var anchor: CGPoint?
 
-    public init(quietInterval: TimeInterval = 0.35) {
+    public init(quietInterval: TimeInterval = 1.2, pointerTolerance: CGFloat = 6) {
         self.quietInterval = quietInterval
+        self.pointerTolerance = pointerTolerance
     }
 
-    public mutating func noteScroll(at time: TimeInterval) {
+    public mutating func noteScroll(at time: TimeInterval, pointer: CGPoint) {
         lastScroll = time
+        anchor = pointer
     }
 
     public mutating func reset() {
         lastScroll = nil
+        anchor = nil
     }
 
-    /// `true` si hubo scroll y ya han pasado `quietInterval` segundos desde el último evento.
-    public func isQuiet(at time: TimeInterval) -> Bool {
-        guard let last = lastScroll else { return false }
+    /// `true` si hubo scroll y, desde el último evento, el puntero se ha movido más de `pointerTolerance`
+    /// o han pasado `quietInterval` segundos.
+    public func shouldEnd(at time: TimeInterval, pointer: CGPoint) -> Bool {
+        guard let last = lastScroll, let anchor else { return false }
+        if hypot(pointer.x - anchor.x, pointer.y - anchor.y) > pointerTolerance {
+            return true
+        }
         return time - last >= quietInterval
     }
 }

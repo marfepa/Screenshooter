@@ -58,37 +58,54 @@ final class ContinuousCaptureTests: XCTestCase {
         XCTAssertTrue(ContinuousCaptureState.scrollPassthrough.isActive)
     }
 
-    // MARK: - Fin del scroll por silencio
+    // MARK: - Fin del scroll pasante
 
-    func testScrollTrackerIsNotQuietWithoutScroll() {
-        let tracker = ScrollQuietTracker(quietInterval: 0.35)
-        XCTAssertFalse(tracker.isQuiet(at: 100))
+    private let origin = CGPoint(x: 500, y: 400)
+
+    func testTrackerDoesNotEndWithoutScroll() {
+        let tracker = ScrollPassthroughTracker()
+        XCTAssertFalse(tracker.shouldEnd(at: 100, pointer: CGPoint(x: 0, y: 0)))
     }
 
-    func testScrollTrackerWaitsForSilence() {
-        var tracker = ScrollQuietTracker(quietInterval: 0.35)
-        tracker.noteScroll(at: 10.0)
-        XCTAssertFalse(tracker.isQuiet(at: 10.2))
-        XCTAssertTrue(tracker.isQuiet(at: 10.36))
+    func testTrackerEndsAfterSilence() {
+        var tracker = ScrollPassthroughTracker(quietInterval: 1.2)
+        tracker.noteScroll(at: 10.0, pointer: origin)
+        XCTAssertFalse(tracker.shouldEnd(at: 11.0, pointer: origin))
+        XCTAssertTrue(tracker.shouldEnd(at: 11.21, pointer: origin))
     }
 
-    func testMomentumEventsExtendTheGesture() {
-        var tracker = ScrollQuietTracker(quietInterval: 0.35)
-        // Gesto + inercia: un evento cada ~16 ms durante 1 s
+    func testTrackerSurvivesTheGapBetweenTwoSwipes() {
+        // El primer gesto lo recibe el overlay; el segundo, ~0,5 s después, debe encontrar el modo vivo
+        var tracker = ScrollPassthroughTracker(quietInterval: 1.2)
+        tracker.noteScroll(at: 10.0, pointer: origin)
+        XCTAssertFalse(tracker.shouldEnd(at: 10.5, pointer: origin))
+    }
+
+    func testTrackerEndsWhenThePointerMoves() {
+        var tracker = ScrollPassthroughTracker(quietInterval: 1.2, pointerTolerance: 6)
+        tracker.noteScroll(at: 10.0, pointer: origin)
+        XCTAssertFalse(tracker.shouldEnd(at: 10.1, pointer: CGPoint(x: 503, y: 404)))
+        XCTAssertTrue(tracker.shouldEnd(at: 10.1, pointer: CGPoint(x: 510, y: 400)))
+    }
+
+    func testEachScrollReanchorsThePointer() {
+        // Una rueda de ratón que tiembla al girar no saca del modo
+        var tracker = ScrollPassthroughTracker(quietInterval: 1.2, pointerTolerance: 6)
+        var x: CGFloat = 500
         var t = 10.0
         while t < 11.0 {
-            tracker.noteScroll(at: t)
-            XCTAssertFalse(tracker.isQuiet(at: t + 0.016))
+            tracker.noteScroll(at: t, pointer: CGPoint(x: x, y: 400))
+            x += 3
             t += 0.016
+            XCTAssertFalse(tracker.shouldEnd(at: t, pointer: CGPoint(x: x, y: 400)))
         }
-        XCTAssertTrue(tracker.isQuiet(at: t + 0.35))
     }
 
-    func testScrollTrackerReset() {
-        var tracker = ScrollQuietTracker()
-        tracker.noteScroll(at: 1)
+    func testTrackerReset() {
+        var tracker = ScrollPassthroughTracker()
+        tracker.noteScroll(at: 1, pointer: origin)
         tracker.reset()
         XCTAssertNil(tracker.lastScroll)
-        XCTAssertFalse(tracker.isQuiet(at: 5))
+        XCTAssertFalse(tracker.shouldEnd(at: 5, pointer: .zero))
     }
 }

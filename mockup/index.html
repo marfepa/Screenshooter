@@ -1132,7 +1132,7 @@
 
       // 1.2b Scroll pasante durante el modo continuo
       overlay_scrolling: {
-        notes: "Scroll pasante: con el modo continuo activo, deslizar dos dedos en el trackpad (o girar la rueda) sin estar arrastrando hace que el overlay deje pasar los eventos (ignoresMouseEvents = true) y el velo se aclara a 0,12. El scroll llega a la ventana bajo el cursor. Tras ~350 ms sin scroll (incluida la inercia) el velo vuelve a 0,38 y se puede seleccionar sin pulsar nada. Reinicia el temporizador de 30 s.",
+        notes: "Scroll pasante: con el modo continuo activo, deslizar dos dedos en el trackpad (o girar la rueda) sin estar arrastrando hace que el overlay deje pasar los eventos (ignoresMouseEvents = true) y el velo se aclara a 0,12. El scroll llega a la ventana bajo el cursor. El primer gesto lo recibe el overlay (macOS lo fija a su ventana); los siguientes pasan. Al mover el puntero o tras 1,2 s sin scroll el velo vuelve a 0,38 y se puede seleccionar sin pulsar nada. Reinicia el temporizador de 30 s.",
         render: () => `
           <div class="capture-overlay passthrough" style="pointer-events:auto;" onclick="renderScene('overlay_selecting')">
             <div class="overlay-floating-bar">
