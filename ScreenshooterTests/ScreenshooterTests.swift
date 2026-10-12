@@ -669,6 +669,52 @@ final class ScreenshooterTests: XCTestCase {
         XCTAssertEqual(r.midY, 47, accuracy: 1e-9)
     }
 
+    func testIsLongCaptureThreshold() {
+        XCTAssertFalse(StripMotion.isLongCapture(pixelSize: CGSize(width: 1000, height: 3000)))
+        XCTAssertTrue(StripMotion.isLongCapture(pixelSize: CGSize(width: 1000, height: 3001)))
+        XCTAssertFalse(StripMotion.isLongCapture(pixelSize: CGSize(width: 0, height: 3000)))
+        XCTAssertFalse(StripMotion.isLongCapture(pixelSize: .zero))
+    }
+
+    func testThumbnailRectLongFillsWidthAndAlignsTop() {
+        let area = CGRect(x: 10, y: 20, width: 140, height: 94)
+        let r = StripMotion.thumbnailRect(imageSize: CGSize(width: 100, height: 500), in: area)
+        XCTAssertEqual(r.width, area.width, accuracy: 1e-9)
+        XCTAssertEqual(r.minX, area.minX, accuracy: 1e-9)
+        XCTAssertEqual(r.maxY, area.maxY, accuracy: 1e-9)
+        XCTAssertGreaterThan(r.height, area.height)
+    }
+
+    func testThumbnailRectNormalEqualsAspectFit() {
+        let area = CGRect(x: 0, y: 0, width: 140, height: 94)
+        for size in [CGSize(width: 200, height: 100), CGSize(width: 100, height: 300), CGSize(width: 0, height: 0)] {
+            XCTAssertEqual(StripMotion.thumbnailRect(imageSize: size, in: area), StripMotion.aspectFit(imageSize: size, in: area))
+        }
+    }
+
+    @MainActor
+    func testLongTagHiddenAfterReconfigureToNormalCard() throws {
+        let image = try XCTUnwrap(makeTestImage())
+        let url = URL(fileURLWithPath: "/tmp/long-tag-test.png")
+        let long = StripItem(url: url, cgImage: image, pixelSize: CGSize(width: 100, height: 500))
+        let normal = StripItem(url: url, cgImage: image, pixelSize: CGSize(width: 200, height: 100))
+        let card = StripCardView(item: long)
+        func tagVisible() -> Bool {
+            func find(_ v: NSView) -> NSTextField? {
+                if let t = v as? NSTextField, t.stringValue.contains("↕") { return t }
+                for c in v.subviews { if let f = find(c) { return f } }
+                return nil
+            }
+            guard let t = find(card) else { return false }
+            return !t.isHiddenOrHasHiddenAncestor
+        }
+        XCTAssertTrue(tagVisible())
+        card.reconfigure(with: normal)
+        XCTAssertFalse(tagVisible())
+        card.reconfigure(with: long)
+        XCTAssertTrue(tagVisible())
+    }
+
     // MARK: - Marcación
 
     private func makePNG(width: Int, height: Int, r: UInt8, g: UInt8, b: UInt8, at url: URL) throws {
