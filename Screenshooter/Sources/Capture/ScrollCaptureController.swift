@@ -381,6 +381,7 @@ final class StitchState: @unchecked Sendable {
     private var lastPreviewAt: TimeInterval = 0
     private var appendedSincePreview = false
     private var isFinal = false
+    private var dump: ScrollCaptureDebugDump?
 
     /// Ya hay al menos un fotograma cosido (leer desde `stitchQueue`).
     var hasFrames: Bool { stitcher != nil }
@@ -388,6 +389,8 @@ final class StitchState: @unchecked Sendable {
     func process(_ frame: CGImage, now: TimeInterval) -> Result {
         guard !isFinal else { return Result(outcome: nil, height: stitcher?.height ?? 0, preview: nil) }
         var outcome: ScrollStitcher.Outcome?
+        if stitcher == nil { dump = ScrollCaptureDebugDump(now: now) }
+        let dumpIndex = dump?.saveFrame(frame)
         if let stitcher {
             let value = stitcher.add(frame)
             outcome = value
@@ -395,6 +398,10 @@ final class StitchState: @unchecked Sendable {
         } else {
             stitcher = ScrollStitcher(firstFrame: frame)
             appendedSincePreview = true
+        }
+        if let dumpIndex {
+            dump?.log(index: dumpIndex, now: now, outcome: outcome, height: stitcher?.height ?? 0,
+                      fixedTop: stitcher?.fixedTopRows ?? 0, fixedBottom: stitcher?.fixedBottomRows ?? 0)
         }
         var preview: UncheckedBox<CGImage>?
         if appendedSincePreview, now - lastPreviewAt >= Self.previewInterval,
