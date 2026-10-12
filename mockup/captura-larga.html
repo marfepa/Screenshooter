@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maqueta Captura larga — Screenshooter</title>
+<style>
+  /* ==========================================================================
+     1. TOKENS (mismos nombres que mockup/index.html, tira.html y onboarding.html)
+     ========================================================================== */
+  :root {
+    --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Helvetica, Arial, sans-serif;
+    --bg-body: #1e1e1e;
+    --bg-sidebar: #252526;
+    --bg-surface: #2d2d30;
+    --text-primary: #ffffff;
+    --text-secondary: #a1a1a6;
+    --border-subtle: rgba(255,255,255,0.08);
+    --border-medium: rgba(255,255,255,0.16);
+    --mac-blue: #0a84ff;
+    --mac-blue-subtle: rgba(10,132,255,0.15);
+    --mac-green: #30d158;
+    --mac-orange: #ff9f0a;
+    --mac-red: #ff453a;
+    --radius-sm: 5px;
+    --radius-md: 8px;
+    --wallpaper: radial-gradient(900px 500px at 20% 10%, #c3311f 0%, transparent 60%), radial-gradient(800px 600px at 90% 90%, #1d3a6b 0%, transparent 60%), #241c2c;
+    --win-bg: #2b2b2f;
+    --win-bar: #38383d;
+    --win-line: rgba(255,255,255,0.14);
+    --site-nav: #34343a;
+    --glass-fill: rgba(40,40,44,0.74);
+    --glass-edge: rgba(255,255,255,0.22);
+    --glass-highlight: rgba(255,255,255,0.10);
+    --menubar-bg: rgba(30,30,32,0.55);
+  }
+  [data-theme="light"] {
+    --bg-body: #ececec;
+    --bg-sidebar: #f6f6f6;
+    --bg-surface: #ffffff;
+    --text-primary: #1d1d1f;
+    --text-secondary: #515154;
+    --border-subtle: rgba(0,0,0,0.08);
+    --border-medium: rgba(0,0,0,0.16);
+    --mac-blue: #0071e3;
+    --mac-blue-subtle: rgba(0,113,227,0.12);
+    --mac-orange: #c93400;
+    --mac-red: #d70015;
+    --wallpaper: radial-gradient(900px 500px at 20% 10%, #f3a08f 0%, transparent 60%), radial-gradient(800px 600px at 90% 90%, #9cc0f0 0%, transparent 60%), #efe8f0;
+    --win-bg: #ffffff;
+    --win-bar: #ececef;
+    --win-line: rgba(0,0,0,0.10);
+    --site-nav: #f2f2f5;
+    --glass-fill: rgba(250,250,252,0.80);
+    --glass-edge: rgba(255,255,255,0.75);
+    --glass-highlight: rgba(255,255,255,0.6);
+    --menubar-bg: rgba(246,246,246,0.6);
+  }
+  .hi-contrast { --glass-fill: var(--bg-surface); --glass-edge: var(--text-primary); --text-secondary: var(--text-primary); }
+  .hi-contrast .pill .hint.warn { color: var(--text-primary); text-decoration: underline; text-underline-offset: 3px; }
+  .hi-contrast .pill button.primary, .hi-contrast .pill button.destructive { box-shadow: 0 0 0 1.5px var(--text-primary); }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-family); background: var(--bg-body); color: var(--text-primary);
+         display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; font-size: 13px; }
+  @media (max-width: 900px) { body { grid-template-columns: 1fr; } }
+
+  /* ==========================================================================
+     2. PANEL LATERAL DE ESTADOS (herramienta de maqueta, no es UI de la app)
+     ========================================================================== */
+  aside { background: var(--bg-sidebar); border-right: 1px solid var(--border-subtle); padding: 20px 16px; overflow-y: auto; }
+  aside h1 { font-size: 15px; margin-bottom: 4px; }
+  aside .sub { color: var(--text-secondary); font-size: 12px; margin-bottom: 12px; line-height: 1.4; }
+  aside h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .6px; color: var(--text-secondary); margin: 16px 0 6px; }
+  .state-btn { display: flex; justify-content: space-between; width: 100%; text-align: left; background: none; border: 0;
+               color: var(--text-primary); font: inherit; padding: 7px 10px; border-radius: var(--radius-sm); cursor: pointer; }
+  .state-btn:hover { background: var(--border-subtle); }
+  .state-btn.active { background: var(--mac-blue-subtle); color: var(--mac-blue); font-weight: 600; }
+  .state-btn .tag { font-size: 12px; color: var(--text-secondary); }
+  .sim-btn { width: 100%; margin-top: 6px; padding: 7px 10px; border-radius: var(--radius-sm); font: inherit; cursor: pointer;
+             background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-medium); }
+  .sim-btn:disabled { opacity: .45; cursor: default; }
+  .toggle { display: flex; align-items: center; gap: 8px; padding: 5px 10px; cursor: pointer; }
+  .notes { margin-top: 16px; padding: 10px; border-radius: var(--radius-md); background: var(--bg-surface);
+           border: 1px solid var(--border-subtle); color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+
+  /* ==========================================================================
+     3. ESCRITORIO SIMULADO: un navegador con una página larga y cabecera fija
+     ========================================================================== */
+  main { display: grid; place-items: center; padding: 24px 16px; overflow: hidden; }
+  .screen-wrap { width: 100%; max-width: 1100px; aspect-ratio: 16 / 10; position: relative; }
+  .screen { position: absolute; left: 0; top: 0; width: 1000px; height: 625px; transform-origin: 0 0; border-radius: 10px; overflow: hidden;
+            background: var(--wallpaper); box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+  .menubar { position: absolute; top: 0; left: 0; right: 0; height: 24px; display: flex; align-items: center; gap: 16px; padding: 0 14px;
+             background: var(--menubar-bg); backdrop-filter: blur(20px); font-size: 12px; color: var(--text-primary); z-index: 1; }
+  .menubar .spacer { flex: 1; }
+  .menubar .status-icon { width: 15px; height: 15px; border-radius: 4px; border: 1.5px solid currentColor; }
+  .win { position: absolute; left: 150px; top: 46px; width: 600px; height: 520px; border-radius: 10px; background: var(--win-bg);
+         box-shadow: 0 18px 40px rgba(0,0,0,.35); overflow: hidden; z-index: 2; }
+  .win .bar { height: 28px; background: var(--win-bar); display: flex; gap: 7px; align-items: center; padding: 0 11px; }
+  .win .bar i { width: 11px; height: 11px; border-radius: 50%; background: #ff5f57; display: block; }
+  .win .bar i:nth-child(2) { background: #febc2e; } .win .bar i:nth-child(3) { background: #28c840; }
+  .win .bar .url { margin-left: 70px; flex: 1; max-width: 300px; height: 18px; border-radius: 5px; background: var(--win-line);
+                   font-size: 11px; color: var(--text-secondary); display: grid; place-items: center; }
+  .viewport { position: absolute; top: 28px; left: 0; right: 0; bottom: 0; overflow: hidden; }
+  /* Página del sitio: la cabecera es «sticky» (el caso que el cosido debe recortar) */
+  .site { position: relative; width: 600px; }
+  .site-nav { position: absolute; left: 0; right: 0; top: 0; height: 44px; background: var(--site-nav); display: flex; align-items: center;
+              gap: 14px; padding: 0 24px; border-bottom: 1px solid var(--win-line); z-index: 2; }
+  .site-nav .logo { width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(135deg, #e8573a, #0a84ff); }
+  .site-nav b { width: 54px; height: 8px; border-radius: 4px; background: var(--win-line); }
+  .site-body { padding: 66px 32px 40px; display: grid; gap: 14px; }
+  .site-body b { display: block; height: 10px; border-radius: 5px; background: var(--win-line); }
+  .site-body b.h { height: 22px; width: 62%; margin-top: 18px; }
+  .site-body b.img { height: 190px; border-radius: 10px; }
+  .site-body b.g1 { background: linear-gradient(135deg, rgba(232,87,58,.75), rgba(10,132,255,.6)); }
+  .site-body b.g2 { background: linear-gradient(135deg, rgba(48,209,88,.6), rgba(10,132,255,.55)); }
+  .site-body b.g3 { background: linear-gradient(135deg, rgba(255,159,10,.7), rgba(191,90,242,.55)); }
+  .site-body .foot { height: 90px; border-radius: 0; margin: 20px -32px -40px; background: var(--site-nav); }
+  .scroll-track { position: absolute; right: 2px; top: 4px; bottom: 4px; width: 6px; z-index: 3; }
+  .scroll-thumb { position: absolute; left: 0; right: 0; border-radius: 3px; background: rgba(128,128,128,.55); }
+  .dock { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; padding: 8px 12px; border-radius: 18px;
+          background: var(--glass-fill); border: 1px solid var(--glass-edge); backdrop-filter: blur(20px); z-index: 1; }
+  .dock span { width: 40px; height: 40px; border-radius: 10px; background: var(--win-line); }
+
+  /* ==========================================================================
+     4. UI DE LA APP
+     ========================================================================== */
+  .layer { position: absolute; inset: 0; z-index: 20; pointer-events: none; }
+  .layer .interactive { pointer-events: auto; }
+
+  /* 4.1 Selector (SelectionOverlayWindow) con ⇧ pulsado */
+  .sel { position: absolute; left: 150px; top: 74px; width: 600px; height: 492px; border: 1px solid #fff;
+         box-shadow: 0 0 0 2000px rgba(0,0,0,.55); }
+  .sel-badge { position: absolute; left: 50%; top: 100%; transform: translate(-50%, 8px); display: flex; gap: 6px; align-items: center;
+               font: 600 12px "SF Mono", ui-monospace, monospace; padding: 4px 9px; border-radius: 5px; background: rgba(20,20,22,.92); color: #fff; white-space: nowrap; }
+  .sel-badge .mode { font-family: var(--font-family); padding: 1px 7px; border-radius: 4px; background: var(--mac-blue); }
+  .crosshair { position: absolute; left: 739px; top: 555px; width: 22px; height: 22px; }
+  .crosshair::before, .crosshair::after { content: ""; position: absolute; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.7); }
+  .crosshair::before { left: 10px; top: 0; width: 2px; height: 22px; } .crosshair::after { top: 10px; left: 0; width: 22px; height: 2px; }
+  .kbd { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 5px; font: 600 11px var(--font-family);
+         background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.4); color: #fff; }
+
+  /* 4.2 Marco de captura: ventana sin marco que ignora el ratón; el velo exterior es tenue (el usuario debe ver y hacer scroll) */
+  .frame { position: absolute; left: 148px; top: 72px; width: 604px; height: 496px; border: 2px solid var(--mac-blue); border-radius: 3px;
+           box-shadow: 0 0 0 2000px rgba(0,0,0,.28); transition: border-color .2s; }
+  .frame.warn { border-color: var(--mac-orange); }
+  .hi-contrast .frame { box-shadow: 0 0 0 2000px rgba(0,0,0,.5); border-width: 3px; }
+
+  /* 4.3 Píldora (misma familia que NavigationPillWindow: vidrio, centrada arriba, no activadora) */
+  .pill { position: absolute; left: 50%; top: 32px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px;
+          min-height: 34px; padding: 4px 6px 4px 14px; border-radius: 17px; white-space: nowrap; color: var(--text-primary);
+          background: var(--glass-fill); backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
+          box-shadow: inset 0 0 0 .5px var(--glass-edge), 0 8px 24px rgba(0,0,0,.3); }
+  .pill .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--mac-red); animation: pulse 1.4s ease-in-out infinite; flex: none; }
+  .pill .dot.warn { background: var(--mac-orange); }
+  .pill .dot.ok { background: var(--mac-green); animation: none; }
+  @keyframes pulse { 50% { opacity: .35 } }
+  .pill .title { font-weight: 600; }
+  .pill .hint { color: var(--text-secondary); }
+  .pill .hint.warn { color: var(--mac-orange); font-weight: 600; }
+  .pill .count { font: 500 12px "SF Mono", ui-monospace, monospace; color: var(--text-secondary); min-width: 76px; text-align: right; font-variant-numeric: tabular-nums; }
+  .pill .sep { width: 1px; height: 16px; background: var(--border-medium); }
+  .pill .actions { display: flex; gap: 8px; }
+  .pill button { font: 500 13px var(--font-family); min-height: 28px; padding: 4px 13px; border-radius: 13px; cursor: pointer;
+                 border: 1px solid var(--border-medium); background: transparent; color: var(--text-primary); }
+  .pill button.primary { background: var(--mac-blue); border-color: transparent; color: #fff; font-weight: 600; }
+  .pill button.destructive { background: var(--mac-red); border-color: transparent; color: #fff; font-weight: 600; }
+  .pill button:focus-visible { outline: 2px solid var(--mac-blue); outline-offset: 2px; }
+  .pill .k { font-size: 11px; opacity: .9; margin-left: 5px; }
+  .app-inactive .pill .k { display: none; }
+  .spinner { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border-medium); border-top-color: var(--text-primary); animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg) } }
+
+  /* 4.4 Vista previa del cosido (panel lateral fuera del área; se excluye del SCStream) */
+  .preview { position: absolute; left: 766px; top: 72px; width: 122px; height: 496px; padding: 6px; border-radius: 10px;
+             background: var(--glass-fill); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+             box-shadow: inset 0 0 0 .5px var(--glass-edge), 0 8px 24px rgba(0,0,0,.3); }
+  .preview .clip { position: relative; width: 110px; overflow: hidden; border-radius: 4px; transition: height .12s linear; }
+  .preview .clip .site { transform: scale(calc(110 / 600)); transform-origin: 0 0; }
+  .preview .clip .site-nav { position: absolute; }
+  .preview .view { position: absolute; left: 6px; width: 110px; border: 1.5px solid var(--mac-blue); border-radius: 2px; pointer-events: none; }
+  .preview .view.warn { border-color: var(--mac-orange); }
+  .preview .edge { position: absolute; left: 6px; width: 110px; height: 14px; background: linear-gradient(to bottom, transparent, var(--glass-fill)); }
+
+  /* 4.5 HUD de error (HUDNotificationWindow) */
+  .hud { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 300px; padding: 18px 20px; border-radius: 14px; text-align: center;
+         background: var(--glass-fill); backdrop-filter: blur(20px); box-shadow: inset 0 0 0 .5px var(--glass-edge), 0 16px 40px rgba(0,0,0,.4); }
+  .hud .ico { width: 32px; height: 32px; margin: 0 auto 8px; border-radius: 50%; display: grid; place-items: center; background: var(--mac-orange); color: #fff; font-weight: 700; font-size: 18px; }
+  .hud h3 { font-size: 14px; margin-bottom: 4px; } .hud p { font-size: 12px; color: var(--text-secondary); line-height: 1.45; }
+
+  /* 4.6 Tira con la captura larga recién colgada */
+  .strip-rope { position: absolute; left: 230px; right: 230px; top: 40px; height: 2px; border-radius: 1px; background: rgba(255,255,255,.7); }
+  .tcard { position: absolute; top: 48px; width: 150px; height: 104px; padding: 5px; border-radius: 10px;
+           background: var(--glass-fill); backdrop-filter: blur(20px); box-shadow: inset 0 0 0 .5px var(--glass-edge), 0 8px 18px rgba(0,0,0,.25); }
+  .tcard::before { content: ""; position: absolute; left: 50%; top: -10px; width: 8px; height: 14px; margin-left: -4px; border-radius: 3px; background: var(--glass-fill); box-shadow: inset 0 0 0 .5px var(--glass-edge); }
+  .tcard .shot { width: 100%; height: 100%; border-radius: 6px; overflow: hidden; position: relative;
+                 background: linear-gradient(135deg, rgba(232,87,58,.8), rgba(10,132,255,.7)); }
+  .tcard.long .shot { background: var(--win-bg); }
+  .tcard.long .shot .site { transform: scale(calc(140 / 600)); transform-origin: 0 0; }
+  .tcard.long .shot::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 26px; background: linear-gradient(to bottom, transparent, rgba(0,0,0,.45)); }
+  .tcard .tag { position: absolute; right: 9px; bottom: 9px; z-index: 2; display: flex; gap: 3px; align-items: center; padding: 2px 6px; border-radius: 999px;
+                font-size: 11px; font-weight: 600; color: #fff; background: rgba(0,0,0,.78); }
+  .tcard.new { animation: arrive .6s cubic-bezier(.3,1.5,.5,1) both; }
+  @keyframes arrive { from { transform: translateY(-40px) rotate(-6deg); opacity: 0 } to { transform: none; opacity: 1 } }
+  .tmeta { position: absolute; top: 160px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 999px;
+           background: var(--glass-fill); box-shadow: inset 0 0 0 .5px var(--glass-edge); }
+
+  .reduce-motion *, .reduce-motion *::before { animation: none !important; transition: none !important; }
+  .reduce-motion .tcard.new { animation: fade-in .3s ease both !important; }
+  @keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .sel-help { position: absolute; left: 50%; top: 100%; transform: translate(-50%, 40px); font-size: 12px; padding: 3px 9px; border-radius: 5px;
+              background: rgba(20,20,22,.92); color: #fff; white-space: nowrap; }
+</style>
+</head>
+<body>
+<aside>
+  <h1>Captura larga</h1>
+  <p class="sub">Captura con desplazamiento: seleccionas un área, haces scroll tú mismo y Screenshooter va cosiendo lo que aparece en una sola imagen alta. Sin permiso de Accesibilidad.</p>
+  <h2>Estados</h2>
+  <div id="states"></div>
+  <h2>Simular</h2>
+  <p class="sub" style="margin:0">En los estados de captura, haz scroll con el trackpad sobre la página o usa estos botones.</p>
+  <button class="sim-btn" id="sim-scroll">Scroll ↓ normal</button>
+  <button class="sim-btn" id="sim-fast">Scroll ↓ demasiado rápido</button>
+  <h2>Entorno</h2>
+  <label class="toggle"><input type="checkbox" id="t-light"> Apariencia clara</label>
+  <label class="toggle"><input type="checkbox" id="t-motion"> Reducir movimiento</label>
+  <label class="toggle"><input type="checkbox" id="t-contrast"> Aumentar contraste</label>
+  <label class="toggle"><input type="checkbox" id="t-inactive"> Clic en otra app (sin Intro/Esc)</label>
+  <div class="notes" id="notes" aria-live="polite"></div>
+</aside>
+
+<main>
+  <div class="screen-wrap" id="wrap">
+    <div class="screen" id="screen">
+      <div class="menubar"><strong>Safari</strong><span>Archivo</span><span>Edición</span><span>Visualización</span><span class="spacer"></span><span class="status-icon" aria-label="Screenshooter"></span><span>Wi‑Fi</span><span>lun 12 oct 10:24</span></div>
+      <div class="win">
+        <div class="bar"><i></i><i></i><i></i><span class="url">ejemplo.com/articulo-largo</span></div>
+        <div class="viewport" id="viewport"><div class="scroll-track"><div class="scroll-thumb" id="thumb"></div></div></div>
+      </div>
+      <div class="dock"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="layer" id="layer"></div>
+      <div class="sr-only" id="announcer" aria-live="polite"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+/* ---------- Contenido de la página simulada (se reutiliza en la vista previa y en la tarjeta) ---------- */
+const SITE = `<div class="site"><div class="site-nav"><span class="logo"></span><b></b><b></b><b></b><b style="margin-left:auto;width:70px"></b></div>
+  <div class="site-body">
+    <b class="h"></b><b style="width:40%"></b><b class="img g1"></b>
+    <b></b><b style="width:92%"></b><b></b><b style="width:70%"></b><b></b><b style="width:84%"></b><b style="width:50%"></b>
+    <b class="h" style="width:48%"></b><b></b><b style="width:88%"></b><b></b><b style="width:62%"></b><b class="img g2"></b>
+    <b></b><b style="width:90%"></b><b></b><b style="width:76%"></b><b></b><b style="width:58%"></b>
+    <b class="h" style="width:55%"></b><b></b><b style="width:80%"></b><b></b><b style="width:94%"></b><b style="width:45%"></b><b class="img g3"></b>
+    <b></b><b style="width:86%"></b><b></b><b style="width:66%"></b><b></b><b style="width:90%"></b><b></b><b style="width:38%"></b>
+    <b class="h" style="width:40%"></b><b></b><b style="width:72%"></b><b></b><b style="width:84%"></b><b style="width:52%"></b>
+    <b class="foot"></b>
+  </div></div>`;
+
+const VIEW_H = 492, S_PREV = 110 / 600, RETINA = 2, MAX_PX = 30000;
+const viewport = document.getElementById('viewport');
+viewport.insertAdjacentHTML('afterbegin', SITE);
+const site = viewport.querySelector('.site');
+const nav = site.querySelector('.site-nav');
+const PAGE_H = site.offsetHeight;
+const MAX_SCROLL = PAGE_H - VIEW_H;
+
+let scrollTop = 0, captured = VIEW_H, current = 'idle', warnFast = false;
+
+function applyScroll() {
+  site.style.transform = `translateY(${-scrollTop}px)`;
+  nav.style.transform = `translateY(${scrollTop}px)`; // cabecera fija del sitio
+  const thumb = document.getElementById('thumb');
+  const h = VIEW_H * VIEW_H / PAGE_H;
+  thumb.style.height = h + 'px';
+  thumb.style.top = (scrollTop / MAX_SCROLL) * (VIEW_H - 8 - h) + 'px';
+}
+
+/* ---------- Estados ---------- */
+const fmt = n => n.toLocaleString('es-ES').replace(/\./g, ' ');
+const k = t => `<span class="kbd">${t}</span>`;
+const STATES = [
+  { id: 'idle', label: 'Reposo', tag: 'vacío',
+    notes: 'Nada en pantalla. Se entra de dos formas: (1) en el selector normal (⌥⌘S), mantener ⇧ al soltar la selección; (2) menú de la barra → «Captura larga…», que abre el selector ya en ese modo (sin ⇧). No se añade atajo global nuevo: ⌥⇧⌘S es «Guardar como…» en muchas apps y RegisterEventHotKey se lo robaría.' },
+  { id: 'select-plain', label: 'Selector normal', tag: 'entrada',
+    notes: 'Descubribilidad: el selector de siempre (⌥⌘S) añade bajo el indicador de tamaño una línea de ayuda «Mantén ⇧ al soltar para una captura larga». Se oculta tras usar la captura larga 3 veces (contador en UserDefaults). También aparece en «Cómo funciona…» y en el README.' },
+  { id: 'select', label: 'Selector con ⇧', tag: 'entrada',
+    notes: 'El mismo SelectionOverlayWindow. Mientras ⇧ está pulsado (flagsChanged), el indicador de tamaño suma la etiqueta azul «Captura larga». Al soltar con ⇧: en vez de capturar, ContinuousCaptureMachine pasa a scrollCapture(rect). Soltar sin ⇧ = captura normal de siempre. VoiceOver: anuncia «Captura larga» al pulsar ⇧.' },
+  { id: 'start', label: 'Capturando: inicio', tag: 'datos', capture: true, reset: true,
+    notes: 'Los velos se cierran (no se ocultan) y se abren tres paneles NO activadores a nivel .statusBar con ignoresMouseEvents = true desde el principio (latching: el gesto de scroll va a la ventana donde empieza): marco azul con velo exterior tenue, píldora y vista previa. SCStream con sourceRect = el área y SCContentFilter que excluye las ventanas propias. Primer fotograma = base. Anuncio VoiceOver: «Captura larga. Desplázate hacia abajo; Intro para terminar, Esc para cancelar».' },
+  { id: 'progress', label: 'Capturando: progreso', tag: 'datos', capture: true, preset: 1300,
+    notes: 'Cada fotograma (10–15 fps, solo si cambió: SCFrameStatus.complete) se compara con la COLA de la imagen cosida: hash por fila en gris a ¼ de ancho, se busca el desplazamiento con más filas coincidentes. Solo se añaden las filas nuevas; hacia arriba no se añade nada. La cabecera fija del sitio (banda superior idéntica en todos los fotogramas) se recorta a partir del segundo: en la vista previa aparece una sola vez. El contador va en píxeles reales (Retina).' },
+  { id: 'fast', label: 'Aviso: demasiado rápido', tag: 'error', capture: true, preset: 1300, fast: true,
+    notes: 'Si un fotograma no solapa con la cola (scroll más rápido que la frecuencia de captura), se descarta y NO se cose un hueco. Marco y punto en naranja, texto «Más despacio: vuelve un poco arriba» y anuncio VoiceOver una sola vez. En cuanto un fotograma vuelve a solapar, el aviso se quita solo y se sigue cosiendo.' },
+  { id: 'end', label: 'Final de la página', tag: 'datos', capture: true, preset: 99999,
+    notes: 'Si llegan fotogramas idénticos al último durante 1,5 s con el scroll al final, la píldora sugiere terminar (punto verde, «Has llegado al final»). No termina sola: el usuario puede seguir si la página carga más contenido (scroll infinito).' },
+  { id: 'limit', label: 'Límite alcanzado', tag: 'error', capture: true, preset: 99999, limit: true,
+    notes: 'Tope de 30 000 px de alto (límite práctico de CGImage y memoria: 30 000 × 2 400 px × 4 B ≈ 290 MB). Al llegar se deja de coser, el stream se para y «Listo» queda como única acción principal.' },
+  { id: 'confirm', label: 'Cancelar: confirmación', tag: 'modal', capture: true, preset: 1300, confirm: true,
+    notes: 'Esc o «Cancelar» con más de una pantalla cosida pide confirmación DENTRO de la píldora (sin NSAlert: la app no está activa y no se debe robar el foco). «Seguir» por defecto (Intro); «Descartar» rojo. Con una sola pantalla, cancela directamente.' },
+  { id: 'processing', label: 'Uniendo', tag: 'skeleton', capture: true, preset: 1300, processing: true,
+    notes: 'Al pulsar «Listo» (o Intro) se para el stream y se compone la imagen final (CGContext de alto = filas acumuladas). Suele ser instantáneo; si pasa de 150 ms se ve el indicador «Uniendo…». Botones desactivados.' },
+  { id: 'done', label: 'Hecho: en la Tira', tag: 'datos', done: true,
+    notes: 'Mismo camino que una captura normal: portapapeles (PNG + TIFF), sonido y vuelo a la Tira. Tarjeta: si alto/ancho > 3, la miniatura se recorta desde ARRIBA (aspect-fill alineado arriba) con un degradado y la etiqueta «↕» en vez de encoger la imagen en una franja. El tamaño real aparece en la meta al pasar el puntero. Tras terminar se vuelve al selector (modo continuo) como hoy.' },
+  { id: 'single', label: 'Listo sin hacer scroll', tag: 'vacío', capture: true, reset: true,
+    notes: 'Si se pulsa «Listo» sin desplazar nada, el resultado es el primer fotograma: una captura normal del área. Sin aviso extra.' },
+  { id: 'error', label: 'Error de grabación', tag: 'error', error: true,
+    notes: 'Si el SCStream falla (permiso retirado, pantalla desconectada): se cierran marco, píldora y vista previa; si ya había más de una pantalla cosida, se guarda lo capturado hasta ese momento y se cuelga en la Tira. HUD con el motivo y vuelta a reposo.' },
+];
+
+const statesBox = document.getElementById('states');
+STATES.forEach(s => {
+  const b = document.createElement('button');
+  b.className = 'state-btn'; b.dataset.state = s.id;
+  b.innerHTML = `<span>${s.label}</span><span class="tag">${s.tag}</span>`;
+  b.addEventListener('click', () => show(s.id));
+  statesBox.appendChild(b);
+});
+
+function pxCount() { return fmt(Math.min(MAX_PX, captured * RETINA)) + ' px'; }
+
+function pillHTML(s) {
+  if (s.processing) return `<div class="pill" role="status"><span class="spinner" aria-hidden="true"></span><span class="title">Uniendo…</span><span class="count">${pxCount()}</span>
+      <span class="sep"></span><span class="actions"><button disabled>Cancelar</button><button class="primary" disabled>Listo</button></span></div>`;
+  if (s.confirm) return `<div class="pill interactive" role="alertdialog" aria-labelledby="cf-t" aria-describedby="cf-d"><span class="dot warn" aria-hidden="true"></span><span class="title" id="cf-t">¿Descartar la captura larga?</span>
+      <span class="hint" id="cf-d">Se perderá lo capturado</span><span class="sep"></span><span class="actions"><button data-go="destroy" class="destructive">Descartar</button><button data-go="progress" class="primary" id="def">Seguir<span class="k">↩</span></button></span></div>`;
+  let dot = '', hint = 'Desplázate hacia abajo';
+  if (warnFast) { dot = 'warn'; hint = 'Más despacio: vuelve un poco arriba'; }
+  else if (s.limit) { dot = 'warn'; hint = 'Has llegado al máximo (30 000 px)'; }
+  else if (scrollTop >= MAX_SCROLL && captured >= PAGE_H) { dot = 'ok'; hint = 'Has llegado al final'; }
+  return `<div class="pill interactive" role="toolbar" aria-label="Captura larga"><span class="dot ${dot}" aria-hidden="true"></span><span class="title">Captura larga</span>
+      <span class="hint ${warnFast || s.limit ? 'warn' : ''}">${hint}</span><span class="count">${s.limit ? '30 000 px' : pxCount()}</span>
+      <span class="sep"></span><span class="actions"><button data-go="cancel">Cancelar<span class="k">esc</span></button><button data-go="finish" class="primary" id="def">Listo<span class="k">↩</span></button></span></div>`;
+}
+
+function previewHTML() {
+  const h = Math.min(captured, PAGE_H) * S_PREV;
+  const vTop = 6 + scrollTop * S_PREV;
+  return `<div class="preview" aria-hidden="true"><div class="clip" style="height:${h}px">${SITE}</div>
+      <div class="view ${warnFast ? 'warn' : ''}" style="top:${vTop}px;height:${VIEW_H * S_PREV}px"></div></div>`;
+}
+
+function render() {
+  const s = STATES.find(x => x.id === current);
+  const layer = document.getElementById('layer');
+  let html = '';
+  if (s.id === 'select') {
+    html = `<div class="sel"><div class="sel-badge">600 × 492<span class="mode">Captura larga ↕</span>${k('⇧')}</div></div><div class="crosshair"></div>`;
+  } else if (s.id === 'select-plain') {
+    html = `<div class="sel"><div class="sel-badge">600 × 492</div><div class="sel-help">Mantén ${k('⇧')} al soltar para una captura larga</div></div><div class="crosshair"></div>`;
+  } else if (s.capture) {
+    html = `<div class="frame ${warnFast || s.limit ? 'warn' : ''}"></div>${pillHTML(s)}${previewHTML()}`;
+  } else if (s.done) {
+    const longCard = `<div class="tcard long new" style="left:${500 - 75}px" role="img" aria-label="Captura larga, 1200 × ${fmt(PAGE_H * RETINA)} px" title="Captura larga · 1200 × ${fmt(PAGE_H * RETINA)} px"><div class="shot" aria-hidden="true">${SITE}</div><span class="tag" aria-hidden="true">↕ larga</span></div>`;
+    html = `<div class="strip-rope"></div><div class="tcard" style="left:255px"><div class="shot"></div></div>${longCard}
+            <div class="tcard" style="left:595px"><div class="shot" style="background:linear-gradient(135deg,rgba(48,209,88,.7),rgba(10,132,255,.6))"></div></div>
+            <div class="tmeta">1200 × ${fmt(PAGE_H * RETINA)} px · captura larga</div>`;
+  } else if (s.error) {
+    html = `<div class="hud" role="alert"><div class="ico">!</div><h3>Se interrumpió la captura larga</h3><p>No se pudo seguir grabando la pantalla. Lo capturado hasta ahora (${pxCount()}) está en la Tira.</p></div>`;
+  }
+  layer.innerHTML = html;
+  layer.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => act(b.dataset.go)));
+  document.getElementById('sim-scroll').disabled = document.getElementById('sim-fast').disabled = !s.capture || !!s.processing || !!s.confirm || !!s.limit;
+}
+
+function show(id) {
+  current = id;
+  const s = STATES.find(x => x.id === id);
+  if (s.reset) { scrollTop = 0; captured = VIEW_H; }
+  if (s.preset != null) { scrollTop = Math.min(MAX_SCROLL, s.preset); captured = Math.max(captured, Math.min(PAGE_H, scrollTop + VIEW_H)); }
+  if (s.done || s.error || id === 'idle') { scrollTop = 0; captured = s.done ? PAGE_H : Math.max(captured, VIEW_H); }
+  warnFast = !!s.fast;
+  if (s.fast) scrollTop = Math.min(MAX_SCROLL, captured + 150); // salto sin solape
+  document.querySelectorAll('.state-btn').forEach(b => b.classList.toggle('active', b.dataset.state === id));
+  document.getElementById('notes').textContent = s.notes;
+  applyScroll(); render(); announce();
+  document.getElementById('def')?.focus({ preventScroll: true });
+}
+
+function act(go) {
+  if (go === 'finish') { show('processing'); setTimeout(() => current === 'processing' && show('done'), 700); }
+  else if (go === 'cancel') { captured > VIEW_H ? show('confirm') : show('idle'); }
+  else if (go === 'destroy') show('idle');
+  else show(go);
+}
+
+/* ---------- Scroll del usuario: el cosido avanza solo si hay solape ---------- */
+function userScroll(dy) {
+  const s = STATES.find(x => x.id === current);
+  if (!s.capture || s.processing || s.confirm || s.limit) return;
+  scrollTop = Math.max(0, Math.min(MAX_SCROLL, scrollTop + dy));
+  const overlap = captured - scrollTop; // filas del fotograma que ya están cosidas
+  if (overlap < 40) warnFast = true;
+  else { warnFast = false; captured = Math.max(captured, scrollTop + VIEW_H); }
+  if (current === 'start' || current === 'single') current = 'progress';
+  document.querySelectorAll('.state-btn').forEach(b => b.classList.toggle('active', b.dataset.state === current));
+  applyScroll(); render(); announce();
+}
+/* VoiceOver: región viva aparte de la barra; cada aviso se anuncia una sola vez (en la app: NSAccessibility.post(.announcementRequested)) */
+let lastSaid = '';
+function announce() {
+  const s = STATES.find(x => x.id === current);
+  let msg = '';
+  if (current === 'select') msg = 'Captura larga';
+  else if (s.capture && !s.confirm && !s.processing) {
+    if (warnFast) msg = 'Más despacio: vuelve un poco arriba';
+    else if (s.limit) msg = 'Has llegado al máximo';
+    else if (scrollTop >= MAX_SCROLL && captured >= PAGE_H) msg = 'Has llegado al final';
+    else msg = 'Captura larga. Desplázate hacia abajo; Intro para terminar, Esc para cancelar';
+  } else if (s.done) msg = 'Captura larga copiada y colgada en la Tira';
+  if (msg !== lastSaid) document.getElementById('announcer').textContent = msg;
+  lastSaid = msg;
+}
+viewport.addEventListener('wheel', e => { e.preventDefault(); userScroll(e.deltaY); }, { passive: false });
+document.getElementById('screen').addEventListener('wheel', e => {
+  if (STATES.find(x => x.id === current).capture) { e.preventDefault(); userScroll(e.deltaY); }
+}, { passive: false });
+document.getElementById('sim-scroll').addEventListener('click', () => userScroll(260));
+document.getElementById('sim-fast').addEventListener('click', () => userScroll(VIEW_H + 200));
+
+document.addEventListener('keydown', e => {
+  const s = STATES.find(x => x.id === current);
+  if (!s.capture || document.body.classList.contains('app-inactive')) return; // sin foco, las teclas van a la otra app
+  if (e.key === 'Escape') { e.preventDefault(); s.confirm ? show('progress') : act('cancel'); }
+  if (e.key === 'Enter' && !s.processing && e.target.tagName !== 'BUTTON') { e.preventDefault(); s.confirm ? show('progress') : act('finish'); }
+});
+
+function fit() {
+  const wrap = document.getElementById('wrap');
+  document.getElementById('screen').style.transform = `scale(${wrap.clientWidth / 1000})`;
+}
+addEventListener('resize', fit); fit();
+const root = document.documentElement;
+document.getElementById('t-light').addEventListener('change', e => root.dataset.theme = e.target.checked ? 'light' : 'dark');
+document.getElementById('t-motion').addEventListener('change', e => document.body.classList.toggle('reduce-motion', e.target.checked));
+document.getElementById('t-inactive').addEventListener('change', e => document.body.classList.toggle('app-inactive', e.target.checked));
+document.getElementById('t-contrast').addEventListener('change', e => document.body.classList.toggle('hi-contrast', e.target.checked));
+if (matchMedia('(prefers-reduced-motion: reduce)').matches) { document.getElementById('t-motion').checked = true; document.body.classList.add('reduce-motion'); }
+show('select');
+</script>
+</body>
+</html>
