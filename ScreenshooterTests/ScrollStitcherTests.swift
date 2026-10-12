@@ -193,6 +193,153 @@ final class ScrollStitcherTests: XCTestCase {
         measure { _ = s.add(next) }
     }
 
+    // MARK: - Encaje tolerante (fondo fijo, subpíxel, barra de scroll, filas repetidas)
+
+    /// Capa de contenido de una página de «chat»: burbujas translúcidas (alfa 0,7) con texto opaco.
+    /// RGBA en Float; `a` es la opacidad de la capa.
+    private func makeBubbleLayer(rows: Int, seed: UInt64 = 11) -> [Float] {
+        var rng = RNG(s: seed)
+        var layer = [Float](repeating: 0, count: rows * w * 4)
+        func put(_ x: Int, _ y: Int, _ r: Float, _ g: Float, _ b: Float, _ a: Float) {
+            guard x >= 0, x < w, y >= 0, y < rows else { return }
+            let o = (y * w + x) * 4
+            layer[o] = r; layer[o + 1] = g; layer[o + 2] = b; layer[o + 3] = a
+        }
+        var y = 10
+        while y < rows - 80 {
+            let h = 36 + Int(rng.next()) % 24
+            let x0 = 10 + Int(rng.next()) % 120
+            let bw = 90 + Int(rng.next()) % 160
+            let blue = rng.next() % 2 == 0
+            for yy in y..<(y + h) {
+                for x in x0..<(x0 + bw) { blue ? put(x, yy, 20, 130, 255, 0.7) : put(x, yy, 110, 110, 120, 0.7) }
+            }
+            var ly = y + 8
+            while ly + 10 < y + h {
+                var x = x0 + 8
+                while x + 3 < x0 + bw - 8 {
+                    if rng.next() % 2 == 1 {
+                        for yy in ly..<(ly + 9) { for dx in 0..<3 { put(x + dx, yy, 255, 255, 255, 1) } }
+                    }
+                    x += 3
+                }
+                ly += 16
+            }
+            y += h + 10 + Int(rng.next()) % 40
+        }
+        return layer
+    }
+
+    /// Fotograma de la página de burbujas en un desplazamiento (posiblemente fraccionario, interpolación
+    /// lineal entre filas) sobre un fondo de degradado suave FIJO en coordenadas de pantalla.
+    private func bubbleFrame(_ layer: [Float], rows: Int, offset: Double) -> CGImage {
+        var out = [UInt8](repeating: 255, count: fh * w * 4)
+        for r in 0..<fh {
+            let pos = offset + Double(r)
+            let i0 = min(rows - 1, Int(pos.rounded(.down)))
+            let i1 = min(rows - 1, i0 + 1)
+            let f = Float(pos - Double(i0))
+            for x in 0..<w {
+                let bg: [Float] = [90 + 0.15 * Float(x) + 0.05 * Float(r), 140 + 0.1 * Float(x), 190 - 0.1 * Float(x)]
+                let a0 = (i0 * w + x) * 4, a1 = (i1 * w + x) * 4
+                let a = layer[a0 + 3] * (1 - f) + layer[a1 + 3] * f
+                let o = (r * w + x) * 4
+                for c in 0..<3 {
+                    let col = layer[a0 + c] * layer[a0 + 3] * (1 - f) + layer[a1 + c] * layer[a1 + 3] * f
+                    out[o + c] = UInt8(max(0, min(255, bg[c] * (1 - a) + col)))
+                }
+            }
+        }
+        return image(out, width: w, height: fh)
+    }
+
+    func testFixedSoftBackgroundWithTranslucentBubbles() throws {
+        let rows = 3000
+        let layer = makeBubbleLayer(rows: rows)
+        let s = try XCTUnwrap(ScrollStitcher(firstFrame: bubbleFrame(layer, rows: rows, offset: 0)))
+        var off = 0
+        while off < 1440 {
+            off += 90
+            XCTAssertEqual(s.add(bubbleFrame(layer, rows: rows, offset: Double(off))), .appended(rows: 90), "offset \(off)")
+        }
+        XCTAssertEqual(s.height, fh + 1440)
+        XCTAssertEqual(s.fixedTopRows, 0)
+        XCTAssertEqual(s.fixedBottomRows, 0)
+    }
+
+    func testSubpixelScrollStepsAreAccepted() throws {
+        let rows = 3000
+        let layer = makeBubbleLayer(rows: rows, seed: 23)
+        let s = try XCTUnwrap(ScrollStitcher(firstFrame: bubbleFrame(layer, rows: rows, offset: 0)))
+        let steps = 30
+        for k in 1...steps {
+            let outcome = s.add(bubbleFrame(layer, rows: rows, offset: 2.5 * Double(k)))
+            XCTAssertNotEqual(outcome, .noOverlap, "paso \(k)")
+        }
+        XCTAssertEqual(Double(s.height), Double(fh) + 2.5 * Double(steps), accuracy: 2)
+    }
+
+    func testMovingScrollbarOnRightEdgeIsIgnored() throws {
+        let page = makePage(rows: 3000)
+        func withBar(_ off: Int, _ k: Int) -> CGImage {
+            var bytes = rows(page, off..<(off + fh))
+            let y0 = 20 + 3 * k
+            for y in y0..<(y0 + 80) { for x in (w - 5)..<w {
+                let o = (y * w + x) * 4
+                bytes[o] = 200; bytes[o + 1] = 200; bytes[o + 2] = 200
+            } }
+            return image(bytes, width: w, height: fh)
+        }
+        let s = try XCTUnwrap(ScrollStitcher(firstFrame: withBar(0, 0)))
+        for k in 1...5 {
+            XCTAssertEqual(s.add(withBar(100 * k, k)), .appended(rows: 100), "k \(k)")
+        }
+        XCTAssertEqual(s.height, fh + 500)
+    }
+
+    /// Lista de elementos de 24 filas con el mismo «nombre» (texto idéntico) y, si `distinctDates`, una
+    /// «fecha» distinta por elemento a la derecha.
+    private func makeRepeatedList(rows: Int, distinctDates: Bool) -> [UInt8] {
+        var out = [UInt8](repeating: 255, count: rows * w * 4)
+        var nameRng = RNG(s: 99)
+        let name = (0..<60).map { _ in nameRng.next() % 2 == 0 }
+        for item in 0..<(rows / 24) {
+            var dateRng = RNG(s: UInt64(1000 + item * 7919))
+            for ry in 6..<15 {
+                let y = item * 24 + ry
+                for seg in 0..<60 where name[seg] {
+                    for dx in 0..<3 { let o = (y * w + 10 + seg * 3 + dx) * 4; out[o] = 20; out[o + 1] = 20; out[o + 2] = 20 }
+                }
+                guard distinctDates else { continue }
+                var dr = dateRng
+                for seg in 0..<30 where dr.next() % 2 == 0 {
+                    for dx in 0..<3 { let o = (y * w + 205 + seg * 3 + dx) * 4; out[o] = 20; out[o + 1] = 20; out[o + 2] = 20 }
+                }
+            }
+            _ = dateRng.next()
+        }
+        return out
+    }
+
+    func testPerfectlyRepeatedRowsNeverProduceFalseShifts() throws {
+        let page = makeRepeatedList(rows: 3000, distinctDates: false)
+        let s = try XCTUnwrap(ScrollStitcher(firstFrame: frame(page, at: 0)))
+        for off in [7, 14, 31, 55, 100] {
+            let outcome = s.add(frame(page, at: off))
+            if case .appended = outcome { XCTFail("desplazamiento falso en \(off): \(outcome)") }
+        }
+        XCTAssertEqual(s.height, fh)
+    }
+
+    func testRepeatedNamesWithDistinctDatesStitchExactly() throws {
+        let page = makeRepeatedList(rows: 3000, distinctDates: true)
+        let s = try XCTUnwrap(ScrollStitcher(firstFrame: frame(page, at: 0)))
+        for k in 1...20 {
+            XCTAssertEqual(s.add(frame(page, at: 9 * k)), .appended(rows: 9), "k \(k)")
+        }
+        assertResult(s, equals: rows(page, 0..<(fh + 180)))
+    }
+
     // MARK: - Vista previa
 
     func testMakePreviewSizeAndSampledPixel() throws {
