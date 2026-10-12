@@ -176,9 +176,26 @@ final class ScrollCaptureController {
     private func refreshPill(force: Bool) {
         guard let next = display(at: ProcessInfo.processInfo.systemUptime) else { return }
         guard force || next != shownDisplay || pixelHeight != shownHeight else { return }
+        if next != shownDisplay { announceChange(to: next) }
         shownDisplay = next
         shownHeight = pixelHeight
         pillWindow?.update(display: next, pixelHeight: pixelHeight)
+    }
+
+    /// Los avisos se anuncian una vez al aparecer; el progreso del contador no se anuncia.
+    private func announceChange(to display: ScrollCapturePillWindow.Display) {
+        switch display {
+        case .warnTooFast:
+            announce(String(localized: "Slow down: go back up a little", bundle: L10n.bundle, locale: L10n.locale, comment: "Long capture pill warning: scrolling was faster than the capture rate"))
+        case .atEnd:
+            announce(String(localized: "You've reached the end", bundle: L10n.bundle, locale: L10n.locale, comment: "Long capture pill hint: the page seems to have ended"))
+        case .limitReached:
+            announce(String(localized: "You've reached the maximum height", bundle: L10n.bundle, locale: L10n.locale, comment: "Long capture pill warning: the maximum image height was reached"))
+        case .confirmingCancel:
+            announce(String(localized: "Discard the long capture?", bundle: L10n.bundle, locale: L10n.locale, comment: "Long capture pill title asking to confirm cancelling"))
+        case .capturing, .endingSoon, .stitching:
+            break
+        }
     }
 
     // MARK: - Monitores y temporizador
