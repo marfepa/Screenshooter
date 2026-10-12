@@ -14,13 +14,6 @@ final class ScrollCaptureController {
         let interrupted: Bool
     }
 
-    private enum StitchError: LocalizedError {
-        case emptyResult
-        var errorDescription: String? {
-            String(localized: "The long capture could not be assembled.", bundle: L10n.bundle, locale: L10n.locale, comment: "Error shown when stitching the long capture produced no image")
-        }
-    }
-
     /// Ya desmontado todo; el coordinador sale del modo.
     var onCancelled: (() -> Void)?
     /// Ya desmontado todo; el coordinador sigue la ruta normal de una captura terminada.
@@ -149,7 +142,10 @@ final class ScrollCaptureController {
     private func streamStopped(error: Error?, token current: Int) {
         guard let error, current == token, isRunning, !isFinishing else { return }
         NSLog("[ScrollCapture] El stream se detuvo: %@", error.localizedDescription)
-        if model.acceptedFrames > 1 {
+        // Con al menos un fotograma cosido se guarda lo que haya; solo sin ninguno es un error
+        let state = stitchState
+        let hasFrames = stitchQueue.sync { state.hasFrames }
+        if hasFrames {
             finish(interrupted: true)
         } else {
             fail(error)
@@ -320,8 +316,16 @@ final class ScrollCaptureController {
             self.teardown()
             if let image = box.value {
                 self.onFinished?(Result(image: image, rect: rect, screen: screen, interrupted: interrupted))
-            } else {
-                self.onFailed?(StitchError.emptyResult)
+                return
+            }
+            // Ningún fotograma llegó (p. ej. Intro en los primeros ms): captura normal del área, con las
+            // ventanas propias ya cerradas por `teardown()`
+            do {
+                try? await Task.sleep(nanoseconds: 120_000_000) // deja que el compositor retire las ventanas
+                let fallback = try await ScreenCaptureEngine.shared.captureArea(rect: rect, on: screen)
+                self.onFinished?(Result(image: fallback.image, rect: rect, screen: screen, interrupted: false))
+            } catch {
+                self.onFailed?(error)
             }
         }
     }
@@ -357,13 +361,13 @@ final class ScrollCaptureController {
 }
 
 /// Envoltorio para cruzar colas con tipos de Core Graphics que no son `Sendable`.
-private struct UncheckedBox<T>: @unchecked Sendable {
+struct UncheckedBox<T>: @unchecked Sendable {
     let value: T
     init(_ value: T) { self.value = value }
 }
 
 /// Estado del cosido. Solo se toca desde `stitchQueue` (serie): `ScrollStitcher` no es thread-safe.
-private final class StitchState: @unchecked Sendable {
+final class StitchState: @unchecked Sendable {
     struct Result: @unchecked Sendable {
         var outcome: ScrollStitcher.Outcome?
         var height: Int
@@ -375,6 +379,9 @@ private final class StitchState: @unchecked Sendable {
     private var lastPreviewAt: TimeInterval = 0
     private var appendedSincePreview = false
     private var isFinal = false
+
+    /// Ya hay al menos un fotograma cosido (leer desde `stitchQueue`).
+    var hasFrames: Bool { stitcher != nil }
 
     func process(_ frame: CGImage, now: TimeInterval) -> Result {
         guard !isFinal else { return Result(outcome: nil, height: stitcher?.height ?? 0, preview: nil) }

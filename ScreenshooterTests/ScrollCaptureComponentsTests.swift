@@ -270,4 +270,23 @@ final class ScrollCaptureWiringTests: XCTestCase {
         XCTAssertEqual(titles[1], "Long Capture…")
         XCTAssertEqual(controller.menuForTesting.items[1].keyEquivalent, "")
     }
+
+    // MARK: - StitchState.hasFrames
+
+    func testStitchStateHasFramesOnlyAfterFirstFrame() throws {
+        let bytes = [UInt8](repeating: 200, count: 40 * 40 * 4)
+        let provider = try XCTUnwrap(CGDataProvider(data: Data(bytes) as CFData))
+        let frame = try XCTUnwrap(CGImage(
+            width: 40, height: 40, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: 160,
+            space: CGColorSpace(name: CGColorSpace.sRGB)!,
+            bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
+            provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent))
+        let state = StitchState()
+        XCTAssertFalse(state.hasFrames)
+        XCTAssertNil(state.finalImage(), "Sin fotogramas no hay imagen: el controlador cae a la captura normal")
+        let other = StitchState()
+        _ = other.process(frame, now: 0)
+        XCTAssertTrue(other.hasFrames)
+        XCTAssertNotNil(other.finalImage(), "Con un solo fotograma se guarda ese fotograma")
+    }
 }
