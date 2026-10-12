@@ -278,6 +278,12 @@ public final class StripCardView: NSView, NSDraggingSource, NSMenuDelegate {
     private let cardBody = NSView()
     private let glass = GlassSurface(shape: .rounded(10))
     private let imageView = NSImageView()
+    /// Recorta la miniatura (esquinas de 6 pt); `imageView` va dentro con el marco completo (en largas, más alto).
+    private let thumbClip = NSView()
+    private let longFade = NSView()
+    private let longTag = NSView()
+    private let longTagLabel = NSTextField(labelWithString: "")
+    private let longFadeLayer = CAGradientLayer()
     private let missingLabel = NSTextField(labelWithString: String(localized: "File not found", bundle: L10n.bundle, locale: L10n.locale, comment: "Label on a card whose capture file no longer exists"))
     private let badge = GlassCapsuleLabel(font: .systemFont(ofSize: 12, weight: .semibold), height: 24, horizontalPadding: 11)
     private let meta = GlassCapsuleLabel(font: .systemFont(ofSize: 11, weight: .medium), height: 18, horizontalPadding: 8)
@@ -428,7 +434,7 @@ public final class StripCardView: NSView, NSDraggingSource, NSMenuDelegate {
 
     /// Miniatura (ajustada a la proporción de la captura) en coordenadas de la ranura.
     var thumbnailRect: NSRect {
-        convert(imageView.frame, from: cardBody)
+        convert(thumbClip.frame, from: cardBody)
     }
 
     /// Vector desde el `anchorPoint` REAL de la capa de `view` hasta `point` (coordenadas de la capa).
@@ -477,9 +483,31 @@ public final class StripCardView: NSView, NSDraggingSource, NSMenuDelegate {
 
         imageView.wantsLayer = true
         imageView.imageScaling = .scaleAxesIndependently
-        imageView.layer?.cornerRadius = 6
-        imageView.layer?.masksToBounds = true
-        cardBody.addSubview(imageView)
+        thumbClip.wantsLayer = true
+        thumbClip.layer?.cornerRadius = 6
+        thumbClip.layer?.masksToBounds = true
+        cardBody.addSubview(thumbClip)
+        thumbClip.addSubview(imageView)
+
+        longFade.wantsLayer = true
+        longFadeLayer.colors = [NSColor.black.withAlphaComponent(0.45).cgColor, NSColor.black.withAlphaComponent(0).cgColor]
+        longFadeLayer.startPoint = CGPoint(x: 0.5, y: 0) // capa no volteada: y = 0 es abajo
+        longFadeLayer.endPoint = CGPoint(x: 0.5, y: 1)
+        longFade.layer?.addSublayer(longFadeLayer)
+        longFade.setAccessibilityElement(false)
+        thumbClip.addSubview(longFade)
+
+        longTagLabel.stringValue = String(localized: "↕ Long", bundle: L10n.bundle, locale: L10n.locale, comment: "Tag on the thumbnail of a long (scrolling) capture card")
+        longTagLabel.font = .systemFont(ofSize: 11, weight: .semibold)
+        longTagLabel.textColor = .white
+        longTagLabel.backgroundColor = .clear
+        longTagLabel.sizeToFit()
+        longTag.wantsLayer = true
+        longTag.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.78).cgColor
+        longTag.addSubview(longTagLabel)
+        longTag.setAccessibilityElement(false)
+        longTagLabel.setAccessibilityElement(false)
+        thumbClip.addSubview(longTag)
         layoutThumbnail()
 
         missingLabel.font = .systemFont(ofSize: 11, weight: .semibold)
@@ -529,9 +557,30 @@ public final class StripCardView: NSView, NSDraggingSource, NSMenuDelegate {
         refreshColors()
     }
 
+    /// Marco completo de la imagen (en coordenadas de `cardBody`); en largas excede el área por abajo.
+    private var thumbFullRect: NSRect {
+        let area = cardBody.bounds.insetBy(dx: StripMotion.thumbnailPadding, dy: StripMotion.thumbnailPadding)
+        return StripMotion.thumbnailRect(imageSize: item.image.size, in: area)
+    }
+
     private func layoutThumbnail() {
         let area = cardBody.bounds.insetBy(dx: StripMotion.thumbnailPadding, dy: StripMotion.thumbnailPadding)
-        imageView.frame = StripMotion.aspectFit(imageSize: item.image.size, in: area)
+        let full = thumbFullRect
+        let isLong = StripMotion.isLongCapture(pixelSize: item.pixelSize)
+        let visible = isLong ? full.intersection(area) : full
+        thumbClip.frame = visible
+        imageView.frame = NSRect(x: full.minX - visible.minX, y: full.minY - visible.minY, width: full.width, height: full.height)
+        longFade.isHidden = !isLong
+        longTag.isHidden = !isLong
+        guard isLong else { return }
+        let fadeH = min(26, visible.height)
+        longFade.frame = NSRect(x: 0, y: 0, width: visible.width, height: fadeH)
+        longFadeLayer.frame = longFade.bounds
+        let size = longTagLabel.frame.size
+        let tagH = ceil(size.height) + 4
+        longTag.frame = NSRect(x: visible.width - 6 - size.width - 14, y: 6, width: size.width + 14, height: tagH)
+        longTag.layer?.cornerRadius = tagH / 2
+        longTagLabel.setFrameOrigin(NSPoint(x: 7, y: 2))
     }
 
     private func updateShadowGeometry() {
@@ -1135,7 +1184,8 @@ public final class StripCardView: NSView, NSDraggingSource, NSMenuDelegate {
         let card = cardRect
         let margin: CGFloat = 18 // cabe la rotación (±2,5°) y la sombra
         let frame = card.insetBy(dx: -margin, dy: -margin)
-        let thumb = imageView.frame.offsetBy(dx: margin, dy: margin) // coords. de cardBody → de la imagen
+        let thumb = thumbFullRect.offsetBy(dx: margin, dy: margin) // coords. de cardBody → de la imagen
+        let thumbVisible = thumbClip.frame.offsetBy(dx: margin, dy: margin)
         let body = NSRect(x: margin, y: margin, width: card.width, height: card.height)
         let tilt = CGFloat(item.tilt)
         let image = item.image
@@ -1162,7 +1212,7 @@ public final class StripCardView: NSView, NSDraggingSource, NSMenuDelegate {
                 NSGraphicsContext.restoreGraphicsState()
 
                 NSGraphicsContext.saveGraphicsState()
-                NSBezierPath(roundedRect: thumb, xRadius: 6, yRadius: 6).addClip()
+                NSBezierPath(roundedRect: thumbVisible, xRadius: 6, yRadius: 6).addClip()
                 image.draw(in: thumb)
                 NSGraphicsContext.restoreGraphicsState()
 

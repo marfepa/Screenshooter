@@ -277,6 +277,60 @@
         }
       }
     },
+    "Long capture, %@, %@ by %@" : {
+      "comment" : "VoiceOver label of a long (scrolling) capture card: capture time, then pixel width by height",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Long capture, %@, %@ by %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Captura larga, %@, %@ por %@"
+          }
+        }
+      }
+    },
+    " · long capture" : {
+      "comment" : "Suffix of the caption under a long (scrolling) capture card",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " · long capture"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " · captura larga"
+          }
+        }
+      }
+    },
+    "↕ Long" : {
+      "comment" : "Tag on the thumbnail of a long (scrolling) capture card",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↕ Long"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↕ Larga"
+          }
+        }
+      }
+    },
     "Clear Shelf" : {
       "comment" : "Menu item: move all captures of the shelf to the Trash",
       "extractionState" : "stale",

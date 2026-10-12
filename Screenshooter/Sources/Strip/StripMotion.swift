@@ -150,6 +150,20 @@ public enum StripMotion {
         return CGRect(x: rect.midX - w / 2, y: rect.midY - h / 2, width: w, height: h)
     }
 
+    /// Captura «larga»: alto/ancho estrictamente mayor que 3 (en píxeles).
+    public static func isLongCapture(pixelSize: CGSize) -> Bool {
+        pixelSize.width > 0 && pixelSize.height / pixelSize.width > 3
+    }
+
+    /// Marco de la imagen en la miniatura (coordenadas NO volteadas, como `cardBody`: arriba = `maxY`).
+    /// Larga: rellena el ancho del área y se alinea arriba (el sobrante inferior lo recorta la máscara de la miniatura).
+    /// Normal: exactamente `aspectFit`.
+    public static func thumbnailRect(imageSize: CGSize, in rect: CGRect) -> CGRect {
+        guard isLongCapture(pixelSize: imageSize) else { return aspectFit(imageSize: imageSize, in: rect) }
+        let h = rect.width * imageSize.height / imageSize.width
+        return CGRect(x: rect.minX, y: rect.maxY - h, width: rect.width, height: h)
+    }
+
     // MARK: Textos
 
     /// Hora corta según la configuración regional (respeta 12/24 h).
@@ -170,7 +184,9 @@ public enum StripMotion {
     public static func metaText(for item: StripItem, locale: Locale = .current) -> String {
         let time = timeText(item.createdAt, locale: locale)
         let (w, h) = pixelSizeStrings(item)
-        return String(localized: "\(time) · \(w)×\(h)", bundle: L10n.bundle, locale: locale, comment: "Caption under a card: time, then size in pixels as width×height")
+        let base = String(localized: "\(time) · \(w)×\(h)", bundle: L10n.bundle, locale: locale, comment: "Caption under a card: time, then size in pixels as width×height")
+        guard isLongCapture(pixelSize: item.pixelSize) else { return base }
+        return base + String(localized: " · long capture", bundle: L10n.bundle, locale: locale, comment: "Suffix of the caption under a long (scrolling) capture card")
     }
 
     /// Etiqueta de VoiceOver: "Captura, HH:mm, W por H" o "Captura no encontrada, HH:mm".
@@ -180,6 +196,9 @@ public enum StripMotion {
             return String(localized: "Capture not found, \(time)", bundle: L10n.bundle, locale: locale, comment: "VoiceOver label of a card whose file is missing; the argument is the capture time")
         }
         let (w, h) = pixelSizeStrings(item)
+        if isLongCapture(pixelSize: item.pixelSize) {
+            return String(localized: "Long capture, \(time), \(w) by \(h)", bundle: L10n.bundle, locale: locale, comment: "VoiceOver label of a long (scrolling) capture card: capture time, then pixel width by height")
+        }
         return String(localized: "Capture, \(time), \(w) by \(h)", bundle: L10n.bundle, locale: locale, comment: "VoiceOver label of a card: capture time, then pixel width by height")
     }
 
