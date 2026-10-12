@@ -65,8 +65,27 @@ public final class ScreenCaptureEngine {
         
         let fullImage = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
         
-        // Convertir coordenadas de AppKit (origen abajo-izquierda) a coordenadas de píxeles en la imagen (origen arriba-izquierda)
-        let screenFrame = screen.frame
+        let cropRect = Self.cropRect(
+            for: rect, screenFrame: screen.frame, scale: scale,
+            imageSize: CGSize(width: fullImage.width, height: fullImage.height)
+        )
+        
+        guard let croppedImage = fullImage.cropping(to: cropRect) else {
+            throw ScreenCaptureError.captureFailed(String(localized: "Could not crop the selected area from the image.", bundle: L10n.bundle, locale: L10n.locale, comment: "Error reason: cropping the captured image failed"))
+        }
+        
+        return (image: croppedImage, scale: scale)
+    }
+
+    /// Convierte un rectángulo en coordenadas de AppKit (origen abajo-izquierda, puntos) al rectángulo de
+    /// recorte en píxeles de la imagen del display (origen arriba-izquierda), acotado a la imagen.
+    ///
+    /// - Parameters:
+    ///   - rect: Selección en coordenadas globales de AppKit.
+    ///   - screenFrame: `frame` de la pantalla (su origen puede estar desplazado en monitores secundarios).
+    ///   - scale: `backingScaleFactor` de la pantalla.
+    ///   - imageSize: Tamaño en píxeles de la imagen completa del display.
+    public static func cropRect(for rect: CGRect, screenFrame: CGRect, scale: CGFloat, imageSize: CGSize) -> CGRect {
         let localX = rect.origin.x - screenFrame.origin.x
         let localY = screenFrame.height - (rect.origin.y - screenFrame.origin.y + rect.height)
         
@@ -76,17 +95,11 @@ public final class ScreenCaptureEngine {
         let pixelH = round(rect.height * scale)
         
         // Asegurar que el recuadro de recorte esté estrictamente dentro de los límites de la imagen
-        let clampedX = max(0, min(pixelX, CGFloat(fullImage.width) - 1))
-        let clampedY = max(0, min(pixelY, CGFloat(fullImage.height) - 1))
-        let clampedW = min(pixelW, CGFloat(fullImage.width) - clampedX)
-        let clampedH = min(pixelH, CGFloat(fullImage.height) - clampedY)
+        let clampedX = max(0, min(pixelX, imageSize.width - 1))
+        let clampedY = max(0, min(pixelY, imageSize.height - 1))
+        let clampedW = min(pixelW, imageSize.width - clampedX)
+        let clampedH = min(pixelH, imageSize.height - clampedY)
         
-        let cropRect = CGRect(x: clampedX, y: clampedY, width: max(1, clampedW), height: max(1, clampedH))
-        
-        guard let croppedImage = fullImage.cropping(to: cropRect) else {
-            throw ScreenCaptureError.captureFailed(String(localized: "Could not crop the selected area from the image.", bundle: L10n.bundle, locale: L10n.locale, comment: "Error reason: cropping the captured image failed"))
-        }
-        
-        return (image: croppedImage, scale: scale)
+        return CGRect(x: clampedX, y: clampedY, width: max(1, clampedW), height: max(1, clampedH))
     }
 }
