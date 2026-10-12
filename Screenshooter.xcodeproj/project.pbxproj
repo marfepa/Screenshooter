@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		01C6DBB9BED8F72C47DE03B5 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6AA0ECA5757AFF050BAA61A5 /* CoreGraphics.framework */; };
 		06FF21456C48019AF589D1E3 /* SelectionOverlayWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B257E06A7CEDDBFFF91FE5F2 /* SelectionOverlayWindow.swift */; };
+		0B8B1174450D953A8A9E3361 /* ScrollCaptureModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F1FAE5D0D15B846FA01539B /* ScrollCaptureModel.swift */; };
 		170DD871D845B0C69003F9AC /* StripMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7DE9AEC6C3386B2ABB20F3A /* StripMotion.swift */; };
 		188C21A727F1163933D67BC8 /* StripScroll.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE87426534B4289E8930FB69 /* StripScroll.swift */; };
 		1C3BCC2E642377B687C0F4EE /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CDE7BA3B69BEA8670015B341 /* AudioToolbox.framework */; };
@@ -34,6 +35,7 @@
 		72E774F8225110DF8095EAE8 /* LaunchAtLoginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4FBD565BD370B5BF7FB4839 /* LaunchAtLoginManager.swift */; };
 		7DA1FF9C6E2A8EBD95EE9BB9 /* HUDNotificationWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20E2823015DF063215FA3F84 /* HUDNotificationWindow.swift */; };
 		7EACFA5BBF5E611A9DB293C1 /* StripStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A118FD173727EBC8166893 /* StripStorageTests.swift */; };
+		7F593EF80ACDBFBAF9760640 /* ScrollCaptureModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A19A7A646C1C7060F2EEEE83 /* ScrollCaptureModelTests.swift */; };
 		848B2FBE4A638BECC605F4E4 /* SelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 647E94BFFA852B13698CE778 /* SelectionView.swift */; };
 		8C1C57E3CFB2095E97AA99AA /* OnboardingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3C7402C2573A6FE805FAF38 /* OnboardingTests.swift */; };
 		91EAA59259A369384D5566C8 /* RevealState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523ADF47C5A2229B22CDFEAD /* RevealState.swift */; };
@@ -72,6 +74,7 @@
 
 /* Begin PBXFileReference section */
 		072643D06B0B0F74FD75D974 /* OnboardingDemoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingDemoView.swift; sourceTree = "<group>"; };
+		0F1FAE5D0D15B846FA01539B /* ScrollCaptureModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollCaptureModel.swift; sourceTree = "<group>"; };
 		15508D845249EB71E7890746 /* ClipboardService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardService.swift; sourceTree = "<group>"; };
 		1DB33400DA95A086CE1CDA26 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		20E2823015DF063215FA3F84 /* HUDNotificationWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDNotificationWindow.swift; sourceTree = "<group>"; };
@@ -108,6 +111,7 @@
 		95DD788DB2BEE3330FC2169E /* StripPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripPanel.swift; sourceTree = "<group>"; };
 		96149F5978700E8002268D6C /* ScrollStitcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollStitcherTests.swift; sourceTree = "<group>"; };
 		9BDA82755DFBFF7FFCB9A297 /* ContinuousCaptureState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContinuousCaptureState.swift; sourceTree = "<group>"; };
+		A19A7A646C1C7060F2EEEE83 /* ScrollCaptureModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollCaptureModelTests.swift; sourceTree = "<group>"; };
 		A3C7402C2573A6FE805FAF38 /* OnboardingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingTests.swift; sourceTree = "<group>"; };
 		AEB515DCE044BAE6D81D56E7 /* ScreenCaptureEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureEngine.swift; sourceTree = "<group>"; };
 		AF4A01BC0F50F3722617C120 /* MarkupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkupService.swift; sourceTree = "<group>"; };
@@ -183,6 +187,7 @@
 				74A370E64F45D8639DB9D4F0 /* LocalizedTestSupport.swift */,
 				A3C7402C2573A6FE805FAF38 /* OnboardingTests.swift */,
 				6CE53794E55E8C22EE433E6B /* ScreenshooterTests.swift */,
+				A19A7A646C1C7060F2EEEE83 /* ScrollCaptureModelTests.swift */,
 				96149F5978700E8002268D6C /* ScrollStitcherTests.swift */,
 				D8A118FD173727EBC8166893 /* StripStorageTests.swift */,
 			);
@@ -283,6 +288,7 @@
 				398A7FE622D552DF4D181E99 /* CaptureCoordinator.swift */,
 				9BDA82755DFBFF7FFCB9A297 /* ContinuousCaptureState.swift */,
 				AEB515DCE044BAE6D81D56E7 /* ScreenCaptureEngine.swift */,
+				0F1FAE5D0D15B846FA01539B /* ScrollCaptureModel.swift */,
 				45E2C14D8510CD1316E3EFA8 /* ScrollStitcher.swift */,
 				B257E06A7CEDDBFFF91FE5F2 /* SelectionOverlayWindow.swift */,
 				647E94BFFA852B13698CE778 /* SelectionView.swift */,
@@ -430,6 +436,7 @@
 				5E6839BF7539C931CC429043 /* PermissionsHelper.swift in Sources */,
 				91EAA59259A369384D5566C8 /* RevealState.swift in Sources */,
 				3D4D2B232545AAABA0FE5431 /* ScreenCaptureEngine.swift in Sources */,
+				0B8B1174450D953A8A9E3361 /* ScrollCaptureModel.swift in Sources */,
 				B66F25D72520E883B750AD3C /* ScrollStitcher.swift in Sources */,
 				06FF21456C48019AF589D1E3 /* SelectionOverlayWindow.swift in Sources */,
 				848B2FBE4A638BECC605F4E4 /* SelectionView.swift in Sources */,
@@ -455,6 +462,7 @@
 				680010CDD993EBD5C1EB91D5 /* LocalizedTestSupport.swift in Sources */,
 				8C1C57E3CFB2095E97AA99AA /* OnboardingTests.swift in Sources */,
 				979A92A039BB3976BBB25DEB /* ScreenshooterTests.swift in Sources */,
+				7F593EF80ACDBFBAF9760640 /* ScrollCaptureModelTests.swift in Sources */,
 				6CECAF4F478948F93E17A825 /* ScrollStitcherTests.swift in Sources */,
 				7EACFA5BBF5E611A9DB293C1 /* StripStorageTests.swift in Sources */,
 			);
