@@ -46,7 +46,7 @@ final class ContinuousCaptureTests: XCTestCase {
     }
 
     func testCancelEndsTheModeFromAnyState() {
-        let states: [ContinuousCaptureState] = [.idle, .selecting, .scrollPassthrough, .processing, .navigating]
+        let states: [ContinuousCaptureState] = [.idle, .selecting, .scrollPassthrough, .processing, .scrollCapturing, .navigating]
         for state in states {
             XCTAssertEqual(ContinuousCaptureMachine.next(state, on: .cancel), .idle, "\(state)")
         }
@@ -56,6 +56,44 @@ final class ContinuousCaptureTests: XCTestCase {
         XCTAssertFalse(ContinuousCaptureState.idle.isActive)
         XCTAssertTrue(ContinuousCaptureState.navigating.isActive)
         XCTAssertTrue(ContinuousCaptureState.scrollPassthrough.isActive)
+        XCTAssertTrue(ContinuousCaptureState.scrollCapturing.isActive)
+    }
+
+    // MARK: - Captura larga
+
+    func testScrollCaptureRequestedFromSelecting() {
+        XCTAssertEqual(run([.hotKey, .scrollCaptureRequested]), .scrollCapturing)
+    }
+
+    func testScrollCaptureRequestedIgnoredElsewhere() {
+        XCTAssertEqual(run([.scrollCaptureRequested]), .idle)
+        XCTAssertEqual(run([.hotKey, .hotKey, .scrollCaptureRequested]), .navigating)
+        XCTAssertEqual(run([.hotKey, .selectionCompleted, .scrollCaptureRequested]), .processing)
+        XCTAssertEqual(run([.hotKey, .scrollBegan, .scrollCaptureRequested]), .scrollPassthrough)
+        XCTAssertEqual(run([.hotKey, .scrollCaptureRequested, .scrollCaptureRequested]), .scrollCapturing)
+    }
+
+    func testScrollCaptureFinishedGoesToProcessing() {
+        XCTAssertEqual(run([.hotKey, .scrollCaptureRequested, .scrollCaptureFinished]), .processing)
+    }
+
+    func testScrollCaptureFinishedIgnoredOutsideScrollCapturing() {
+        XCTAssertEqual(run([.scrollCaptureFinished]), .idle)
+        XCTAssertEqual(run([.hotKey, .scrollCaptureFinished]), .selecting)
+        XCTAssertEqual(run([.hotKey, .hotKey, .scrollCaptureFinished]), .navigating)
+        XCTAssertEqual(run([.hotKey, .scrollBegan, .scrollCaptureFinished]), .scrollPassthrough)
+        XCTAssertEqual(run([.hotKey, .selectionCompleted, .scrollCaptureFinished]), .processing)
+    }
+
+    func testEventsIgnoredWhileScrollCapturing() {
+        let ignored: [ContinuousCaptureEvent] = [.hotKey, .scrollBegan, .scrollEnded, .selectionCompleted, .captureFinished]
+        for event in ignored {
+            XCTAssertEqual(ContinuousCaptureMachine.next(.scrollCapturing, on: event), .scrollCapturing, "\(event)")
+        }
+    }
+
+    func testFullScrollCaptureCycle() {
+        XCTAssertEqual(run([.hotKey, .scrollCaptureRequested, .scrollCaptureFinished, .captureFinished]), .selecting)
     }
 
     // MARK: - Fin del scroll pasante

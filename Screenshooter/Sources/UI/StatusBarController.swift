@@ -12,8 +12,11 @@ public final class StatusBarController {
         return window.convertToScreen(button.convert(button.bounds, to: nil))
     }
     
-    public init() {
-        setupStatusItem()
+    /// Menú construido (los tests lo inspeccionan sin tocar la barra de menús real).
+    var menuForTesting: NSMenu { menu }
+    
+    public init(createsStatusItem: Bool = true) {
+        if createsStatusItem { setupStatusItem() }
         setupMenu()
         
         // «Salir del modo captura» solo aparece mientras el modo continuo está activo
@@ -57,6 +60,15 @@ public final class StatusBarController {
         captureItem.keyEquivalentModifierMask = [.command, .option]
         captureItem.target = self
         menu.addItem(captureItem)
+        
+        // Captura larga (con scroll), sin atajo: ⇧ al soltar en el selector es la vía rápida
+        let longCaptureItem = NSMenuItem(
+            title: String(localized: "Long Capture…", bundle: L10n.bundle, locale: L10n.locale, comment: "Menu item: start a long (scrolling) capture"),
+            action: #selector(handleLongCaptureClicked),
+            keyEquivalent: ""
+        )
+        longCaptureItem.target = self
+        menu.addItem(longCaptureItem)
         
         // Vía para salir del modo Navegar sin ESC (no es global sin permiso de Accesibilidad)
         if CaptureCoordinator.shared.isActive {
@@ -192,6 +204,10 @@ public final class StatusBarController {
     
     @objc private func handleCaptureClicked() {
         CaptureCoordinator.shared.toggleCapture()
+    }
+    
+    @objc private func handleLongCaptureClicked() {
+        CaptureCoordinator.shared.startScrollCaptureSelection()
     }
     
     @objc private func handleHowItWorksClicked() {

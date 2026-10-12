@@ -11,6 +11,8 @@ public final class SelectionView: NSView {
     private var spaceDragOffset: CGPoint = .zero
     
     public var onSelectionCompleted: ((CGRect, NSScreen) -> Void)?
+    /// Selección soltada con ⇧ (o con `forcesScrollCapture`): empieza la captura larga en vez de la captura normal.
+    public var onScrollCaptureSelected: ((CGRect, NSScreen) -> Void)?
     public var onCancelled: (() -> Void)?
     /// Scroll de trackpad o rueda fuera de un arrastre: el coordinador deja pasar los eventos a la app de debajo.
     public var onScrollPassthrough: ((NSEvent) -> Void)?
@@ -22,6 +24,46 @@ public final class SelectionView: NSView {
             needsDisplay = true
             window?.invalidateCursorRects(for: self)
         }
+    }
+    
+    /// Entrada desde el menú «Captura larga…»: toda selección de esta vista es una captura larga.
+    public var forcesScrollCapture = false {
+        didSet { if forcesScrollCapture != oldValue { needsDisplay = true } }
+    }
+    /// Contador de usos de la línea de ayuda (inyectable en tests).
+    var helpDefaults: UserDefaults = .standard
+    /// ⇧ pulsado durante el arrastre actual.
+    private var shiftHeld = false
+    private var announcedShiftInDrag = false
+    
+    /// Decide si una selección soltada es captura larga.
+    static func isScrollCapture(flags: NSEvent.ModifierFlags, forces: Bool) -> Bool {
+        forces || ScrollCaptureModel.wantsScrollCapture(flags)
+    }
+    
+    private var isScrollMode: Bool { forcesScrollCapture || shiftHeld }
+    
+    private func updateShift(_ flags: NSEvent.ModifierFlags) {
+        let held = ScrollCaptureModel.wantsScrollCapture(flags)
+        guard held != shiftHeld else { return }
+        shiftHeld = held
+        needsDisplay = true
+        if held, startPoint != nil, !announcedShiftInDrag, !forcesScrollCapture {
+            announcedShiftInDrag = true
+            NSAccessibility.post(
+                element: NSApp as Any,
+                notification: .announcementRequested,
+                userInfo: [
+                    .announcement: String(localized: "Long capture", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver announcement when Shift is pressed during a selection drag"),
+                    .priority: NSAccessibilityPriorityLevel.high.rawValue
+                ]
+            )
+        }
+    }
+    
+    public override func flagsChanged(with event: NSEvent) {
+        updateShift(event.modifierFlags)
+        super.flagsChanged(with: event)
     }
     
     public init(frame: NSRect, screen: NSScreen) {
@@ -55,12 +97,15 @@ public final class SelectionView: NSView {
         let point = convert(event.locationInWindow, from: nil)
         startPoint = point
         currentPoint = point
+        announcedShiftInDrag = false
+        updateShift(event.modifierFlags)
         needsDisplay = true
     }
     
     public override func mouseDragged(with event: NSEvent) {
         guard let start = startPoint else { return }
         let point = convert(event.locationInWindow, from: nil)
+        updateShift(event.modifierFlags)
         
         if event.modifierFlags.contains(.numericPad) || isSpaceDragging {
             // Mover recuadro existente
@@ -80,6 +125,8 @@ public final class SelectionView: NSView {
         let rect = currentSelectionRect(start: start, current: current)
         startPoint = nil
         currentPoint = nil
+        shiftHeld = false
+        announcedShiftInDrag = false
         needsDisplay = true
 
         // Si el área es menor a 4x4 px (un clic involuntario), ignorarla y seguir seleccionando
@@ -89,7 +136,11 @@ public final class SelectionView: NSView {
         
         // Convertir coordenadas locales de la vista a coordenadas de pantalla (AppKit screen coordinates)
         let screenRect = window?.convertToScreen(rect) ?? rect
-        onSelectionCompleted?(screenRect, screen)
+        if Self.isScrollCapture(flags: event.modifierFlags, forces: forcesScrollCapture) {
+            onScrollCaptureSelected?(screenRect, screen)
+        } else {
+            onSelectionCompleted?(screenRect, screen)
+        }
     }
     
     public override func keyDown(with event: NSEvent) {
@@ -190,10 +241,50 @@ public final class SelectionView: NSView {
                 height: textSize.height
             )
             (pointsText as NSString).draw(in: textRect, withAttributes: badgeAttrs)
+            
+            // 5. Etiqueta de captura larga (⇧ o menú) y, si procede, línea de ayuda
+            var extraBelow = badgeRect
+            if isScrollMode {
+                let label = String(localized: "Long capture ↕", bundle: L10n.bundle, locale: L10n.locale, comment: "Label next to the size badge while Shift is held: releasing starts a long (scrolling) capture")
+                var labelRect = pillRect(for: label, font: badgeFont, height: badgeHeight, x: badgeRect.maxX + 6, y: badgeY)
+                if labelRect.maxX > bounds.width - 10 {
+                    labelRect.origin.x = badgeRect.minX - 6 - labelRect.width
+                }
+                drawPill(label, in: labelRect, fill: NSColor.controlAccentColor, font: badgeFont)
+                extraBelow = extraBelow.union(labelRect)
+            } else if ScrollCaptureHelpHint.shouldShow(defaults: helpDefaults) {
+                let help = String(localized: "Hold ⇧ when releasing for a long capture", bundle: L10n.bundle, locale: L10n.locale, comment: "Secondary hint under the size badge while selecting an area")
+                let helpFont = NSFont.systemFont(ofSize: 11, weight: .regular)
+                let helpHeight = badgeHeight - 2
+                var helpRect = pillRect(for: help, font: helpFont, height: helpHeight, x: 0, y: 0)
+                helpRect.origin.x = max(10, min(rect.midX - helpRect.width / 2, bounds.width - helpRect.width - 10))
+                let below = badgeY < rect.minY
+                helpRect.origin.y = below ? extraBelow.minY - helpHeight - 4 : extraBelow.maxY + 4
+                if helpRect.minY >= 4, helpRect.maxY <= bounds.height - 4 {
+                    drawPill(help, in: helpRect, fill: NSColor(white: 0.12, alpha: 0.85), font: helpFont)
+                }
+            }
         } else {
             // 5. Barra flotante con instrucciones iniciales
             drawInstructionBar()
         }
+    }
+    
+    private func pillRect(for text: String, font: NSFont, height: CGFloat, x: CGFloat, y: CGFloat) -> CGRect {
+        let size = (text as NSString).size(withAttributes: [.font: font])
+        return CGRect(x: x, y: y, width: size.width + 16, height: height)
+    }
+    
+    private func drawPill(_ text: String, in rect: CGRect, fill: NSColor, font: NSFont) {
+        let path = NSBezierPath(roundedRect: rect, xRadius: 4, yRadius: 4)
+        fill.setFill()
+        path.fill()
+        let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: NSColor.white]
+        let size = (text as NSString).size(withAttributes: attrs)
+        (text as NSString).draw(
+            at: CGPoint(x: rect.minX + (rect.width - size.width) / 2, y: rect.minY + (rect.height - size.height) / 2),
+            withAttributes: attrs
+        )
     }
     
     private func drawInstructionBar() {

@@ -13,6 +13,8 @@ public struct StripItem: Identifiable, Equatable {
     public let tilt: Double
     public let createdAt: Date
     public var isFlying: Bool = false
+    /// Procede de una captura larga (por scroll). Decide etiqueta «↕», degradado y textos; la Tira no se restaura entre arranques.
+    public let isLongCapture: Bool
     
     public init(
         id: UUID = UUID(),
@@ -22,7 +24,8 @@ public struct StripItem: Identifiable, Equatable {
         logicalSize: CGSize? = nil,
         tilt: Double = Double.random(in: -2.5...2.5),
         createdAt: Date = Date(),
-        isFlying: Bool = false
+        isFlying: Bool = false,
+        isLongCapture: Bool = false
     ) {
         self.id = id
         self.url = url
@@ -35,6 +38,7 @@ public struct StripItem: Identifiable, Equatable {
         self.tilt = tilt
         self.createdAt = createdAt
         self.isFlying = isFlying
+        self.isLongCapture = isLongCapture
     }
     
     /// Recarga la imagen desde el disco tras una edición en Marcación (Markup).

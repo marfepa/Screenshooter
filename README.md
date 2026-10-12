@@ -53,6 +53,7 @@ Screenshooter vive en la barra de menús. La primera vez que la abres, una bienv
 - `⌥⌘S`: captura un área. Se copia al portapapeles y se cuelga en la Tira. Es un modo de captura continua: puedes seleccionar áreas una tras otra hasta pulsar `ESC`.
   - Toca el trackpad con dos dedos (o gira la rueda) para apartar la captura: puedes hacer scroll o cambiar de app y, si no haces nada o mueves el puntero, vuelve sola para seguir seleccionando.
   - Vuelve a pulsar `⌥⌘S` para navegar libremente con el modo activo (aparece una píldora «Navegando» con el botón Salir); otro `⌥⌘S` y sigues capturando.
+- Captura larga: mantén `⇧` al soltar la selección (o elige «Captura larga…» en el menú) y haz scroll tú mismo; Screenshooter cose lo que va apareciendo en una sola imagen alta (páginas web, chats, listas). Pulsa «Listo» o `↩` para terminar y `ESC` para cancelar.
 - `⌃⌥T`: muestra u oculta la Tira. Al llevar el puntero a la parte superior de la pantalla, la Tira también se desliza hacia abajo.
 
 Gestos sobre cada captura de la Tira:

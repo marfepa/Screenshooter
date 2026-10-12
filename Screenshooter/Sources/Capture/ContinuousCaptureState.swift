@@ -10,6 +10,8 @@ public enum ContinuousCaptureState: Equatable {
     case scrollPassthrough
     /// Sin overlays mientras se captura la última selección.
     case processing
+    /// Captura larga en curso: el usuario hace scroll y se cosen fotogramas hasta terminar.
+    case scrollCapturing
     /// Overlays ocultos y píldora flotante: el usuario usa el sistema con normalidad.
     case navigating
 
@@ -24,6 +26,10 @@ public enum ContinuousCaptureEvent: Equatable {
     case scrollEnded
     case selectionCompleted
     case captureFinished
+    /// Selección soltada con ⇧ (o elegida desde el menú): empieza la captura larga.
+    case scrollCaptureRequested
+    /// La captura larga terminó y se procesa el resultado.
+    case scrollCaptureFinished
     case cancel
 }
 
@@ -45,8 +51,12 @@ public enum ContinuousCaptureMachine {
             return .processing
         case (.processing, .captureFinished):
             return .selecting
+        case (.selecting, .scrollCaptureRequested):
+            return .scrollCapturing
+        case (.scrollCapturing, .scrollCaptureFinished):
+            return .processing
         default:
-            // ⌥⌘S durante el procesado, scroll fuera de la selección, etc.: sin cambio
+            // ⌥⌘S durante el procesado o la captura larga, scroll fuera de la selección, etc.: sin cambio
             return state
         }
     }
