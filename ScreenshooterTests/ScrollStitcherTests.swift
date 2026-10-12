@@ -182,4 +182,46 @@ final class ScrollStitcherTests: XCTestCase {
         let next = f(60)
         measure { _ = s.add(next) }
     }
+
+    // MARK: - Vista previa
+
+    func testMakePreviewSizeAndSampledPixel() throws {
+        let page = makePage(rows: 3000)
+        let s = try XCTUnwrap(ScrollStitcher(firstFrame: frame(page, at: 0)))
+        XCTAssertEqual(s.add(frame(page, at: 120)), .appended(rows: 120))
+        let prev = try XCTUnwrap(s.makePreview(maxWidth: 100))
+        XCTAssertEqual(prev.width, 100)
+        XCTAssertEqual(prev.height, 173) // 520 * 100 / 300
+        let src = pixels(of: try XCTUnwrap(s.makeImage()))
+        let out = pixels(of: prev)
+        let (px, py) = (40, 77)
+        let sx = px * 300 / 100, sy = py * 520 / prev.height
+        let so = (sy * 300 + sx) * 4, po = (py * 100 + px) * 4
+        XCTAssertEqual(Array(out[po..<(po + 4)]), Array(src[so..<(so + 4)]))
+    }
+
+    func testMakePreviewNeverUpscalesAndKeepsMinimumHeight() throws {
+        let page = makePage(rows: 400)
+        let s = try XCTUnwrap(ScrollStitcher(firstFrame: frame(page, at: 0)))
+        let prev = try XCTUnwrap(s.makePreview(maxWidth: 1000))
+        XCTAssertEqual(prev.width, 300)
+        XCTAssertEqual(prev.height, 400)
+        XCTAssertEqual(try XCTUnwrap(s.makePreview(maxWidth: 1)).height, 1)
+    }
+
+    func testMakePreviewIsFastWithTallCanvas() throws {
+        let cfg = ScrollStitcher.Configuration(maxHeight: 30_000)
+        let page = makePage(rows: 30_000)
+        let s = try XCTUnwrap(ScrollStitcher(firstFrame: frame(page, at: 0), configuration: cfg))
+        var off = 0
+        while off < 29_000, !s.isAtLimit {
+            off += 300
+            if case .noOverlap = s.add(frame(page, at: min(off, 29_600))) { break }
+        }
+        XCTAssertGreaterThan(s.height, 20_000)
+        let t0 = Date()
+        // 80 px de ancho sobre 300 ≈ los píxeles de salida de 220 sobre un lienzo real de 2400 (compilación Debug).
+        _ = s.makePreview(maxWidth: 80)
+        XCTAssertLessThan(Date().timeIntervalSince(t0), 0.25)
+    }
 }

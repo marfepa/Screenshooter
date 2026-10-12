@@ -170,6 +170,47 @@ public final class ScrollStitcher {
         )
     }
 
+    /// Miniatura del lienzo + pie, muestreada por paso (vecino más cercano) directamente del buffer,
+    /// sin copiar el lienzo. Ancho = `min(maxWidth, width)`, alto proporcional (≥ 1).
+    public func makePreview(maxWidth: Int) -> CGImage? {
+        let outW = min(max(1, maxWidth), width)
+        let totalRows = height
+        guard totalRows > 0 else { return nil }
+        let outH = max(1, Int((Double(totalRows) * Double(outW) / Double(width)).rounded()))
+        var out = [UInt32](repeating: 0, count: outW * outH)
+        let cRows = canvasRows
+        let xTable = (0..<outW).map { $0 * width / outW }
+        out.withUnsafeMutableBufferPointer { dst in
+            canvas.withUnsafeBytes { cv in
+                footer.withUnsafeBytes { ft in
+                    xTable.withUnsafeBufferPointer { xs in
+                        for y in 0..<outH {
+                            let sy = min(totalRows - 1, y * totalRows / outH)
+                            let base: UnsafeRawPointer
+                            if sy < cRows {
+                                base = cv.baseAddress! + sy * rowBytes
+                            } else {
+                                base = ft.baseAddress! + (sy - cRows) * rowBytes
+                            }
+                            let row = base.assumingMemoryBound(to: UInt32.self)
+                                            let d = dst.baseAddress! + y * outW
+                            for x in 0..<outW { d[x] = row[xs[x]] }
+                        }
+                    }
+                }
+            }
+        }
+        let data = out.withUnsafeBytes { Data($0) }
+        guard let provider = CGDataProvider(data: data as CFData) else { return nil }
+        return CGImage(
+            width: outW, height: outH,
+            bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: outW * 4,
+            space: Self.colorSpace,
+            bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
+            provider: provider, decode: nil, shouldInterpolate: true, intent: .defaultIntent
+        )
+    }
+
     // MARK: - Render y firmas
 
     /// Dibuja el fotograma en un bitmap RGBA8 conocido (premultipliedLast, sRGB).
