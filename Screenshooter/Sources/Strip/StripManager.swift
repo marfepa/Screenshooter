@@ -108,7 +108,7 @@ public final class StripManager: StripViewDelegate {
     ///   - cgImage: Imagen CoreGraphics.
     ///   - fromRect: Rectángulo de origen en la pantalla para ejecutar la animación de vuelo (opcional).
     ///   - screen: Pantalla donde se originó la captura.
-    public func hang(url: URL, cgImage: CGImage, fromRect: CGRect? = nil, screen: NSScreen = NSScreen.main ?? NSScreen.screens.first!) {
+    public func hang(url: URL, cgImage: CGImage, fromRect: CGRect? = nil, screen: NSScreen = NSScreen.main ?? NSScreen.screens.first!, isLongCapture: Bool = false) {
         // Evitar duplicados: si ya hay un item con la misma URL, no se vuelve a colgar.
         let target = url.standardizedFileURL
         if items.contains(where: { $0.url.standardizedFileURL == target }) { return }
@@ -119,7 +119,7 @@ public final class StripManager: StripViewDelegate {
         
         // Con Reducir movimiento no hay vuelo: la captura aparece con un fundido en su sitio.
         let flies = fromRect != nil && !MotionStyle.current().reduceMotion
-        var newItem = StripItem(url: url, cgImage: cgImage)
+        var newItem = StripItem(url: url, cgImage: cgImage, isLongCapture: isLongCapture)
         if flies {
             newItem.isFlying = true
         }

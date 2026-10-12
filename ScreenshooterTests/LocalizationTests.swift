@@ -252,7 +252,7 @@ final class LocalizationTests: XCTestCase {
         let cg = try XCTUnwrap(makeTestImage())
         let date = try XCTUnwrap(Calendar.current.date(from: DateComponents(year: 2026, month: 10, day: 9, hour: 14, minute: 32)))
         let item = StripItem(url: URL(fileURLWithPath: "/tmp/x.png"), cgImage: cg,
-                             pixelSize: CGSize(width: 800, height: 4000), createdAt: date)
+                             pixelSize: CGSize(width: 800, height: 4000), createdAt: date, isLongCapture: true)
 
         LocalizedTestSupport.use("es")
         var loc = L10n.locale
@@ -265,6 +265,18 @@ final class LocalizationTests: XCTestCase {
         XCTAssertEqual(StripMotion.accessibilityLabel(for: item, missing: false, locale: loc), "Long capture, 14:32, 800 by 4000")
         XCTAssertEqual(StripMotion.accessibilityLabel(for: item, missing: true, locale: loc), "Capture not found, 14:32")
         XCTAssertEqual(StripMotion.metaText(for: item, locale: loc), "14:32 · 800×4000 · long capture")
+    }
+
+    @MainActor
+    func testTallNormalCaptureHasNoLongCaptureTexts() throws {
+        let cg = try XCTUnwrap(makeTestImage())
+        let date = try XCTUnwrap(Calendar.current.date(from: DateComponents(year: 2026, month: 10, day: 9, hour: 14, minute: 32)))
+        let item = StripItem(url: URL(fileURLWithPath: "/tmp/x.png"), cgImage: cg,
+                             pixelSize: CGSize(width: 800, height: 4000), createdAt: date)
+        LocalizedTestSupport.use("en")
+        let loc = L10n.locale
+        XCTAssertEqual(StripMotion.accessibilityLabel(for: item, missing: false, locale: loc), "Capture, 14:32, 800 by 4000")
+        XCTAssertEqual(StripMotion.metaText(for: item, locale: loc), "14:32 · 800×4000")
     }
 
     @MainActor

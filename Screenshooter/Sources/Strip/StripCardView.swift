@@ -560,13 +560,13 @@ public final class StripCardView: NSView, NSDraggingSource, NSMenuDelegate {
     /// Marco completo de la imagen (en coordenadas de `cardBody`); en largas excede el área por abajo.
     private var thumbFullRect: NSRect {
         let area = cardBody.bounds.insetBy(dx: StripMotion.thumbnailPadding, dy: StripMotion.thumbnailPadding)
-        return StripMotion.thumbnailRect(imageSize: item.image.size, in: area)
+        return StripMotion.thumbnailRect(imageSize: item.image.size, in: area, cropsFromTop: item.isLongCapture)
     }
 
     private func layoutThumbnail() {
         let area = cardBody.bounds.insetBy(dx: StripMotion.thumbnailPadding, dy: StripMotion.thumbnailPadding)
         let full = thumbFullRect
-        let isLong = StripMotion.isLongCapture(pixelSize: item.pixelSize)
+        let isLong = item.isLongCapture
         let visible = isLong ? full.intersection(area) : full
         thumbClip.frame = visible
         imageView.frame = NSRect(x: full.minX - visible.minX, y: full.minY - visible.minY, width: full.width, height: full.height)

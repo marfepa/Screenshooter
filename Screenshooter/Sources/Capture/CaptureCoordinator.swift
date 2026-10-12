@@ -311,7 +311,8 @@ public final class CaptureCoordinator {
             generation: generation,
             notice: result.interrupted
                 ? String(localized: "The long capture was interrupted. What was captured so far is in the Shelf.", bundle: L10n.bundle, locale: L10n.locale, comment: "Notice shown when the screen stream stopped during a long capture and the partial result was saved")
-                : nil
+                : nil,
+            isLongCapture: result.isLongCapture
         )
         if !result.interrupted {
             announce(String(localized: "Long capture copied to the Shelf.", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver announcement when the long capture is saved"))
@@ -372,7 +373,8 @@ public final class CaptureCoordinator {
         rect: CGRect,
         screen: NSScreen,
         generation: Int,
-        notice: String?
+        notice: String?,
+        isLongCapture: Bool = false
     ) {
         // Copiar al portapapeles y reproducir sonido de obturador
         let copied = ClipboardService.shared.copy(
@@ -388,7 +390,8 @@ public final class CaptureCoordinator {
                 url: url,
                 cgImage: image,
                 fromRect: rect,
-                screen: screen
+                screen: screen,
+                isLongCapture: isLongCapture
             )
         }
         

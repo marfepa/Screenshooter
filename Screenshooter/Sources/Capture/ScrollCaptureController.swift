@@ -12,6 +12,8 @@ final class ScrollCaptureController {
         let screen: NSScreen
         /// El stream se cortó antes de terminar: es lo capturado hasta ese momento.
         let interrupted: Bool
+        /// `false` si no llegó ningún fotograma y es la captura normal del área (sin etiqueta de captura larga).
+        var isLongCapture = true
     }
 
     /// Ya desmontado todo; el coordinador sale del modo.
@@ -323,7 +325,7 @@ final class ScrollCaptureController {
             do {
                 try? await Task.sleep(nanoseconds: 120_000_000) // deja que el compositor retire las ventanas
                 let fallback = try await ScreenCaptureEngine.shared.captureArea(rect: rect, on: screen)
-                self.onFinished?(Result(image: fallback.image, rect: rect, screen: screen, interrupted: false))
+                self.onFinished?(Result(image: fallback.image, rect: rect, screen: screen, interrupted: false, isLongCapture: false))
             } catch {
                 self.onFailed?(error)
             }
