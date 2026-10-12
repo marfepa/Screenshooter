@@ -192,3 +192,82 @@ final class ScrollCaptureComponentsTests: XCTestCase {
         XCTAssertTrue(frame.isWarningForTesting)
     }
 }
+
+// MARK: - Cableado: selección con ⇧, menú
+
+@MainActor
+final class ScrollCaptureWiringTests: XCTestCase {
+
+    override func setUp() {
+        super.setUp()
+        LocalizedTestSupport.use("en")
+    }
+
+    override func tearDown() {
+        LocalizedTestSupport.reset()
+        super.tearDown()
+    }
+
+    func testDecisionDependsOnShiftOrForcing() {
+        XCTAssertFalse(SelectionView.isScrollCapture(flags: [], forces: false))
+        XCTAssertFalse(SelectionView.isScrollCapture(flags: [.command, .option, .capsLock], forces: false))
+        XCTAssertTrue(SelectionView.isScrollCapture(flags: [.shift], forces: false))
+        XCTAssertTrue(SelectionView.isScrollCapture(flags: [], forces: true))
+    }
+
+    private func mouse(_ type: NSEvent.EventType, _ point: CGPoint, flags: NSEvent.ModifierFlags) -> NSEvent {
+        NSEvent.mouseEvent(
+            with: type, location: point, modifierFlags: flags, timestamp: 0,
+            windowNumber: 0, context: nil, eventNumber: 0, clickCount: 1, pressure: 1
+        )!
+    }
+
+    /// Arrastra 100×80 y suelta; devuelve (captura normal, captura larga) recibidas.
+    private func drag(flags: NSEvent.ModifierFlags, forces: Bool, size: CGFloat = 100) throws -> (normal: Int, long: Int) {
+        let screen = try XCTUnwrap(NSScreen.screens.first, "sin pantalla")
+        let view = SelectionView(frame: CGRect(x: 0, y: 0, width: 400, height: 300), screen: screen)
+        view.helpDefaults = UserDefaults(suiteName: "SelectionViewTests-\(UUID().uuidString)")!
+        view.forcesScrollCapture = forces
+        var normal = 0, long = 0
+        view.onSelectionCompleted = { _, _ in normal += 1 }
+        view.onScrollCaptureSelected = { _, _ in long += 1 }
+        view.mouseDown(with: mouse(.leftMouseDown, CGPoint(x: 10, y: 10), flags: []))
+        view.mouseDragged(with: mouse(.leftMouseDragged, CGPoint(x: 10 + size, y: 10 + size), flags: flags))
+        view.mouseUp(with: mouse(.leftMouseUp, CGPoint(x: 10 + size, y: 10 + size), flags: flags))
+        return (normal, long)
+    }
+
+    func testReleaseWithoutShiftKeepsNormalCapture() throws {
+        let r = try drag(flags: [], forces: false)
+        XCTAssertEqual(r.normal, 1)
+        XCTAssertEqual(r.long, 0)
+    }
+
+    func testReleaseWithShiftStartsLongCapture() throws {
+        let r = try drag(flags: [.shift], forces: false)
+        XCTAssertEqual(r.normal, 0)
+        XCTAssertEqual(r.long, 1)
+    }
+
+    func testForcedViewStartsLongCaptureWithoutShift() throws {
+        let r = try drag(flags: [], forces: true)
+        XCTAssertEqual(r.normal, 0)
+        XCTAssertEqual(r.long, 1)
+    }
+
+    func testTinySelectionIsDiscardedInBothModes() throws {
+        for shift in [false, true] {
+            let r = try drag(flags: shift ? [.shift] : [], forces: false, size: 2)
+            XCTAssertEqual(r.normal + r.long, 0)
+        }
+    }
+
+    func testMenuHasLongCaptureRightAfterCaptureItem() {
+        let controller = StatusBarController(createsStatusItem: false)
+        let titles = controller.menuForTesting.items.map(\.title)
+        let capture = titles.firstIndex(of: "Capture Selected Area...")
+        XCTAssertEqual(capture, 0)
+        XCTAssertEqual(titles[1], "Long Capture…")
+        XCTAssertEqual(controller.menuForTesting.items[1].keyEquivalent, "")
+    }
+}

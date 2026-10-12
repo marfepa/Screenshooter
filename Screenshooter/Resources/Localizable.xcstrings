@@ -2370,6 +2370,132 @@
           }
         }
       }
+    },
+    "Long capture ↕" : {
+      "comment" : "Label next to the size badge while Shift is held: releasing starts a long (scrolling) capture",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Long capture ↕"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Captura larga ↕"
+          }
+        }
+      }
+    },
+    "Hold ⇧ when releasing for a long capture" : {
+      "comment" : "Secondary hint under the size badge while selecting an area",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold ⇧ when releasing for a long capture"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantén ⇧ al soltar para una captura larga"
+          }
+        }
+      }
+    },
+    "Long Capture…" : {
+      "comment" : "Menu item: start a long (scrolling) capture",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Long Capture…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Captura larga…"
+          }
+        }
+      }
+    },
+    "Long capture. Scroll down; Return to finish, Escape to cancel." : {
+      "comment" : "VoiceOver announcement when the long capture starts",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Long capture. Scroll down; Return to finish, Escape to cancel."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Captura larga. Desplázate hacia abajo; Intro para terminar, Escape para cancelar."
+          }
+        }
+      }
+    },
+    "Long capture copied to the Shelf." : {
+      "comment" : "VoiceOver announcement when the long capture is saved",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Long capture copied to the Shelf."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Captura larga copiada a la Tira."
+          }
+        }
+      }
+    },
+    "The long capture was interrupted. What was captured so far is in the Shelf." : {
+      "comment" : "Notice shown when the screen stream stopped during a long capture and the partial result was saved",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The long capture was interrupted. What was captured so far is in the Shelf."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se interrumpió la captura larga. Lo capturado hasta ahora está en la Tira."
+          }
+        }
+      }
+    },
+    "The long capture could not be assembled." : {
+      "comment" : "Error shown when stitching the long capture produced no image",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The long capture could not be assembled."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo componer la captura larga."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
