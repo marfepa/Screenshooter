@@ -141,7 +141,9 @@ public final class ScrollStitcher {
         }
         swap(&refSigs, &newSigs)
         swap(&refDistinct, &newDistinct)
-        refTop = max(0, newTop)
+        // Posición real (puede ser negativa al subir por encima del inicio): solo se usa en aritmética
+        // de `newTop`, nunca como índice al lienzo, y así al volver a bajar no se repiten filas.
+        refTop = newTop
 
         if rowsToAdd < overhang {
             isAtLimit = true

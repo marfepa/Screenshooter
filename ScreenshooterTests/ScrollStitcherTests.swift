@@ -124,6 +124,16 @@ final class ScrollStitcherTests: XCTestCase {
         assertResult(s, equals: rows(page, 0..<700))
     }
 
+    func testScrollUpAboveStartThenDownDoesNotRepeatRows() throws {
+        let page = makePage(rows: 3000)
+        let s = try XCTUnwrap(ScrollStitcher(firstFrame: frame(page, at: 1000)))
+        XCTAssertEqual(s.add(frame(page, at: 850)), .unchanged)
+        XCTAssertEqual(s.height, fh)
+        XCTAssertEqual(s.add(frame(page, at: 1150)), .appended(rows: 150))
+        XCTAssertEqual(s.add(frame(page, at: 1300)), .appended(rows: 150))
+        assertResult(s, equals: rows(page, 1000..<1700))
+    }
+
     func testIdenticalFrame() throws {
         let page = makePage(rows: 1000)
         let s = try XCTUnwrap(ScrollStitcher(firstFrame: frame(page, at: 0)))
