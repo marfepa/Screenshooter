@@ -213,6 +213,8 @@ public final class CaptureCoordinator {
     /// Oculta los overlays y deja solo la píldora: el usuario usa el sistema con normalidad
     /// hasta volver a pulsar ⌥⌘S.
     private func enterNavigating() {
+        // La captura larga forzada vale solo para la siguiente selección
+        forceScrollCaptureOnce = false
         dismissOverlays()
         
         let pill = NavigationPillWindow()
@@ -334,6 +336,7 @@ public final class CaptureCoordinator {
     private func handleSelectionCompleted(rect: CGRect, on screen: NSScreen) {
         state = ContinuousCaptureMachine.next(state, on: .selectionCompleted)
         guard state == .processing else { return }
+        forceScrollCaptureOnce = false
         
         // Cerrar inmediatamente todas las superposiciones para que no aparezcan en la captura
         dismissOverlays()
