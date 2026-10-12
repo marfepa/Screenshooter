@@ -2532,24 +2532,6 @@
           }
         }
       }
-    },
-    "The long capture could not be assembled." : {
-      "comment" : "Error shown when stitching the long capture produced no image",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The long capture could not be assembled."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo componer la captura larga."
-          }
-        }
-      }
     }
   },
   "version" : "1.0"
