@@ -26,6 +26,9 @@ public final class CaptureCoordinator {
     /// Sube en cada captura y en cada salida del modo: un `Task` de captura solo toca el estado
     /// si sigue siendo la sesión vigente (ESC y ⌥⌘S pueden haber abierto otra mientras capturaba).
     private var captureGeneration = 0
+    private var scrollController: ScrollCaptureController?
+    /// Solo la siguiente selección se fuerza como captura larga (entrada desde el menú).
+    private var forceScrollCaptureOnce = false
     
     public private(set) var state: ContinuousCaptureState = .idle {
         didSet {
@@ -72,6 +75,22 @@ public final class CaptureCoordinator {
         }
     }
     
+    /// Menú «Captura larga…»: igual que iniciar la captura (permiso incluido), pero la siguiente
+    /// selección es una captura larga sin necesidad de ⇧.
+    public func startScrollCaptureSelection() {
+        if state == .idle {
+            toggleCapture()
+            guard state == .selecting else { return }
+        } else if state == .navigating {
+            toggleCapture()
+            guard state == .selecting else { return }
+        } else if state != .selecting {
+            return
+        }
+        forceScrollCaptureOnce = true
+        for overlay in overlayWindows { overlay.selectionView.forcesScrollCapture = true }
+    }
+    
     /// Presenta una ventana de superposición transparente por cada monitor activo.
     private func presentOverlays() {
         dismissOverlays()
@@ -85,6 +104,11 @@ public final class CaptureCoordinator {
             overlay.selectionView.onSelectionCompleted = { [weak self] selectedRect, targetScreen in
                 self?.handleSelectionCompleted(rect: selectedRect, on: targetScreen)
             }
+            
+            overlay.selectionView.onScrollCaptureSelected = { [weak self] selectedRect, targetScreen in
+                self?.beginScrollCapture(rect: selectedRect, on: targetScreen)
+            }
+            overlay.selectionView.forcesScrollCapture = forceScrollCaptureOnce
             
             overlay.selectionView.onCancelled = { [weak self] in
                 self?.cancelCapture()
@@ -229,9 +253,79 @@ public final class CaptureCoordinator {
     public func cancelCapture() {
         guard state != .idle else { return }
         captureGeneration += 1
+        forceScrollCaptureOnce = false
+        tearDownScrollCapture()
         dismissOverlays()
         dismissNavigationPill()
         state = ContinuousCaptureMachine.next(state, on: .cancel)
+    }
+    
+    // MARK: - Captura larga
+    
+    /// Selección soltada con ⇧ o elegida desde el menú: pasa a `scrollCapturing` y arranca el controlador.
+    private func beginScrollCapture(rect: CGRect, on screen: NSScreen) {
+        let previous = state
+        state = ContinuousCaptureMachine.next(state, on: .scrollCaptureRequested)
+        guard state == .scrollCapturing, previous != state else { return }
+        forceScrollCaptureOnce = false
+        dismissOverlays() // también para el temporizador de seguridad: la inactividad la lleva el modelo
+        ScrollCaptureHelpHint.recordUse(defaults: .standard)
+        captureGeneration += 1
+        let generation = captureGeneration
+        
+        let controller = ScrollCaptureController(rect: rect, screen: screen) { [weak self] text in
+            self?.announce(text)
+        }
+        controller.onCancelled = { [weak self] in
+            guard let self, generation == self.captureGeneration else { return }
+            self.scrollController = nil
+            self.cancelCapture()
+        }
+        controller.onFailed = { [weak self] error in
+            NSLog("[CaptureCoordinator] Error en la captura larga: %@", error.localizedDescription)
+            guard let self, generation == self.captureGeneration else { return }
+            self.scrollController = nil
+            // Salir del modo antes de la alerta: un overlay la taparía
+            self.cancelCapture()
+            self.showErrorAlert(message: error.localizedDescription)
+        }
+        controller.onFinished = { [weak self] result in
+            guard let self, generation == self.captureGeneration else { return }
+            self.scrollController = nil
+            self.finishScrollCapture(result, generation: generation)
+        }
+        scrollController = controller
+        controller.start()
+    }
+    
+    private func finishScrollCapture(_ result: ScrollCaptureController.Result, generation: Int) {
+        state = ContinuousCaptureMachine.next(state, on: .scrollCaptureFinished)
+        guard state == .processing else { return }
+        let scale = max(result.screen.backingScaleFactor, 1)
+        let logicalSize = CGSize(width: CGFloat(result.image.width) / scale, height: CGFloat(result.image.height) / scale)
+        finishCapture(
+            image: result.image,
+            logicalSize: logicalSize,
+            rect: result.rect,
+            screen: result.screen,
+            generation: generation,
+            notice: result.interrupted
+                ? String(localized: "The long capture was interrupted. What was captured so far is in the Shelf.", bundle: L10n.bundle, locale: L10n.locale, comment: "Notice shown when the screen stream stopped during a long capture and the partial result was saved")
+                : nil
+        )
+        if !result.interrupted {
+            announce(String(localized: "Long capture copied to the Shelf.", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver announcement when the long capture is saved"))
+        }
+    }
+    
+    /// Desmonta sesión, monitores, temporizador y ventanas de la captura larga (si hay).
+    private func tearDownScrollCapture() {
+        guard let controller = scrollController else { return }
+        scrollController = nil
+        controller.onCancelled = nil
+        controller.onFinished = nil
+        controller.onFailed = nil
+        controller.teardown()
     }
     
     /// Procesa la selección completada por el usuario. El modo continuo solo termina
@@ -252,42 +346,14 @@ public final class CaptureCoordinator {
                 // Capturar el área seleccionada
                 let result = try await ScreenCaptureEngine.shared.captureArea(rect: rect, on: screen)
                 
-                // Copiar al portapapeles y reproducir sonido de obturador
-                let copied = ClipboardService.shared.copy(
-                    cgImage: result.image,
+                self.finishCapture(
+                    image: result.image,
                     logicalSize: rect.size,
-                    playSound: true
+                    rect: rect,
+                    screen: screen,
+                    generation: generation,
+                    notice: nil
                 )
-                
-                // Guardar en la caché del Strip y colgar la captura con animación de vuelo
-                let savedURL = StripManager.shared.saveToCache(cgImage: result.image)
-                if let url = savedURL {
-                    StripManager.shared.hang(
-                        url: url,
-                        cgImage: result.image,
-                        fromRect: rect,
-                        screen: screen
-                    )
-                }
-                
-                if copied && savedURL == nil {
-                    // Solo HUD si no hay tira: con savedURL, la tira + vuelo + sonido ya confirman la captura
-                    self.activeHUD?.dismiss()
-                    let hud = HUDNotificationWindow(
-                        cgImage: result.image,
-                        pixelSize: CGSize(width: result.image.width, height: result.image.height),
-                        fileURL: savedURL
-                    )
-                    self.activeHUD = hud
-                    hud.present()
-                }
-                
-                // Modo continuo: volver a mostrar los overlays para la siguiente selección
-                // (también reinicia el temporizador de inactividad). Si ESC llegó antes, el estado ya es `idle`.
-                if self.state == .processing, generation == self.captureGeneration {
-                    self.state = ContinuousCaptureMachine.next(self.state, on: .captureFinished)
-                    self.presentOverlays()
-                }
             } catch {
                 NSLog("[CaptureCoordinator] Error al capturar área: %@", error.localizedDescription)
                 // Si ya es otra sesión, no matarla ni abrir una alerta modal que sus overlays taparían
@@ -296,6 +362,58 @@ public final class CaptureCoordinator {
                 self.cancelCapture()
                 self.showErrorAlert(message: error.localizedDescription)
             }
+        }
+    }
+    
+    /// Ruta común tras obtener la imagen (captura normal o larga): portapapeles, caché, Tira, HUD y vuelta al selector.
+    private func finishCapture(
+        image: CGImage,
+        logicalSize: CGSize,
+        rect: CGRect,
+        screen: NSScreen,
+        generation: Int,
+        notice: String?
+    ) {
+        // Copiar al portapapeles y reproducir sonido de obturador
+        let copied = ClipboardService.shared.copy(
+            cgImage: image,
+            logicalSize: logicalSize,
+            playSound: true
+        )
+        
+        // Guardar en la caché del Strip y colgar la captura con animación de vuelo
+        let savedURL = StripManager.shared.saveToCache(cgImage: image)
+        if let url = savedURL {
+            StripManager.shared.hang(
+                url: url,
+                cgImage: image,
+                fromRect: rect,
+                screen: screen
+            )
+        }
+        
+        if copied && savedURL == nil {
+            // Solo HUD si no hay tira: con savedURL, la tira + vuelo + sonido ya confirman la captura
+            activeHUD?.dismiss()
+            let hud = HUDNotificationWindow(
+                cgImage: image,
+                pixelSize: CGSize(width: image.width, height: image.height),
+                fileURL: savedURL
+            )
+            activeHUD = hud
+            hud.present()
+        }
+        
+        if let notice {
+            // Aviso modal ANTES de reabrir los overlays: si no, quedaría tapado
+            showNotice(message: notice)
+        }
+        
+        // Modo continuo: volver a mostrar los overlays para la siguiente selección
+        // (también reinicia el temporizador de inactividad). Si ESC llegó antes, el estado ya es `idle`.
+        if state == .processing, generation == captureGeneration {
+            state = ContinuousCaptureMachine.next(state, on: .captureFinished)
+            presentOverlays()
         }
     }
     
@@ -333,6 +451,17 @@ public final class CaptureCoordinator {
             window.close()
         }
         overlayWindows.removeAll()
+    }
+    
+    /// Aviso informativo modal (mismas precauciones que `showErrorAlert`).
+    private func showNotice(message: String) {
+        let alert = NSAlert()
+        alert.messageText = message
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: String(localized: "OK", bundle: L10n.bundle, locale: L10n.locale, comment: "Alert button: acknowledge"))
+        NSApp.activate(ignoringOtherApps: true)
+        alert.window.level = .floating
+        alert.runModal()
     }
     
     /// Muestra una alerta de error visible por encima de cualquier ventana.
