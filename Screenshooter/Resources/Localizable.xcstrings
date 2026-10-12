@@ -2154,6 +2154,222 @@
           }
         }
       }
+    },
+    "Long capture" : {
+      "comment" : "Long capture pill title; also VoiceOver label of the pill group",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Long capture"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Captura larga"
+          }
+        }
+      }
+    },
+    "Scroll down" : {
+      "comment" : "Long capture pill hint while capturing: scroll the page down",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scroll down"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desplázate hacia abajo"
+          }
+        }
+      }
+    },
+    "Slow down: go back up a little" : {
+      "comment" : "Long capture pill warning: scrolling was faster than the capture rate",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slow down: go back up a little"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Más despacio: vuelve un poco arriba"
+          }
+        }
+      }
+    },
+    "You've reached the end" : {
+      "comment" : "Long capture pill hint: the page seems to have ended",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You've reached the end"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Has llegado al final"
+          }
+        }
+      }
+    },
+    "You've reached the maximum height" : {
+      "comment" : "Long capture pill warning: the maximum image height was reached",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You've reached the maximum height"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Has llegado al alto máximo"
+          }
+        }
+      }
+    },
+    "Done" : {
+      "comment" : "Long capture pill button: finish and stitch the capture",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listo"
+          }
+        }
+      }
+    },
+    "Discard the long capture?" : {
+      "comment" : "Long capture pill title asking to confirm cancelling",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard the long capture?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Descartar la captura larga?"
+          }
+        }
+      }
+    },
+    "What you've captured will be lost." : {
+      "comment" : "Long capture pill hint in the cancel confirmation",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What you've captured will be lost."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se perderá lo capturado."
+          }
+        }
+      }
+    },
+    "Discard" : {
+      "comment" : "Long capture pill destructive button: throw away what was captured",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descartar"
+          }
+        }
+      }
+    },
+    "Keep going" : {
+      "comment" : "Long capture pill button: dismiss the cancel confirmation and keep capturing",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep going"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seguir"
+          }
+        }
+      }
+    },
+    "Stitching…" : {
+      "comment" : "Long capture pill title while the final image is being composed",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stitching…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uniendo…"
+          }
+        }
+      }
+    },
+    "%@ px" : {
+      "comment" : "Long capture pill counter: stitched height in pixels; the argument is a number",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ px"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ px"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
