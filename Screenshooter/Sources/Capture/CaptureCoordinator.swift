@@ -305,18 +305,19 @@ public final class CaptureCoordinator {
         guard state == .processing else { return }
         let scale = max(result.screen.backingScaleFactor, 1)
         let logicalSize = CGSize(width: CGFloat(result.image.width) / scale, height: CGFloat(result.image.height) / scale)
-        finishCapture(
+        let interruptedText = String(localized: "The long capture was interrupted. What was captured so far is in the Shelf.", bundle: L10n.bundle, locale: L10n.locale, comment: "Notice shown when the screen stream stopped during a long capture and the partial result was saved")
+        let saved = finishCapture(
             image: result.image,
             logicalSize: logicalSize,
             rect: result.rect,
             screen: result.screen,
             generation: generation,
-            notice: result.interrupted
-                ? String(localized: "The long capture was interrupted. What was captured so far is in the Shelf.", bundle: L10n.bundle, locale: L10n.locale, comment: "Notice shown when the screen stream stopped during a long capture and the partial result was saved")
-                : nil,
+            notice: result.interrupted ? interruptedText : nil,
             isLongCapture: result.isLongCapture
         )
-        if !result.interrupted {
+        if result.interrupted {
+            announce(interruptedText)
+        } else if saved {
             announce(String(localized: "Long capture copied to the Shelf.", bundle: L10n.bundle, locale: L10n.locale, comment: "VoiceOver announcement when the long capture is saved"))
         }
     }
@@ -370,6 +371,8 @@ public final class CaptureCoordinator {
     }
     
     /// Ruta común tras obtener la imagen (captura normal o larga): portapapeles, caché, Tira, HUD y vuelta al selector.
+    /// Devuelve `true` si se copió al portapapeles y se guardó/colgó en la Tira.
+    @discardableResult
     private func finishCapture(
         image: CGImage,
         logicalSize: CGSize,
@@ -378,7 +381,7 @@ public final class CaptureCoordinator {
         generation: Int,
         notice: String?,
         isLongCapture: Bool = false
-    ) {
+    ) -> Bool {
         // Copiar al portapapeles y reproducir sonido de obturador
         let copied = ClipboardService.shared.copy(
             cgImage: image,
@@ -421,6 +424,7 @@ public final class CaptureCoordinator {
             state = ContinuousCaptureMachine.next(state, on: .captureFinished)
             presentOverlays()
         }
+        return copied && savedURL != nil
     }
     
     private func restartSafetyTimer(after interval: TimeInterval) {
