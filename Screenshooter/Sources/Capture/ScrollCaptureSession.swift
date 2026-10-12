@@ -65,13 +65,20 @@ final class ScrollCaptureSession: NSObject, SCStreamOutput, SCStreamDelegate, @u
         config.queueDepth = 3
 
         let newStream = SCStream(filter: filter, configuration: config, delegate: self)
+        // Si ya se pidió parar (cancelar durante el arranque), no se instala ni se arranca nada
+        guard install(newStream) else { return }
         try newStream.addStreamOutput(self, type: .screen, sampleHandlerQueue: sampleQueue)
-        install(newStream)
         do {
             try await newStream.startCapture()
         } catch {
             clearStream()
             throw ScreenCaptureError.captureFailed(error.localizedDescription)
+        }
+        // `stop()` pudo llegar mientras `startCapture()` estaba en vuelo: el stream recién arrancado
+        // ya no lo tiene nadie, así que lo paramos aquí.
+        if stopped {
+            try? newStream.removeStreamOutput(self, type: .screen)
+            try? await newStream.stopCapture()
         }
     }
 
@@ -83,10 +90,12 @@ final class ScrollCaptureSession: NSObject, SCStreamOutput, SCStreamDelegate, @u
         try? await current.stopCapture()
     }
 
-    private func install(_ newStream: SCStream) {
+    /// Guarda el stream salvo que ya se haya pedido parar (no toca `isStopped`). Devuelve si lo instaló.
+    private func install(_ newStream: SCStream) -> Bool {
         lock.lock(); defer { lock.unlock() }
-        isStopped = false
+        guard !isStopped else { return false }
         stream = newStream
+        return true
     }
 
     private func clearStream() {
