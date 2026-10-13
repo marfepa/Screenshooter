@@ -11,12 +11,12 @@
         Height="180"
         Loaded="Window_Loaded">
 
-    <Window.RenderTransform>
-        <!-- Desplazamiento vertical para ocultar y revelar la tira desde el borde superior -->
-        <TranslateTransform x:Name="PanelTransform" Y="-180" />
-    </Window.RenderTransform>
-
     <Grid x:Name="ContainerGrid" Background="Transparent">
+        <Grid.RenderTransform>
+            <!-- Desplazamiento vertical para ocultar y revelar la tira desde el borde superior -->
+            <TranslateTransform x:Name="PanelTransform" Y="-180" />
+        </Grid.RenderTransform>
+
         <!-- Fondo de cristal difuso sutil (Glass / Acrylic effect) -->
         <Border Background="#4018181A" CornerRadius="0,0,16,16" Margin="0,0,0,0">
             <Border.Effect>

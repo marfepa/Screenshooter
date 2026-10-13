@@ -14,3 +14,9 @@ xcuserdata/
 # IDEs
 .idea/
 .vscode/
+
+# .NET
+bin/
+obj/
+*.user
+publish/

@@ -54,7 +54,23 @@ Mantiene la misma filosofía, experiencia visual y gestos que la versión de mac
 
 - Windows 10 (versión 1903 o posterior) o Windows 11.
 - Arquitectura x64 o ARM64.
-- Para el ejecutable autocontenido no se requiere instalar nada previo. Si se usa el binario dependiente del framework, se requiere [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0).
+- Para el ejecutable autocontenido de las [Releases](https://github.com/marfepa/Screenshooter/releases/latest) **no se requiere instalar nada previo**. Si se usa un binario dependiente del framework, se requiere [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0).
+
+---
+
+## Instalación
+
+1. Descarga el archivo `Screenshooter-Windows-vX.Y.Z-x64.zip` desde la [página de Releases](https://github.com/marfepa/Screenshooter/releases/latest).
+2. Descomprime el contenido del `.zip` en la carpeta que elijas (por ejemplo en `C:\Program Files\Screenshooter` o en una subcarpeta de tu usuario).
+3. Haz doble clic en `Screenshooter.exe`.
+
+### Aviso de Windows Defender SmartScreen
+
+Al tratarse de una versión abierta y sin certificado de pago, Windows puede mostrar la pantalla azul: *"Windows protegió su PC"*.
+1. Pulsa sobre el enlace **«Más información»**.
+2. Pulsa en el botón **«Ejecutar de todas formas»**.
+
+Una vez en ejecución, Screenshooter se alojará en la **bandeja del sistema** (junto al reloj). Haz clic derecho en su icono para configurar el inicio automático o acceder a sus opciones.
 
 ---
 
