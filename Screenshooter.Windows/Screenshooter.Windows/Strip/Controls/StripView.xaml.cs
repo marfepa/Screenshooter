@@ -7,7 +7,7 @@ using Screenshooter.Windows.Core.Models;
 
 namespace Screenshooter.Windows.Strip.Controls
 {
-    public partial class StripView : UserControl
+    public partial class StripView : System.Windows.Controls.UserControl
     {
         private readonly List<StripCardControl> _cards = new();
 

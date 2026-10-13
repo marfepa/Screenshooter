@@ -12,7 +12,7 @@ using Point = System.Windows.Point;
 
 namespace Screenshooter.Windows.Strip.Controls
 {
-    public partial class StripCardControl : UserControl
+    public partial class StripCardControl : System.Windows.Controls.UserControl
     {
         public StripItem Item { get; }
         public event Action<StripCardControl>? OnDismissRequested;
@@ -40,7 +40,7 @@ namespace Screenshooter.Windows.Strip.Controls
             }
         }
 
-        private void UserControl_MouseEnter(object sender, MouseEventArgs e)
+        private void UserControl_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
         {
             HoverOverlay.Visibility = Visibility.Visible;
             Panel.SetZIndex(this, 100);
@@ -54,7 +54,7 @@ namespace Screenshooter.Windows.Strip.Controls
             CardScale.BeginAnimation(System.Windows.Media.ScaleTransform.ScaleYProperty, scaleAnim);
         }
 
-        private void UserControl_MouseLeave(object sender, MouseEventArgs e)
+        private void UserControl_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
         {
             HoverOverlay.Visibility = Visibility.Collapsed;
             Panel.SetZIndex(this, 0);
@@ -83,7 +83,7 @@ namespace Screenshooter.Windows.Strip.Controls
             }
         }
 
-        private void UserControl_MouseMove(object sender, MouseEventArgs e)
+        private void UserControl_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed && !_isDragging)
             {

@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using Point = System.Windows.Point;
 
 namespace Screenshooter.Windows.Core.State
 {

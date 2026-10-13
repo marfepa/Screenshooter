@@ -6,27 +6,27 @@ namespace Screenshooter.Windows.Strip.Controls
 {
     public class RopeCanvas : Canvas
     {
-        private readonly Pen _shadowPen;
-        private readonly Pen _corePen;
-        private readonly Pen _highlightPen;
+        private readonly System.Windows.Media.Pen _shadowPen;
+        private readonly System.Windows.Media.Pen _corePen;
+        private readonly System.Windows.Media.Pen _highlightPen;
 
         public RopeCanvas()
         {
-            _shadowPen = new Pen(new SolidColorBrush(Color.FromArgb(80, 0, 0, 0)), 2.6)
+            _shadowPen = new System.Windows.Media.Pen(new SolidColorBrush(Color.FromArgb(80, 0, 0, 0)), 2.6)
             {
                 StartLineCap = PenLineCap.Round,
                 EndLineCap = PenLineCap.Round
             };
             _shadowPen.Freeze();
 
-            _corePen = new Pen(new SolidColorBrush(Color.FromRgb(0x8A, 0x8A, 0x8E)), 1.8)
+            _corePen = new System.Windows.Media.Pen(new SolidColorBrush(Color.FromRgb(0x8A, 0x8A, 0x8E)), 1.8)
             {
                 StartLineCap = PenLineCap.Round,
                 EndLineCap = PenLineCap.Round
             };
             _corePen.Freeze();
 
-            _highlightPen = new Pen(new SolidColorBrush(Color.FromArgb(100, 255, 255, 255)), 0.8)
+            _highlightPen = new System.Windows.Media.Pen(new SolidColorBrush(Color.FromArgb(100, 255, 255, 255)), 0.8)
             {
                 StartLineCap = PenLineCap.Round,
                 EndLineCap = PenLineCap.Round

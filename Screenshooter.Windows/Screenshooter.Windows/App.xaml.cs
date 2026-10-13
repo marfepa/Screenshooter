@@ -8,7 +8,7 @@ using Screenshooter.Windows.UI;
 
 namespace Screenshooter.Windows
 {
-    public partial class App : Application
+    public partial class App : System.Windows.Application
     {
         private const string MutexName = "Screenshooter_SingleInstance_Mutex_9F218B";
         private Mutex? _instanceMutex;
