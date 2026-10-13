@@ -17,13 +17,6 @@
             <TranslateTransform x:Name="PanelTransform" Y="-180" />
         </Grid.RenderTransform>
 
-        <!-- Fondo de cristal difuso sutil (Glass / Acrylic effect) -->
-        <Border Background="#4018181A" CornerRadius="0,0,16,16" Margin="0,0,0,0">
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="16" ShadowDepth="4" Opacity="0.4" />
-            </Border.Effect>
-        </Border>
-
         <!-- Vista de la tira con la cuerda y las tarjetas -->
         <local:StripView x:Name="StripViewControl" />
     </Grid>
