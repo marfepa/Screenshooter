@@ -1,0 +1,64 @@
+name: Release Windows
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag de la release a la que asociar el zip (p. ej. v1.2.0)'
+        required: false
+        default: 'v1.2.0'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Compilar y publicar Screenshooter Windows (win-x64)
+        run: |
+          dotnet publish ./Screenshooter.Windows/Screenshooter.Windows/Screenshooter.Windows.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -o ./Screenshooter.Windows/publish
+
+      - name: Empaquetar ZIP portable
+        run: |
+          $Tag = "${{ github.event.inputs.tag }}"
+          if (-not $Tag) { $Tag = "${{ github.ref_name }}" }
+          if (-not $Tag -or $Tag -eq "main") { $Tag = "v1.2.0" }
+          $ZipName = "Screenshooter-Windows-$Tag-x64.zip"
+          Compress-Archive -Path ./Screenshooter.Windows/publish/* -DestinationPath ./$ZipName
+          (Get-FileHash ./$ZipName -Algorithm SHA256).Hash + "  " + $ZipName | Out-File ./$ZipName.sha256 -Encoding ascii
+
+      - name: Subir artefacto a la GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $Tag = "${{ github.event.inputs.tag }}"
+          if (-not $Tag) { $Tag = "${{ github.ref_name }}" }
+          if (-not $Tag -or $Tag -eq "main") { $Tag = "v1.2.0" }
+          $ZipName = "Screenshooter-Windows-$Tag-x64.zip"
+
+          # Verificar si la release existe en GitHub
+          $ReleaseCheck = gh release view $Tag 2>&1
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Creando release $Tag..."
+            gh release create $Tag ./$ZipName ./$ZipName.sha256 --title "Screenshooter $Tag" --generate-notes
+          } else {
+            Write-Host "Subiendo artefactos a release existente $Tag..."
+            gh release upload $Tag ./$ZipName ./$ZipName.sha256 --clobber
+          }

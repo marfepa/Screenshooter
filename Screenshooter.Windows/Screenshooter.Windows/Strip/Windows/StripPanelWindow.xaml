@@ -1,0 +1,30 @@
+<Window x:Class="Screenshooter.Windows.Strip.Windows.StripPanelWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Screenshooter.Windows.Strip.Controls"
+        Title="ScreenshooterStrip"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        Height="180"
+        Loaded="Window_Loaded">
+
+    <Window.RenderTransform>
+        <!-- Desplazamiento vertical para ocultar y revelar la tira desde el borde superior -->
+        <TranslateTransform x:Name="PanelTransform" Y="-180" />
+    </Window.RenderTransform>
+
+    <Grid x:Name="ContainerGrid" Background="Transparent">
+        <!-- Fondo de cristal difuso sutil (Glass / Acrylic effect) -->
+        <Border Background="#4018181A" CornerRadius="0,0,16,16" Margin="0,0,0,0">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="16" ShadowDepth="4" Opacity="0.4" />
+            </Border.Effect>
+        </Border>
+
+        <!-- Vista de la tira con la cuerda y las tarjetas -->
+        <local:StripView x:Name="StripViewControl" />
+    </Grid>
+</Window>

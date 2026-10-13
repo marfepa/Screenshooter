@@ -4,11 +4,14 @@
 
 # Screenshooter
 
-App de barra de menús para capturas de pantalla en macOS: seleccionas un área, se copia al portapapeles y queda colgada en una Tira de tarjetas desde la que puedes reutilizarla.
+App de capturas de pantalla para macOS y Windows: seleccionas un área, se copia al portapapeles y queda colgada en una Tira de tarjetas desde la que puedes reutilizarla.
+
+> [!NOTE]
+> ¿Usas Windows? Consulta [Screenshooter para Windows](Screenshooter.Windows/README.md) para la versión nativa de Windows 10/11 en .NET 8.
 
 ![La Tira: capturas colgadas de una cuerda bajo la barra de menús](docs/images/tira.png)
 
-## Requisitos
+## Requisitos (macOS)
 
 - macOS 14 (Sonoma) o posterior.
 - Mac con Apple Silicon o Intel (binario universal).

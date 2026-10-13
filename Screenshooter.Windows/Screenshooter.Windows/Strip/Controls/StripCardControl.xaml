@@ -1,0 +1,159 @@
+<UserControl x:Class="Screenshooter.Windows.Strip.Controls.StripCardControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Screenshooter.Windows.Strip.Controls"
+             Width="150" Height="146"
+             RenderTransformOrigin="0.5, 0.05"
+             Cursor="Hand"
+             MouseEnter="UserControl_MouseEnter"
+             MouseLeave="UserControl_MouseLeave"
+             MouseDown="UserControl_MouseDown"
+             MouseMove="UserControl_MouseMove">
+
+    <UserControl.RenderTransform>
+        <TransformGroup>
+            <ScaleTransform x:Name="CardScale" ScaleX="1.0" ScaleY="1.0" />
+            <RotateTransform x:Name="CardRotate" Angle="0.0" />
+            <TranslateTransform x:Name="CardTranslate" X="0" Y="0" />
+        </TransformGroup>
+    </UserControl.RenderTransform>
+
+    <Grid>
+        <!-- Pinza colgando de la cuerda (en la parte superior) -->
+        <local:ClothespinControl HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" Panel.ZIndex="10" />
+
+        <!-- Tarjeta de foto (comienza 8px por debajo del borde superior) -->
+        <Border x:Name="CardBorder"
+                Width="150" Height="104"
+                Margin="0,8,0,0"
+                VerticalAlignment="Top"
+                Background="#252528"
+                BorderBrush="#38FFFFFF"
+                BorderThickness="1"
+                CornerRadius="6"
+                ClipToBounds="True">
+            <Border.Effect>
+                <DropShadowEffect x:Name="CardShadow" BlurRadius="10" ShadowDepth="3" Opacity="0.35" />
+            </Border.Effect>
+
+            <Grid>
+                <!-- Miniatura de la imagen capturada -->
+                <Image x:Name="ThumbnailImage"
+                       Stretch="Uniform"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Margin="4" />
+
+                <!-- Gradiente para capturas largas -->
+                <Border x:Name="LongCaptureGradient"
+                        Visibility="Collapsed"
+                        VerticalAlignment="Bottom"
+                        Height="28">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#00000000" Offset="0" />
+                            <GradientStop Color="#CC1E1E1E" Offset="1" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <TextBlock Text="↕ Captura larga"
+                               Foreground="#0A84FF"
+                               FontSize="9"
+                               FontWeight="Bold"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Bottom"
+                               Margin="0,0,0,4" />
+                </Border>
+
+                <!-- Barra de acciones al pasar el ratón (Hover) -->
+                <Border x:Name="HoverOverlay"
+                        Background="#80000000"
+                        Visibility="Collapsed">
+                    <Grid>
+                        <!-- Botón de descarte ✕ en la esquina superior derecha -->
+                        <Button x:Name="DismissButton"
+                                Content="✕"
+                                Width="20" Height="20"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Margin="4"
+                                Background="#88000000"
+                                Foreground="#FFFFFF"
+                                FontSize="10"
+                                FontWeight="Bold"
+                                BorderThickness="0"
+                                Cursor="Hand"
+                                Click="DismissButton_Click">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="10" />
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+
+                        <!-- Botones centrales: Copiar y Abrir -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Button x:Name="CopyButton"
+                                    Content="📋 Copiar"
+                                    Background="#CC1E1E1E"
+                                    Foreground="#FFFFFF"
+                                    FontSize="10"
+                                    FontWeight="SemiBold"
+                                    BorderThickness="0"
+                                    Padding="6,3"
+                                    Margin="0,0,6,0"
+                                    Click="CopyButton_Click">
+                                <Button.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius" Value="4" />
+                                    </Style>
+                                </Button.Resources>
+                            </Button>
+                            <Button x:Name="OpenButton"
+                                    Content="🔍 Abrir"
+                                    Background="#CC1E1E1E"
+                                    Foreground="#FFFFFF"
+                                    FontSize="10"
+                                    FontWeight="SemiBold"
+                                    BorderThickness="0"
+                                    Padding="6,3"
+                                    Click="OpenButton_Click">
+                                <Button.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius" Value="4" />
+                                    </Style>
+                                </Button.Resources>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- Cápsula con metadatos ("14:32 · 1920×1080") -->
+        <Border HorizontalAlignment="Center"
+                VerticalAlignment="Bottom"
+                Margin="0,0,0,2"
+                Background="#EE202022"
+                BorderBrush="#30FFFFFF"
+                BorderThickness="0.8"
+                CornerRadius="8"
+                Padding="6,2">
+            <TextBlock x:Name="MetaTextBlock"
+                       Foreground="#B0B0B4"
+                       FontSize="9.5"
+                       FontWeight="Medium"
+                       Text="12:00 · 800×600" />
+        </Border>
+    </Grid>
+
+    <UserControl.ContextMenu>
+        <ContextMenu>
+            <MenuItem Header="Copiar al portapapeles" Click="MenuCopy_Click" />
+            <MenuItem Header="Abrir con visor predeterminado" Click="MenuOpen_Click" />
+            <MenuItem Header="Abrir con Paint" Click="MenuOpenPaint_Click" />
+            <MenuItem Header="Mostrar en Explorador de archivos" Click="MenuShowInExplorer_Click" />
+            <Separator />
+            <MenuItem Header="Mover a la papelera" Click="MenuDelete_Click" />
+        </ContextMenu>
+    </UserControl.ContextMenu>
+</UserControl>

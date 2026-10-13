@@ -1,0 +1,28 @@
+<UserControl x:Class="Screenshooter.Windows.Strip.Controls.ClothespinControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Width="14" Height="22">
+    <Grid>
+        <!-- Cuerpo de madera de la pinza -->
+        <Border Width="10" Height="20"
+                Background="#C8A575"
+                BorderBrush="#906535"
+                BorderThickness="0.8"
+                CornerRadius="2"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="4" ShadowDepth="1.5" Opacity="0.3" />
+            </Border.Effect>
+
+            <Grid>
+                <!-- Hendidura del muelle metálico en el centro -->
+                <Rectangle Width="8" Height="3" Fill="#607078"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
+                <!-- Línea vertical divisoria entre las dos patas de la pinza -->
+                <Line X1="5" Y1="12" X2="5" Y2="20" Stroke="#906535" StrokeThickness="0.8" />
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

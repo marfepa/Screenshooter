@@ -1,0 +1,78 @@
+<Window x:Class="Screenshooter.Windows.Capture.Windows.ScrollCapturePillWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ScrollCapturePill"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        SizeToContent="WidthAndHeight"
+        Loaded="Window_Loaded">
+
+    <Border Background="#F21E1E1E"
+            BorderBrush="#44FFFFFF"
+            BorderThickness="1"
+            CornerRadius="16"
+            Padding="16,8"
+            Margin="10">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="20" ShadowDepth="4" Opacity="0.5" />
+        </Border.Effect>
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <!-- Icono de scroll -->
+            <TextBlock Text="↕"
+                       Foreground="#0A84FF"
+                       FontSize="16"
+                       FontWeight="Bold"
+                       VerticalAlignment="Center"
+                       Margin="0,0,10,0" />
+
+            <StackPanel Orientation="Vertical" VerticalAlignment="Center" Margin="0,0,16,0">
+                <TextBlock Text="Captura larga activa"
+                           Foreground="#FFFFFF"
+                           FontSize="12"
+                           FontWeight="Bold" />
+                <TextBlock x:Name="StatusText"
+                           Text="Haz scroll hacia abajo..."
+                           Foreground="#A0A0A0"
+                           FontSize="11" />
+            </StackPanel>
+
+            <!-- Botón Listo -->
+            <Button Content="Listo (Enter)"
+                    Background="#0A84FF"
+                    Foreground="#FFFFFF"
+                    BorderThickness="0"
+                    Padding="12,5"
+                    FontSize="11"
+                    FontWeight="SemiBold"
+                    Cursor="Hand"
+                    Margin="0,0,8,0"
+                    Click="DoneButton_Click">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="10" />
+                    </Style>
+                </Button.Resources>
+            </Button>
+
+            <!-- Botón Cancelar -->
+            <Button Content="Cancelar (Esc)"
+                    Background="#33FFFFFF"
+                    Foreground="#FFFFFF"
+                    BorderThickness="0"
+                    Padding="10,5"
+                    FontSize="11"
+                    FontWeight="SemiBold"
+                    Cursor="Hand"
+                    Click="CancelButton_Click">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="10" />
+                    </Style>
+                </Button.Resources>
+            </Button>
+        </StackPanel>
+    </Border>
+</Window>
